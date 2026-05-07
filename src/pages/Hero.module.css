@@ -53,14 +53,40 @@
   --header-concealed-extra: var(--primitives-spacing-6);
 }
 
-.bottomBar {
+.leftCorner {
   position: absolute;
   left: var(--primitives-spacing-6);
+  bottom: var(--primitives-spacing-6);
+  z-index: 10;
+  width: 582px;
+}
+
+.leftCornerExpanded {
+  top: calc(var(--primitives-spacing-6) + 56px + var(--primitives-spacing-6));
+  bottom: var(--primitives-spacing-6);
+  z-index: 20;
+}
+
+.rightCorner {
+  position: absolute;
   right: var(--primitives-spacing-6);
   bottom: var(--primitives-spacing-6);
   z-index: 10;
+}
+
+.leftStack {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--primitives-spacing-4);
+  align-items: stretch;
+  width: 582px;
+  height: 100%;
+  min-height: 0;
+}
+
+.participantsWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
 }
 

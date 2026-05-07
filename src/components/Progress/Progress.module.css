@@ -5,12 +5,25 @@
   border-radius: 15px;
   border: none;
   background: color-mix(in srgb, var(--primitives-color-neutral-50) 72%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 48px;
   box-sizing: border-box;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .cardSansStatus {

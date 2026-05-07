@@ -14,6 +14,8 @@ type HoverState = {
 
 type NodeMeta = { kind: NodeKind; address: string; committed: string }
 
+export type PinnedNode = { kind: NodeKind; address: string; committed?: string }
+
 const COLORS: Record<NodeKind, number> = {
   'Hop 0': 0x8b5cf6,
   'Hop 1': 0xfb923c,
@@ -112,11 +114,44 @@ function createCenterNodeTexture() {
   return { canvas, texture }
 }
 
-export function NodeSphere() {
+export interface NodeSphereProps {
+  /** When set, the matching node is emphasized. */
+  highlightAddress?: string
+  /** When set, non-matching nodes are dimmed. */
+  filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2'
+  /** Disable pointer interactions so overlays can scroll/capture wheel. */
+  interactionDisabled?: boolean
+  /**
+   * Optional list of nodes to "pin" into the generated graph, by replacing the
+   * first N node addresses per kind. Used to connect UI lists to the sphere.
+   */
+  pinnedNodes?: PinnedNode[]
+}
+
+export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, pinnedNodes }: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [selectedTip, setSelectedTip] = useState<HoverState | null>(null)
   const hoverActiveRef = useRef(false)
   const isDraggingRef = useRef(false)
+  const highlightRef = useRef<string | undefined>(highlightAddress)
+  const filterRef = useRef<NodeSphereProps['filterKind']>(filterKind)
+  const selectedTipRef = useRef<HoverState | null>(null)
+  const rendererElRef = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    highlightRef.current = highlightAddress
+  }, [highlightAddress])
+
+  useEffect(() => {
+    filterRef.current = filterKind
+  }, [filterKind])
+
+  useEffect(() => {
+    const el = rendererElRef.current
+    if (!el) return
+    el.style.pointerEvents = interactionDisabled ? 'none' : 'auto'
+  }, [interactionDisabled])
 
   // Stable id so we can safely attach events once.
   const instanceId = useMemo(() => Math.random().toString(36).slice(2), [])
@@ -140,6 +175,8 @@ export function NodeSphere() {
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
     renderer.domElement.style.display = 'block'
+    renderer.domElement.style.pointerEvents = interactionDisabled ? 'none' : 'auto'
+    rendererElRef.current = renderer.domElement
     host.appendChild(renderer.domElement)
 
     const group = new THREE.Group()
@@ -151,7 +188,7 @@ export function NodeSphere() {
     const NODE_RADIUS = 0.085
 
     const nodeGeometry = new THREE.SphereGeometry(NODE_RADIUS, 14, 14)
-    const materialsByKind = new Map<NodeKind, THREE.MeshBasicMaterial>(
+    const baseMaterialsByKind = new Map<NodeKind, THREE.MeshBasicMaterial>(
       (Object.keys(COLORS) as NodeKind[]).map(kind => ([
         kind,
         new THREE.MeshBasicMaterial({
@@ -174,9 +211,27 @@ export function NodeSphere() {
       { kind: 'Multi-hop', count: 10, radius: 6.4 },
     ]
 
+    const pinnedByKind = new Map<NodeKind, PinnedNode[]>()
+    if (pinnedNodes?.length) {
+      for (const p of pinnedNodes) {
+        const list = pinnedByKind.get(p.kind) ?? []
+        list.push(p)
+        pinnedByKind.set(p.kind, list)
+      }
+    }
+    const pinnedIndex = new Map<NodeKind, number>()
+    const takePinned = (kind: NodeKind): PinnedNode | null => {
+      const list = pinnedByKind.get(kind)
+      if (!list?.length) return null
+      const idx = pinnedIndex.get(kind) ?? 0
+      if (idx >= list.length) return null
+      pinnedIndex.set(kind, idx + 1)
+      return list[idx]
+    }
+
     const pushNode = (pos: THREE.Vector3, meta: NodeMeta) => {
       nodePositions.push(pos)
-      const mesh = new THREE.Mesh(nodeGeometry, materialsByKind.get(meta.kind)!)
+      const mesh = new THREE.Mesh(nodeGeometry, baseMaterialsByKind.get(meta.kind)!.clone())
       mesh.position.copy(pos)
       mesh.userData = meta
       group.add(mesh)
@@ -190,10 +245,11 @@ export function NodeSphere() {
         const dir = randomUnitVector(rand)
         const jitter = (rand() - 0.5) * 0.18
         const pos = dir.multiplyScalar(shell.radius + jitter)
+        const pinned = takePinned(shell.kind)
         pushNode(pos, {
           kind: shell.kind,
-          address: makeAddress(rand),
-          committed: makeCommitted(rand),
+          address: pinned?.address ?? makeAddress(rand),
+          committed: pinned?.committed ?? makeCommitted(rand),
         })
       }
     }
@@ -346,13 +402,33 @@ export function NodeSphere() {
     }
 
     const onWheel = (e: WheelEvent) => {
+      // If a UI overlay is on top (e.g. the participants list), don't hijack the wheel.
+      // In some browsers, the canvas can still receive wheel events even when visually covered.
+      const top = document.elementFromPoint(e.clientX, e.clientY)
+      if (top && top !== renderer.domElement && !renderer.domElement.contains(top)) return
+
       e.preventDefault()
       const next = camera.position.z + e.deltaY * 0.01
       camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
     }
 
+    let targetRotX: number | null = null
+    let targetRotY: number | null = null
+    let lastCenteredAddress: string | null = null
+
+    const computeCenterRotation = (m: THREE.Mesh) => {
+      const v = m.position.clone().normalize()
+      const yAxis = new THREE.Vector3(0, 1, 0)
+      const yaw = -Math.atan2(v.x, v.z)
+      const vYaw = v.clone().applyAxisAngle(yAxis, yaw)
+      const pitch = Math.atan2(vYaw.y, vYaw.z)
+      targetRotY = yaw
+      targetRotX = pitch
+    }
+
     const animate = () => {
-      const shouldAutoRotate = !hoverActiveRef.current && !isDraggingRef.current
+      const selectedAddr = highlightRef.current
+      const shouldAutoRotate = !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
       if (shouldAutoRotate) {
         group.rotation.y += 0.001
         group.rotation.x += 0.0003
@@ -361,9 +437,74 @@ export function NodeSphere() {
       // Subtle emphasis on hovered node.
       for (const m of nodeMeshes) {
         const isHovered = hovered === m
-        const target = isHovered ? 1.35 : 1
+        const meta = m.userData as NodeMeta
+        const isSelected = !!selectedAddr && meta.address === selectedAddr
+        const activeFilter = filterRef.current
+        const isFilteredOut = !!activeFilter && meta.kind !== activeFilter && meta.kind !== 'Your wallet'
+        const target = Math.max(isHovered ? 1.35 : 1, isSelected ? 1.55 : 1)
         const s = m.scale.x + (target - m.scale.x) * 0.15
         m.scale.setScalar(s)
+
+        const mat = m.material as THREE.MeshBasicMaterial
+        const targetOpacity = isSelected ? 1 : isFilteredOut ? 0.08 : 0.6
+        mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
+      }
+
+      // Center selected node in view by rotating the group.
+      if (selectedAddr && !isDraggingRef.current) {
+        if (lastCenteredAddress !== selectedAddr) {
+          const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
+          if (selectedMesh) computeCenterRotation(selectedMesh)
+          lastCenteredAddress = selectedAddr
+        }
+
+        if (targetRotX != null && targetRotY != null) {
+          group.rotation.x += (targetRotX - group.rotation.x) * 0.08
+          group.rotation.y += (targetRotY - group.rotation.y) * 0.08
+        }
+      } else {
+        lastCenteredAddress = null
+        targetRotX = null
+        targetRotY = null
+      }
+
+      // Keep selected tooltip pinned near the selected node (when not hovering other nodes).
+      if (selectedAddr && !hoverActiveRef.current) {
+        const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
+        if (selectedMesh) {
+          const meta = selectedMesh.userData as NodeMeta
+          const pos = selectedMesh.position.clone()
+          // position is in group local space; apply group rotation.
+          pos.applyEuler(group.rotation)
+          const projected = pos.project(camera)
+          const rect = renderer.domElement.getBoundingClientRect()
+          const x = rect.left + (projected.x * 0.5 + 0.5) * rect.width + 14
+          const y = rect.top + (-projected.y * 0.5 + 0.5) * rect.height - 12
+
+          const next: HoverState = {
+            visible: true,
+            x,
+            y,
+            kind: meta.kind,
+            address: meta.address,
+            committed: meta.committed,
+          }
+
+          const prev = selectedTipRef.current
+          const shouldUpdate =
+            !prev ||
+            prev.address !== next.address ||
+            Math.abs(prev.x - next.x) > 0.5 ||
+            Math.abs(prev.y - next.y) > 0.5
+
+          if (shouldUpdate) {
+            selectedTipRef.current = next
+            setSelectedTip(next)
+          }
+        }
+      } else if (selectedTipRef.current) {
+        selectedTipRef.current = null
+        setSelectedTip(null)
       }
 
       renderer.render(scene, camera)
@@ -393,7 +534,7 @@ export function NodeSphere() {
 
       group.clear()
       nodeGeometry.dispose()
-      for (const mat of materialsByKind.values()) mat.dispose()
+      for (const mat of baseMaterialsByKind.values()) mat.dispose()
       edgeGeometry.dispose()
       edgeMaterial.dispose()
       centerBgTexture.dispose()
@@ -402,7 +543,7 @@ export function NodeSphere() {
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [instanceId])
+  }, [instanceId, pinnedNodes])
 
   return (
     <div
@@ -461,6 +602,47 @@ export function NodeSphere() {
           </div>
           <div style={{ fontSize: 'var(--primitives-fontSize-lg)', opacity: 0.75 }}>
             {hover.kind}
+          </div>
+        </div>
+      )}
+
+      {/* Selected tooltip (pinned) */}
+      {!hover?.visible && selectedTip?.visible && (
+        <div
+          style={{
+            position: 'fixed',
+            left: selectedTip.x,
+            top: selectedTip.y,
+            zIndex: 29,
+            width: '272px',
+            padding: 'var(--primitives-spacing-5)',
+            borderRadius: 'var(--semantic-borderRadius-card)',
+            border: '1px solid color-mix(in srgb, var(--semantic-color-text-primary) 16%, transparent)',
+            background: 'color-mix(in srgb, var(--semantic-color-surface-default) 55%, transparent)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            color: 'var(--semantic-color-text-secondary)',
+            fontFamily: 'var(--primitives-fontFamily-ui), sans-serif',
+            pointerEvents: 'none',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 'var(--primitives-fontSize-xs)',
+              letterSpacing: 'var(--primitives-letterSpacing-widest)',
+              textTransform: 'uppercase',
+              color: 'var(--semantic-color-text-dim)',
+              marginBottom: 'var(--primitives-spacing-2)',
+            }}
+          >
+            {selectedTip.kind}
+          </div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--semantic-color-text-primary)' }}>
+            {selectedTip.address}
+          </div>
+          <div style={{ marginTop: 'var(--primitives-spacing-2)', color: 'var(--semantic-color-text-muted)' }}>
+            {selectedTip.committed}
           </div>
         </div>
       )}
