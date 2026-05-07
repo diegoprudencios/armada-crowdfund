@@ -870,7 +870,14 @@ export function NodeSphere({
           >
             {selectedTip.kind}
           </div>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--semantic-color-text-primary)' }}>
+          <div
+            style={{
+              fontFamily: 'var(--primitives-fontFamily-mono), monospace',
+              fontSize: 'calc(var(--primitives-fontSize-lg) * 1px)',
+              fontWeight: 600,
+              color: 'var(--semantic-color-text-primary)',
+            }}
+          >
             {selectedTip.address}
           </div>
           <div style={{ marginTop: 'var(--primitives-spacing-2)', color: 'var(--semantic-color-text-muted)' }}>
