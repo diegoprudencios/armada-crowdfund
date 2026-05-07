@@ -15,9 +15,17 @@ npm install
 npm run dev
 ```
 
-Open:
-- **Dashboard**: `http://localhost:5173/` (or `http://localhost:5173/dashboard.html`)
-- **Hero**: `http://localhost:5173/hero.html`
+Open (local dev):
+- **Hero (default `/`)**: `http://localhost:5173/` (served by `index.html`)
+- **Hero (explicit)**: `http://localhost:5173/hero.html`
+- **Dashboard**: `http://localhost:5173/dashboard.html`
+
+## Deploy URLs (Vercel)
+
+`vercel.json` maps friendly routes:
+- **Hero (default)**: `/`
+- **Hero**: `/hero`
+- **Dashboard**: `/dashboard`
 
 ## Build
 
@@ -26,14 +34,39 @@ npm run build
 ```
 
 Outputs in `dist/`:
-- `index.html` + `dashboard.html` (Dashboard)
+- `index.html` (Hero default)
 - `hero.html` (Hero)
+- `dashboard.html` (Dashboard)
+
+Preview the production build locally:
+
+```bash
+npm run build
+npm run preview
+```
 
 ## What’s implemented (high level)
 
-- **Dashboard layout**: headline + tags, main progress + participate CTA, hop breakdown cards, and a full-width network visualization frame.
-- **Hero layout**: full-bleed page with fixed transparent header and supporting sections.
-- **Progress / hop bars**: animated fill + amount roll-up; tick marks remain visually fixed while fill animates.
-- **Three.js network visualization**: interactive “node sphere” with hover, zoom, drag-to-rotate, and auto-rotate behavior.
-- **Header behavior**: fixed positioning with optional hide-on-scroll (down) / show-on-scroll (up).
+- **Hero layout**: full-bleed background + `NodeSphere`, fixed stacks (progress + participants panel), and a fixed header (auto-hides on scroll).
+- **Dashboard layout**: top cards (progress + participate), `NodeSphere`, and a participants table below the graph.
+- **Scenario-driven mock data** (per page load): 0 participants / small (3–5) / 30 / 800; cards + lists/tables + graph all match the chosen scenario.
+- **Three.js `NodeSphere`**: layered “shells” (center logo → Seed → Hop 1 → Hop 2…), sparse layer-to-layer wiring, hover + click-to-select, selection recentering, and path highlighting to nearest connected nodes.
+- **Filters/search**: Hero participants panel filters and search; Dashboard participants table filters and search (both aligned to Seed/Hop 1/Hop 2).
+- **Token-based styling**: primitives/semantics live in `src/styles/tokens.css` and are used across components; some fixed layout dimensions remain intentionally hardcoded (see below).
+
+## Where things live
+
+- **Pages**: `src/pages/Hero.tsx`, `src/pages/HeroDashboard.tsx`
+- **Graph**: `src/pages/NodeSphere.tsx`
+- **Mock data**: `src/utils/mockParticipants.ts`
+- **Tokens**: `src/styles/tokens.css`
+- **Multi-page entry points**: `index.html`, `hero.html`, `dashboard.html` + `vite.config.ts`
+- **Vercel routes**: `vercel.json`
+
+## Known issues / constraints
+
+- **`backdrop-filter` + WebGL**: some “glass blur” effects can appear inconsistent (or look like only translucency) depending on browser/GPU/compositing when a WebGL canvas is behind the element. We mitigated this by using pseudo-elements and careful stacking, but this is ultimately a platform/compositing limitation.
+- **Intentional hardcoding (for now)**:
+  - Fixed layout dimensions such as `582px` card width, `248x304` participate card, and `272px` tooltip width (no matching layout tokens yet).
+  - Some “in-between” typography (e.g. `14px`) where the existing primitives jump `13 → 15` and changing would subtly alter visuals.
 
