@@ -1,0 +1,97 @@
+.page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 var(--primitives-spacing-6) var(--primitives-spacing-6);
+  background: var(--semantic-color-surface-bg);
+  color: var(--semantic-color-text-primary);
+}
+
+/* Fixed header sits below top gutter; main clears header + gap to headline */
+.headerDashboard {
+  top: var(--primitives-spacing-6) !important;
+  left: var(--primitives-spacing-6) !important;
+  right: var(--primitives-spacing-6) !important;
+  width: auto !important;
+  --header-concealed-extra: var(--primitives-spacing-6);
+}
+
+.main {
+  padding: calc(var(--primitives-spacing-6) + 56px + var(--primitives-spacing-16)) 0 0;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.headline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--primitives-spacing-4);
+  text-align: center;
+  margin-bottom: var(--primitives-spacing-16);
+}
+
+/* typography.display.xl */
+.title {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-display), Georgia, serif;
+  font-size: calc(var(--primitives-fontSize-4xl) * 1px);
+  font-weight: var(--primitives-fontWeight-regular);
+  line-height: var(--primitives-lineHeight-snug);
+  letter-spacing: var(--primitives-letterSpacing-tight);
+  color: var(--semantic-color-text-primary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--primitives-spacing-3);
+  align-items: center;
+  justify-content: center;
+}
+
+.topRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--primitives-spacing-6);
+  align-items: stretch;
+  justify-content: space-between;
+  margin-bottom: var(--primitives-spacing-6);
+}
+
+.progressMain {
+  flex: 1 1 320px;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+}
+
+.participateWrap {
+  flex: 0 0 auto;
+}
+
+.hopRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--primitives-spacing-6);
+  align-items: stretch;
+  margin-bottom: var(--primitives-spacing-6);
+}
+
+.sphereSection {
+  width: 100%;
+}
+
+.sphereFrame {
+  position: relative;
+  width: 100%;
+  min-height: min(420px, 50vh);
+  border-radius: 16px;
+  border: none;
+  background: var(--primitives-color-neutral-50);
+  overflow: hidden;
+  box-sizing: border-box;
+}
