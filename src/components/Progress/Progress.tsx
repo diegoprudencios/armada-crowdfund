@@ -31,7 +31,7 @@ function easeOutCubic(t: number) {
 
 export function Progress({
   title = 'Armada Crowdfund',
-  totalCommitted = '$857k',
+  totalCommitted,
   committedAmount = 857000,
   minRaiseAmount = 1200000,
   maxAmount = 1800000,
@@ -42,12 +42,13 @@ export function Progress({
   hideStatus = false,
 }: ProgressProps) {
   // Bar position calculations
-  const filledPct = (committedAmount / maxAmount) * 100        // ~47.6%
+  const filledPct = Math.max(0, Math.min(100, (committedAmount / maxAmount) * 100))
   const minRaisePct = (minRaiseAmount / maxAmount) * 100       // ~66.7%
 
   // Labels
-  const raisedTowardMin = Math.round((committedAmount / minRaiseAmount) * 100)  // 72%
-  const leftToMin = `$${Math.round((minRaiseAmount - committedAmount) / 1000)}k` // $343k
+  const raisedTowardMin = Math.max(0, Math.min(100, Math.round((committedAmount / minRaiseAmount) * 100)))
+  const leftToMinAmount = Math.max(0, minRaiseAmount - committedAmount)
+  const leftToMin = `$${Math.round(leftToMinAmount / 1000)}k`
 
   const finalCommittedLabel = useMemo(() => {
     // Prefer explicit label if consumer provided it, otherwise derive from numeric value.

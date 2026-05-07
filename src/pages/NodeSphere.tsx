@@ -13,7 +13,7 @@ type HoverState = {
   committed: string
 }
 
-type NodeMeta = { kind: NodeKind; address: string; committed: string }
+type NodeMeta = { kind: NodeKind; address: string; committed: string; ghost?: boolean }
 
 export type PinnedNode = { kind: NodeKind; address: string; committed?: string }
 
@@ -129,9 +129,21 @@ export interface NodeSphereProps {
    * first N node addresses per kind. Used to connect UI lists to the sphere.
    */
   pinnedNodes?: PinnedNode[]
+  /** Participant scenario size chosen by the page (stable per reload). */
+  scenarioParticipants?: 0 | 3 | 4 | 5 | 30 | 800
+  /** Seed for deterministic layout within a single reload. */
+  scenarioSeed?: number
 }
 
-export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, interactionDisabled, pinnedNodes }: NodeSphereProps) {
+export function NodeSphere({
+  highlightAddress,
+  onSelectAddress,
+  filterKind,
+  interactionDisabled,
+  pinnedNodes,
+  scenarioParticipants,
+  scenarioSeed,
+}: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
   const [selectedTip, setSelectedTip] = useState<HoverState | null>(null)
@@ -142,6 +154,18 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
   const interactionDisabledRef = useRef(!!interactionDisabled)
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
+
+  const scenario = useMemo(() => {
+    const participants = scenarioParticipants ?? 30
+    const id =
+      participants === 0 ? ('empty' as const) : participants <= 5 ? ('small' as const) : participants === 30 ? ('mid' as const) : ('large' as const)
+    return { id, participants }
+  }, [scenarioParticipants])
+
+  const seed = useMemo(() => {
+    // Stable per mount, changes on reload unless caller provides a seed.
+    return scenarioSeed ?? Math.floor(Math.random() * 1_000_000_000)
+  }, [scenarioSeed])
 
   // Avoid tearing down/recreating Three.js scene due to new array references.
   const pinnedNodesKey = useMemo(() => {
@@ -201,7 +225,7 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
     root.add(focus)
     scene.add(root)
 
-    const rand = mulberry32(1337)
+    const rand = mulberry32(seed)
 
     const NODE_RADIUS = 0.085
 
@@ -224,12 +248,43 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
     const indicesByKind = new Map<NodeKind, number[]>()
     const indexByAddress = new Map<string, number>()
 
-    const shells: Array<{ kind: NodeKind; count: number; radius: number }> = [
-      { kind: 'Hop 0', count: 18, radius: 2.4 },
-      { kind: 'Hop 1', count: 26, radius: 3.6 },
-      { kind: 'Hop 2', count: 30, radius: 5.1 },
-      { kind: 'Multi-hop', count: 10, radius: 6.4 },
+    const shellRadii: Array<{ kind: NodeKind; radius: number }> = [
+      { kind: 'Hop 0', radius: 2.4 },
+      { kind: 'Hop 1', radius: 3.6 },
+      { kind: 'Hop 2', radius: 5.1 },
+      { kind: 'Multi-hop', radius: 6.4 },
     ]
+
+    const scenarioCounts = (() => {
+      // We cap rendering for large (800) so performance stays good.
+      if (scenario.id === 'empty') {
+        return {
+          real: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
+          ghost: { hop0: 6, hop1: 10, hop2: 14, multi: 0 },
+        }
+      }
+      if (scenario.id === 'small') {
+        const n = scenario.participants
+        const hop0 = Math.max(1, Math.round(n * 0.6))
+        const hop1 = Math.max(0, Math.round(n * 0.3))
+        const hop2 = Math.max(0, n - hop0 - hop1)
+        return {
+          real: { hop0, hop1, hop2, multi: 0 },
+          ghost: { hop0: 10, hop1: 12, hop2: 14, multi: 0 },
+        }
+      }
+      if (scenario.id === 'mid') {
+        return {
+          real: { hop0: 10, hop1: 10, hop2: 10, multi: 0 },
+          ghost: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
+        }
+      }
+      // large
+      return {
+        real: { hop0: 60, hop1: 70, hop2: 70, multi: 18 },
+        ghost: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
+      }
+    })()
 
     const pinnedByKind = new Map<NodeKind, PinnedNode[]>()
     if (pinnedNodes?.length) {
@@ -251,40 +306,57 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
 
     const pushNode = (pos: THREE.Vector3, meta: NodeMeta) => {
       nodePositions.push(pos)
-      const mesh = new THREE.Mesh(nodeGeometry, baseMaterialsByKind.get(meta.kind)!.clone())
+      const mat = baseMaterialsByKind.get(meta.kind)!.clone()
+      if (meta.ghost) {
+        mat.color = new THREE.Color(0xa1a1aa)
+        mat.opacity = 0.12
+      }
+      const mesh = new THREE.Mesh(nodeGeometry, mat)
       mesh.position.copy(pos)
       mesh.userData = meta
       focus.add(mesh)
       nodeMeshes.push(mesh)
 
       const idx = nodeMeshes.length - 1
-      const list = indicesByKind.get(meta.kind) ?? []
-      list.push(idx)
-      indicesByKind.set(meta.kind, list)
-      indexByAddress.set(meta.address, idx)
+      if (!meta.ghost) {
+        const list = indicesByKind.get(meta.kind) ?? []
+        list.push(idx)
+        indicesByKind.set(meta.kind, list)
+        indexByAddress.set(meta.address, idx)
+      }
     }
 
-    for (const shell of shells) {
-      for (let i = 0; i < shell.count; i += 1) {
+    const addShell = (kind: NodeKind, radius: number, realCount: number, ghostCount: number) => {
+      const total = realCount + ghostCount
+      for (let i = 0; i < total; i += 1) {
         const dir = randomUnitVector(rand)
         const jitter = (rand() - 0.5) * 0.18
-        const pos = dir.multiplyScalar(shell.radius + jitter)
-        const pinned = takePinned(shell.kind)
+        const pos = dir.multiplyScalar(radius + jitter)
+        const pinned = takePinned(kind)
+        const ghost = i >= realCount
         pushNode(pos, {
-          kind: shell.kind,
+          kind,
           address: pinned?.address ?? makeAddress(rand),
           committed: pinned?.committed ?? makeCommitted(rand),
+          ghost,
         })
       }
     }
 
-    // Exactly one wallet node (outer ring-ish).
-    const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
-    pushNode(walletPos, {
-      kind: 'Your wallet',
-      address: makeAddress(rand),
-      committed: '$0 committed',
-    })
+    addShell('Hop 0', shellRadii[0].radius, scenarioCounts.real.hop0, scenarioCounts.ghost.hop0)
+    addShell('Hop 1', shellRadii[1].radius, scenarioCounts.real.hop1, scenarioCounts.ghost.hop1)
+    addShell('Hop 2', shellRadii[2].radius, scenarioCounts.real.hop2, scenarioCounts.ghost.hop2)
+    addShell('Multi-hop', shellRadii[3].radius, scenarioCounts.real.multi, scenarioCounts.ghost.multi)
+
+    // Exactly one wallet node (outer ring-ish). Omit when there are no participants.
+    if (scenario.participants > 0) {
+      const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
+      pushNode(walletPos, {
+        kind: 'Your wallet',
+        address: makeAddress(rand),
+        committed: '$0 committed',
+      })
+    }
 
     // Center node (Armada symbol inside frosted circle) as a true 3D sprite.
     const { texture: centerBgTexture } = createCenterNodeTexture()
@@ -429,7 +501,7 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
       const hits = raycaster.intersectObjects(nodeMeshes, false)
       const hit = hits[0]?.object as THREE.Mesh | undefined
 
-      if (hit && hit.userData?.kind) {
+      if (hit && hit.userData?.kind && !(hit.userData as NodeMeta).ghost) {
         hovered = hit
         const meta = hit.userData as NodeMeta
         hoverActiveRef.current = true
@@ -482,7 +554,8 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
       raycaster.setFromCamera(pointer, camera)
       const hits = raycaster.intersectObjects(nodeMeshes, false)
       const hit = hits[0]?.object as THREE.Mesh | undefined
-      const addr = (hit?.userData as NodeMeta | undefined)?.address
+      const meta = hit?.userData as NodeMeta | undefined
+      const addr = meta && !meta.ghost ? meta.address : undefined
       const current = highlightRef.current
       onSelectAddress(addr && addr !== current ? addr : undefined)
     }
@@ -577,7 +650,8 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
         m.scale.setScalar(s)
 
         const mat = m.material as THREE.MeshBasicMaterial
-        const targetOpacity = isSelected ? 1 : isFilteredOut ? 0.08 : 0.6
+        const base = meta.ghost ? 0.12 : 0.6
+        const targetOpacity = isSelected ? 1 : isFilteredOut ? (meta.ghost ? 0.06 : 0.08) : base
         mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
       }
 
@@ -674,7 +748,7 @@ export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, inte
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [instanceId, pinnedNodesKey])
+  }, [instanceId, pinnedNodesKey, seed])
 
   return (
     <div
