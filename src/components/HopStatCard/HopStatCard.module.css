@@ -5,7 +5,7 @@
   padding: var(--primitives-spacing-6);
   border-radius: 16px;
   border: none;
-  background: var(--primitives-color-neutral-50);
+  background: color-mix(in srgb, var(--primitives-color-neutral-50) 72%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
