@@ -136,6 +136,7 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
   const isDraggingRef = useRef(false)
   const highlightRef = useRef<string | undefined>(highlightAddress)
   const filterRef = useRef<NodeSphereProps['filterKind']>(filterKind)
+  const interactionDisabledRef = useRef(!!interactionDisabled)
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -146,6 +147,10 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
   useEffect(() => {
     filterRef.current = filterKind
   }, [filterKind])
+
+  useEffect(() => {
+    interactionDisabledRef.current = !!interactionDisabled
+  }, [interactionDisabled])
 
   useEffect(() => {
     const el = rendererElRef.current

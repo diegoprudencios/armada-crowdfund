@@ -98,6 +98,17 @@ export function HeroParticipantsPanel({
         </div>
 
         <div className={styles.rightControls}>
+          <button
+            type="button"
+            className={styles.expandBtn}
+            onClick={() => {
+              setShowList(!showList)
+            }}
+            aria-expanded={showList}
+          >
+            {showList ? 'Hide list' : 'View list'}
+          </button>
+
           <div className={[styles.searchWrap, searchOpen && styles.searchWrapOpen].filter(Boolean).join(' ')}>
             <button
               type="button"
@@ -118,17 +129,6 @@ export function HeroParticipantsPanel({
               onBlur={() => setSearchOpen(false)}
             />
           </div>
-
-          <button
-            type="button"
-            className={styles.expandBtn}
-            onClick={() => {
-              setShowList(!showList)
-            }}
-            aria-expanded={showList}
-          >
-            {showList ? 'Hide list' : 'View list'}
-          </button>
         </div>
       </div>
 

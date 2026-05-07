@@ -2,22 +2,22 @@
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 var(--primitives-spacing-6) var(--primitives-spacing-6);
+  padding: 0 var(--primitives-spacing-6) 100px;
   background: var(--semantic-color-surface-bg);
   color: var(--semantic-color-text-primary);
 }
 
 /* Fixed header sits below top gutter; main clears header + gap to headline */
 .headerDashboard {
-  top: var(--primitives-spacing-6) !important;
-  left: var(--primitives-spacing-6) !important;
-  right: var(--primitives-spacing-6) !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
   width: auto !important;
-  --header-concealed-extra: var(--primitives-spacing-6);
 }
 
 .main {
-  padding: calc(var(--primitives-spacing-6) + 56px + var(--primitives-spacing-16)) 0 0;
+  padding: var(--primitives-spacing-16) 0 0;
   max-width: 1440px;
   margin: 0 auto;
   display: flex;
@@ -95,25 +95,258 @@
   justify-content: center;
 }
 
-.hopRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--primitives-spacing-6);
-  align-items: stretch;
-  margin-bottom: var(--primitives-spacing-6);
-}
-
 .sphereSection {
   width: 100%;
+  margin-top: 0;
 }
 
 .sphereFrame {
   position: relative;
   width: 100%;
-  min-height: min(420px, 50vh);
+  height: calc(100vh - (var(--primitives-spacing-6) * 2));
+  max-height: 600px;
+  min-height: 0;
   border-radius: 16px;
   border: none;
   background: var(--primitives-color-neutral-50);
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.graphControls {
+  position: absolute;
+  top: var(--primitives-spacing-6);
+  left: var(--primitives-spacing-6);
+  width: min(582px, calc(100% - (var(--primitives-spacing-6) * 2)));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+  pointer-events: auto;
+}
+
+.graphControlsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--primitives-spacing-2);
+}
+
+.graphFilters {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitives-spacing-2);
+  height: var(--semantic-component-navitem-height);
+  padding: 0;
+  border-radius: var(--semantic-component-navitem-radius);
+  background: color-mix(in srgb, var(--semantic-color-surface-raised) 58%, transparent);
+  border: 1px solid var(--semantic-color-border-default);
+}
+
+.graphFilterBtn {
+  height: 100%;
+  padding: 0 var(--primitives-spacing-4);
+  border-radius: var(--semantic-component-navitem-radius);
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--semantic-component-navitem-default-text);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: var(--semantic-component-navitem-font-size);
+  font-weight: var(--primitives-fontWeight-medium);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.graphFilterBtn:hover {
+  background: var(--semantic-component-navitem-default-bg-hover);
+  color: var(--semantic-component-navitem-default-text-hover);
+}
+
+.graphFilterBtnActive {
+  background: var(--semantic-component-navitem-active-bg);
+  color: var(--semantic-component-navitem-active-text);
+}
+
+.graphListBtn {
+  height: var(--semantic-component-navitem-height);
+  padding: 0 var(--primitives-spacing-4);
+  border-radius: var(--semantic-component-navitem-radius);
+  border: 1px solid var(--semantic-color-border-default);
+  background: color-mix(in srgb, var(--semantic-color-surface-raised) 55%, transparent);
+  color: var(--semantic-color-text-secondary);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: var(--semantic-component-navitem-font-size);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.graphListBtn:hover {
+  background: var(--semantic-component-navitem-default-bg-hover);
+  color: var(--semantic-component-navitem-default-text-hover);
+}
+
+.graphSearchWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: var(--semantic-component-navitem-height);
+  border-radius: var(--semantic-component-navitem-radius);
+  border: 1px solid var(--semantic-color-border-default);
+  background: color-mix(in srgb, var(--semantic-color-surface-raised) 62%, transparent);
+  box-sizing: border-box;
+  overflow: hidden;
+  flex: 0 0 40px;
+  min-width: 40px;
+  max-width: 100%;
+  transition: flex 160ms ease;
+}
+
+.graphSearchWrapOpen {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.graphSearchBtn {
+  height: 100%;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.graphSearchIcon {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--semantic-color-text-dim);
+  border-radius: 999px;
+  position: relative;
+  opacity: 0.8;
+  flex: 0 0 auto;
+}
+
+.graphSearchIcon::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 2px;
+  background: var(--semantic-color-text-dim);
+  right: -6px;
+  bottom: -3px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.graphSearch {
+  width: 100%;
+  min-width: 0;
+  padding-right: var(--primitives-spacing-4);
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--semantic-color-text-primary);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+}
+
+.graphSearch::placeholder {
+  color: var(--semantic-color-text-dim);
+}
+
+.graphSearchWrap:focus-within {
+  box-shadow: inset 0 0 0 2px var(--semantic-color-border-focus);
+  border-color: transparent;
+}
+
+.graphList {
+  border-radius: 12px;
+  overflow: auto;
+  max-height: min(520px, calc(100vh - 240px));
+  border: 1px solid color-mix(in srgb, var(--semantic-color-text-primary) 8%, transparent);
+  background: var(--primitives-color-neutral-50);
+  overscroll-behavior: contain;
+  margin-bottom: var(--primitives-spacing-6);
+}
+
+.graphRow {
+  display: grid;
+  grid-template-columns: 24px 1fr 90px 110px;
+  align-items: center;
+  gap: var(--primitives-spacing-4);
+  padding: var(--primitives-spacing-4) var(--primitives-spacing-5);
+  border: none;
+  background: transparent;
+  color: var(--semantic-color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.graphRow + .graphRow {
+  border-top: 1px solid var(--semantic-color-border-default);
+}
+
+.graphRow:hover {
+  background: color-mix(in srgb, var(--semantic-color-surface-raised) 34%, transparent);
+}
+
+.graphRowSelected {
+  background: color-mix(in srgb, var(--semantic-color-brand-lavender) 18%, transparent);
+}
+
+.graphRank {
+  color: var(--semantic-color-text-dim);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+}
+
+.graphAddr {
+  font-family: var(--primitives-fontFamily-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--semantic-component-tag-font-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphHop {
+  color: var(--semantic-color-text-dim);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: var(--semantic-component-tag-font-size);
+  letter-spacing: var(--primitives-letterSpacing-wide);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graphHopDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--semantic-color-surface-default) 40%, transparent);
+  flex: 0 0 auto;
+}
+
+.graphHopDotSeed {
+  background: var(--semantic-color-brand-lavender);
+}
+
+.graphHopDotHop1 {
+  background: var(--semantic-color-brand-amber);
+}
+
+.graphHopDotHop2 {
+  background: color-mix(in srgb, var(--semantic-color-brand-lavender) 55%, var(--semantic-color-brand-amber));
+}
+
+.graphAmt {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: var(--semantic-component-tag-font-size);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+  text-align: right;
 }

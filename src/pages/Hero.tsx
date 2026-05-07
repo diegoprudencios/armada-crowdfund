@@ -110,7 +110,6 @@ export function Hero() {
           className={[styles.enter, styles.enterParticipate].join(' ')}
           imageSrc="/fleet.png"
           videoSrc="/fleet.mp4"
-          onClose={() => {}}
         />
       </div>
     </div>

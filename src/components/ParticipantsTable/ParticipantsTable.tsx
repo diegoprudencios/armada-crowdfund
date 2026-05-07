@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
 import styles from './ParticipantsTable.module.css'
 
-type HopFilter = 'all' | 'hop0' | 'hop1' | 'hop2' | 'multihop'
+export type ParticipantsTableFilter = 'all' | 'hop0' | 'hop1' | 'hop2'
+
+export interface ParticipantsTableProps {
+  filter?: ParticipantsTableFilter
+  onFilterChange?: (next: ParticipantsTableFilter) => void
+  query?: string
+  onQueryChange?: (next: string) => void
+}
 
 type ParticipantRow = {
   address: string
@@ -12,12 +19,11 @@ type ParticipantRow = {
   invitesTotal: number
 }
 
-const FILTERS: Array<{ id: HopFilter; label: string }> = [
+const FILTERS: Array<{ id: ParticipantsTableFilter; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'hop0', label: 'Hop 0' },
+  { id: 'hop0', label: 'Seed' },
   { id: 'hop1', label: 'Hop 1' },
   { id: 'hop2', label: 'Hop 2' },
-  { id: 'multihop', label: 'Multi-hop' },
 ]
 
 const MOCK_ROWS: ParticipantRow[] = [
@@ -148,9 +154,20 @@ function seedToColor(seed: number) {
   return palette[seed % palette.length]
 }
 
-export function ParticipantsTable() {
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<HopFilter>('all')
+export function ParticipantsTable({
+  filter: filterProp,
+  onFilterChange,
+  query: queryProp,
+  onQueryChange,
+}: ParticipantsTableProps) {
+  const [queryState, setQueryState] = useState('')
+  const [filterState, setFilterState] = useState<ParticipantsTableFilter>('all')
+
+  const query = queryProp ?? queryState
+  const filter = filterProp ?? filterState
+
+  const setQuery = onQueryChange ?? setQueryState
+  const setFilter = onFilterChange ?? setFilterState
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -158,7 +175,9 @@ export function ParticipantsTable() {
       const matchesQuery = !q || r.address.toLowerCase().includes(q)
       const matchesFilter =
         filter === 'all' ||
-        (filter === 'multihop' ? r.hops.toLowerCase().includes('multi') : r.hops.toLowerCase() === filter)
+        (filter === 'hop0' && r.hops === 'Hop 0') ||
+        (filter === 'hop1' && r.hops === 'Hop 1') ||
+        (filter === 'hop2' && r.hops === 'Hop 2')
       return matchesQuery && matchesFilter
     })
   }, [query, filter])
@@ -175,7 +194,7 @@ export function ParticipantsTable() {
               className={styles.search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search address or ENS…"
+              placeholder="Search address…"
               inputMode="search"
               aria-label="Search participants"
             />
