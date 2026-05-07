@@ -1,0 +1,2 @@
+export { ParticipantsTable } from './ParticipantsTable'
+

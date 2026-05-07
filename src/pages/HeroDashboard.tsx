@@ -1,7 +1,7 @@
 import { Header } from '../components/Header'
-import { HopStatCard } from '../components/HopStatCard'
 import { Participate } from '../components/Participate'
 import { Progress } from '../components/Progress'
+import { ParticipantsTable } from '../components/ParticipantsTable'
 import { Tag } from '../components/Tag'
 import { NodeSphere } from './NodeSphere'
 import styles from './HeroDashboard.module.css'
@@ -39,38 +39,13 @@ export function HeroDashboard() {
           </div>
         </section>
 
-        <section className={styles.hopRow} aria-label="Hop breakdown">
-          <HopStatCard
-            label="SEED - HOP-0"
-            amount="$618K"
-            filledPct={77}
-            pctOfCeiling={77}
-            cap="$798K"
-            accent="lavender"
-          />
-          <HopStatCard
-            label="HOP-1"
-            amount="$618K"
-            filledPct={77}
-            pctOfCeiling={77}
-            cap="$798K"
-            accent="amber"
-          />
-          <HopStatCard
-            label="HOP-2"
-            amount="$618K"
-            filledPct={77}
-            pctOfCeiling={77}
-            cap="$798K"
-            accent="orange"
-          />
-        </section>
-
         <section className={styles.sphereSection} aria-label="Network">
           <div className={styles.sphereFrame}>
             <NodeSphere />
           </div>
         </section>
+
+        <ParticipantsTable />
       </main>
     </div>
   )
