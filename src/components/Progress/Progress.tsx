@@ -36,7 +36,7 @@ export function Progress({
   minRaiseAmount = 1200000,
   maxAmount = 1800000,
   daysLeft = '3 DAYS LEFT',
-  participants = '96 PARTICIPANTS',
+  participants = '85 PARTICIPANTS',
   className,
   animateOnMount = true,
   hideStatus = false,

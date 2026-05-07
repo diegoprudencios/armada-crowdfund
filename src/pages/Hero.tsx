@@ -69,6 +69,7 @@ export function Hero() {
     <div className={styles.page}>
       <NodeSphere
         highlightAddress={selectedAddress}
+        onSelectAddress={setSelectedAddress}
         filterKind={filter === 'seed' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
         interactionDisabled={participantsListOpen}
         pinnedNodes={participants.map((p) => ({

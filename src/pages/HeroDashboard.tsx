@@ -70,7 +70,7 @@ export function HeroDashboard() {
           <div className={styles.tags}>
             <Tag label="ACTIVE" dot="active" />
             <Tag label="3 DAYS LEFT" />
-            <Tag label="96 PARTICIPANTS" />
+            <Tag label="85 PARTICIPANTS" />
           </div>
         </header>
 
@@ -92,6 +92,7 @@ export function HeroDashboard() {
           <div className={styles.sphereFrame}>
             <NodeSphere
               highlightAddress={selectedAddress}
+              onSelectAddress={setSelectedAddress}
               filterKind={filter === 'hop0' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
               interactionDisabled={false}
               pinnedNodes={participants.map((p) => ({

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
 
 type NodeKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop' | 'Your wallet'
 
@@ -117,6 +118,8 @@ function createCenterNodeTexture() {
 export interface NodeSphereProps {
   /** When set, the matching node is emphasized. */
   highlightAddress?: string
+  /** Notify when a node is selected via click. */
+  onSelectAddress?: (address: string | undefined) => void
   /** When set, non-matching nodes are dimmed. */
   filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2'
   /** Disable pointer interactions so overlays can scroll/capture wheel. */
@@ -128,7 +131,7 @@ export interface NodeSphereProps {
   pinnedNodes?: PinnedNode[]
 }
 
-export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, pinnedNodes }: NodeSphereProps) {
+export function NodeSphere({ highlightAddress, onSelectAddress, filterKind, interactionDisabled, pinnedNodes }: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
   const [selectedTip, setSelectedTip] = useState<HoverState | null>(null)
@@ -139,6 +142,14 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
   const interactionDisabledRef = useRef(!!interactionDisabled)
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
+
+  // Avoid tearing down/recreating Three.js scene due to new array references.
+  const pinnedNodesKey = useMemo(() => {
+    if (!pinnedNodes?.length) return ''
+    return pinnedNodes
+      .map((p) => `${p.kind}:${p.address}:${p.committed ?? ''}`)
+      .join('|')
+  }, [pinnedNodes])
 
   useEffect(() => {
     highlightRef.current = highlightAddress
@@ -184,15 +195,18 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
     rendererElRef.current = renderer.domElement
     host.appendChild(renderer.domElement)
 
-    const group = new THREE.Group()
-    scene.add(group)
+    // Root handles free rotation (auto + drag). Focus handles selection-centering offset.
+    const root = new THREE.Group()
+    const focus = new THREE.Group()
+    root.add(focus)
+    scene.add(root)
 
     const rand = mulberry32(1337)
 
-    const EDGE_DISTANCE = 3.2
     const NODE_RADIUS = 0.085
 
-    const nodeGeometry = new THREE.SphereGeometry(NODE_RADIUS, 14, 14)
+    // Higher segment count so nodes read as true circles.
+    const nodeGeometry = new THREE.SphereGeometry(NODE_RADIUS, 28, 20)
     const baseMaterialsByKind = new Map<NodeKind, THREE.MeshBasicMaterial>(
       (Object.keys(COLORS) as NodeKind[]).map(kind => ([
         kind,
@@ -207,7 +221,8 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
 
     const nodeMeshes: THREE.Mesh[] = []
     const nodePositions: THREE.Vector3[] = []
-    const hop0Positions: THREE.Vector3[] = []
+    const indicesByKind = new Map<NodeKind, number[]>()
+    const indexByAddress = new Map<string, number>()
 
     const shells: Array<{ kind: NodeKind; count: number; radius: number }> = [
       { kind: 'Hop 0', count: 18, radius: 2.4 },
@@ -239,10 +254,14 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
       const mesh = new THREE.Mesh(nodeGeometry, baseMaterialsByKind.get(meta.kind)!.clone())
       mesh.position.copy(pos)
       mesh.userData = meta
-      group.add(mesh)
+      focus.add(mesh)
       nodeMeshes.push(mesh)
 
-      if (meta.kind === 'Hop 0') hop0Positions.push(pos.clone())
+      const idx = nodeMeshes.length - 1
+      const list = indicesByKind.get(meta.kind) ?? []
+      list.push(idx)
+      indicesByKind.set(meta.kind, list)
+      indexByAddress.set(meta.address, idx)
     }
 
     for (const shell of shells) {
@@ -260,7 +279,8 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
     }
 
     // Exactly one wallet node (outer ring-ish).
-    pushNode(randomUnitVector(rand).multiplyScalar(5.8), {
+    const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
+    pushNode(walletPos, {
       kind: 'Your wallet',
       address: makeAddress(rand),
       committed: '$0 committed',
@@ -296,33 +316,79 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
     }
     img.src = '/armada-symbol.svg'
 
-    group.add(centerSprite)
+    focus.add(centerSprite)
 
     const edgePositions: number[] = []
-    // Connect center to all Hop 0 nodes.
-    for (const p of hop0Positions) {
-      edgePositions.push(0, 0, 0, p.x, p.y, p.z)
-    }
-    for (let i = 0; i < nodePositions.length; i += 1) {
-      for (let j = i + 1; j < nodePositions.length; j += 1) {
-        if (nodePositions[i].distanceTo(nodePositions[j]) <= EDGE_DISTANCE) {
-          const a = nodePositions[i]
-          const b = nodePositions[j]
+    const edgePairs: Array<[number, number]> = []
+
+    const connectNearest = (fromIdxs: number[], toIdxs: number[], perFrom: number) => {
+      if (!fromIdxs.length || !toIdxs.length) return
+      const capped = Math.max(1, Math.min(6, perFrom))
+      for (const aIdx of fromIdxs) {
+        const a = nodePositions[aIdx]
+        const best: Array<{ d: number; idx: number }> = []
+        for (const bIdx of toIdxs) {
+          const b = nodePositions[bIdx]
+          const d = a.distanceToSquared(b)
+          // Insert into sorted list (small N so O(N^2) is fine).
+          let inserted = false
+          for (let i = 0; i < best.length; i += 1) {
+            if (d < best[i].d) {
+              best.splice(i, 0, { d, idx: bIdx })
+              inserted = true
+              break
+            }
+          }
+          if (!inserted) best.push({ d, idx: bIdx })
+          if (best.length > capped) best.length = capped
+        }
+        for (const { idx: bIdx } of best) {
+          const b = nodePositions[bIdx]
           edgePositions.push(a.x, a.y, a.z, b.x, b.y, b.z)
+          edgePairs.push([aIdx, bIdx])
         }
       }
     }
 
+    // Layered wiring: center → Seed, then Seed → Hop 1 → Hop 2 → Multi-hop.
+    const hop0 = indicesByKind.get('Hop 0') ?? []
+    const hop1 = indicesByKind.get('Hop 1') ?? []
+    const hop2 = indicesByKind.get('Hop 2') ?? []
+    const multi = indicesByKind.get('Multi-hop') ?? []
+
+    // Keep a strong-ish "origin" relationship but not overly dense.
+    // (No per-segment coloring for center links yet; keep them subtle by leaving them out.)
+
+    // Keep it sparse so it reads as layered, not webbed.
+    connectNearest(hop0, hop1, 1)
+    connectNearest(hop1, hop2, 1)
+    connectNearest(hop2, multi, 1)
+
+    // Wallet should connect to a single Seed node (more realistic).
+    if (hop0.length) {
+      // Create a synthetic "node index" for wallet by reusing its mesh index (it exists in nodes list).
+      const walletIdx = indicesByKind.get('Your wallet')?.[0]
+      if (walletIdx != null) connectNearest([walletIdx], hop0, 1)
+    }
+
     const edgeGeometry = new THREE.BufferGeometry()
     edgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3))
+    const edgeColorArray = new Float32Array((edgePositions.length / 3) * 3)
+    for (let i = 0; i < edgeColorArray.length; i += 3) {
+      edgeColorArray[i + 0] = 0.78
+      edgeColorArray[i + 1] = 0.57
+      edgeColorArray[i + 2] = 0.9
+    }
+    edgeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(edgeColorArray, 3))
     const edgeMaterial = new THREE.LineBasicMaterial({
       color: 0xc491e5,
+      vertexColors: true,
       transparent: true,
       opacity: 0.2,
       depthWrite: false,
     })
     const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial)
-    group.add(edges)
+    focus.add(edges)
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
@@ -347,8 +413,8 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
         dragLastY = e.clientY
 
         // Drag rotation: right-drag rotates around Y, up/down rotates around X.
-        group.rotation.y += dx * 0.006
-        group.rotation.x += dy * 0.004
+        root.rotation.y += dx * 0.006
+        root.rotation.x += dy * 0.004
         return
       }
 
@@ -404,6 +470,21 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
       } catch {
         // ignore
       }
+
+      if (!onSelectAddress) return
+
+      // Click-to-select: raycast on pointer up.
+      const rect = renderer.domElement.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      pointer.x = (x / rect.width) * 2 - 1
+      pointer.y = -(y / rect.height) * 2 + 1
+      raycaster.setFromCamera(pointer, camera)
+      const hits = raycaster.intersectObjects(nodeMeshes, false)
+      const hit = hits[0]?.object as THREE.Mesh | undefined
+      const addr = (hit?.userData as NodeMeta | undefined)?.address
+      const current = highlightRef.current
+      onSelectAddress(addr && addr !== current ? addr : undefined)
     }
 
     const onWheel = (e: WheelEvent) => {
@@ -417,26 +498,71 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
       camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
     }
 
-    let targetRotX: number | null = null
-    let targetRotY: number | null = null
+    const identityQuat = new THREE.Quaternion()
+    let targetFocusQuat: THREE.Quaternion | null = null
     let lastCenteredAddress: string | null = null
+    let lastHighlightedAddress: string | null = null
+    let hadSelection = false
 
-    const computeCenterRotation = (m: THREE.Mesh) => {
-      const v = m.position.clone().normalize()
-      const yAxis = new THREE.Vector3(0, 1, 0)
-      const yaw = -Math.atan2(v.x, v.z)
-      const vYaw = v.clone().applyAxisAngle(yAxis, yaw)
-      const pitch = Math.atan2(vYaw.y, vYaw.z)
-      targetRotY = yaw
-      targetRotX = pitch
+    const edgeColorAttr = edgeGeometry.getAttribute('color') as THREE.BufferAttribute
+    const setEdgeColorForSegment = (segIndex: number, r: number, g: number, b: number) => {
+      const i = segIndex * 6
+      // Each segment has 2 vertices; set both
+      edgeColorArray[i + 0] = r
+      edgeColorArray[i + 1] = g
+      edgeColorArray[i + 2] = b
+      edgeColorArray[i + 3] = r
+      edgeColorArray[i + 4] = g
+      edgeColorArray[i + 5] = b
+    }
+
+    const updateEdgeHighlight = (addr: string | null) => {
+      if (addr === lastHighlightedAddress) return
+      lastHighlightedAddress = addr
+
+      // Reset all edges to dim.
+      for (let s = 0; s < edgePairs.length; s += 1) setEdgeColorForSegment(s, 0.78, 0.57, 0.9)
+
+      if (!addr) {
+        edgeColorAttr.needsUpdate = true
+        return
+      }
+
+      const idx = indexByAddress.get(addr)
+      if (idx == null) {
+        edgeColorAttr.needsUpdate = true
+        return
+      }
+
+      // Highlight edges that touch the selected node (its "path" to nearest nodes).
+      for (let s = 0; s < edgePairs.length; s += 1) {
+        const [a, b] = edgePairs[s]
+        if (a === idx || b === idx) {
+          setEdgeColorForSegment(s, 1, 0.94, 0.78) // warm highlight
+        }
+      }
+
+      edgeColorAttr.needsUpdate = true
     }
 
     const animate = () => {
       const selectedAddr = highlightRef.current
+      updateEdgeHighlight(selectedAddr ?? null)
+
+      // If we just deselected, bake the current focused orientation into root first,
+      // then reset focus to identity. This preserves the exact current frame.
+      if (!selectedAddr && hadSelection) {
+        root.quaternion.multiply(focus.quaternion)
+        focus.quaternion.copy(identityQuat)
+        hadSelection = false
+        targetFocusQuat = null
+        lastCenteredAddress = null
+      }
+
       const shouldAutoRotate = !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
       if (shouldAutoRotate) {
-        group.rotation.y += 0.001
-        group.rotation.x += 0.0003
+        root.rotation.y += 0.001
+        root.rotation.x += 0.0003
       }
 
       // Subtle emphasis on hovered node.
@@ -455,22 +581,23 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
         mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
       }
 
-      // Center selected node in view by rotating the group.
+      // Center selected node in view by rotating the focus group (root keeps continuity).
       if (selectedAddr && !isDraggingRef.current) {
+        hadSelection = true
         if (lastCenteredAddress !== selectedAddr) {
           const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
-          if (selectedMesh) computeCenterRotation(selectedMesh)
+          if (selectedMesh) {
+            const desiredWorld = new THREE.Vector3(0, 0, 1)
+            const desiredInFocusSpace = desiredWorld.clone().applyQuaternion(root.quaternion.clone().invert()).normalize()
+            const from = selectedMesh.position.clone().normalize()
+            targetFocusQuat = new THREE.Quaternion().setFromUnitVectors(from, desiredInFocusSpace)
+          }
           lastCenteredAddress = selectedAddr
         }
-
-        if (targetRotX != null && targetRotY != null) {
-          group.rotation.x += (targetRotX - group.rotation.x) * 0.08
-          group.rotation.y += (targetRotY - group.rotation.y) * 0.08
-        }
+        if (targetFocusQuat) focus.quaternion.slerp(targetFocusQuat, 0.08)
       } else {
         lastCenteredAddress = null
-        targetRotX = null
-        targetRotY = null
+        targetFocusQuat = null
       }
 
       // Keep selected tooltip pinned near the selected node (when not hovering other nodes).
@@ -478,10 +605,9 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
         const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
         if (selectedMesh) {
           const meta = selectedMesh.userData as NodeMeta
-          const pos = selectedMesh.position.clone()
-          // position is in group local space; apply group rotation.
-          pos.applyEuler(group.rotation)
-          const projected = pos.project(camera)
+          const world = new THREE.Vector3()
+          selectedMesh.getWorldPosition(world)
+          const projected = world.project(camera)
           const rect = renderer.domElement.getBoundingClientRect()
           const x = rect.left + (projected.x * 0.5 + 0.5) * rect.width + 14
           const y = rect.top + (-projected.y * 0.5 + 0.5) * rect.height - 12
@@ -537,7 +663,7 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
       renderer.domElement.removeEventListener('wheel', onWheel)
       window.cancelAnimationFrame(raf)
 
-      group.clear()
+      root.clear()
       nodeGeometry.dispose()
       for (const mat of baseMaterialsByKind.values()) mat.dispose()
       edgeGeometry.dispose()
@@ -548,7 +674,7 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [instanceId, pinnedNodes])
+  }, [instanceId, pinnedNodesKey])
 
   return (
     <div
@@ -569,7 +695,7 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
             zIndex: 30,
             width: '272px',
             padding: 'var(--primitives-spacing-5)',
-            borderRadius: 'var(--semantic-borderRadius-card)',
+            borderRadius: 'calc(var(--semantic-borderRadius-card) * 1px)',
             border: '1px solid color-mix(in srgb, var(--semantic-color-text-primary) 16%, transparent)',
             background: 'color-mix(in srgb, var(--semantic-color-surface-default) 55%, transparent)',
             backdropFilter: 'blur(14px)',
@@ -578,18 +704,33 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
             fontFamily: 'var(--primitives-fontFamily-ui), sans-serif',
             pointerEvents: 'none',
             boxSizing: 'border-box',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
-              fontSize: 'var(--primitives-fontSize-xs)',
+              position: 'absolute',
+              top: 'var(--primitives-spacing-4)',
+              right: 'var(--primitives-spacing-4)',
+              width: 16,
+              height: 16,
+              color: 'var(--semantic-color-text-dim)',
+              opacity: 0.9,
+            }}
+            aria-hidden
+          >
+            <ArrowTopRightOnSquareIcon width={16} height={16} />
+          </div>
+          <div
+            style={{
+              fontSize: 'var(--semantic-component-tag-font-size)',
               letterSpacing: 'var(--primitives-letterSpacing-widest)',
               textTransform: 'uppercase',
-              opacity: 0.85,
-              marginBottom: 'var(--primitives-spacing-3)',
+              color: 'var(--semantic-color-text-secondary)',
+              marginBottom: 'var(--primitives-spacing-2)',
             }}
           >
-            NODE
+            {hover.kind}
           </div>
           <div
             style={{
@@ -605,9 +746,6 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
           <div style={{ fontSize: 'var(--primitives-fontSize-lg)', opacity: 0.8, marginBottom: 'var(--primitives-spacing-2)' }}>
             {hover.committed}
           </div>
-          <div style={{ fontSize: 'var(--primitives-fontSize-lg)', opacity: 0.75 }}>
-            {hover.kind}
-          </div>
         </div>
       )}
 
@@ -621,7 +759,7 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
             zIndex: 29,
             width: '272px',
             padding: 'var(--primitives-spacing-5)',
-            borderRadius: 'var(--semantic-borderRadius-card)',
+            borderRadius: 'calc(var(--semantic-borderRadius-card) * 1px)',
             border: '1px solid color-mix(in srgb, var(--semantic-color-text-primary) 16%, transparent)',
             background: 'color-mix(in srgb, var(--semantic-color-surface-default) 55%, transparent)',
             backdropFilter: 'blur(14px)',
@@ -630,14 +768,29 @@ export function NodeSphere({ highlightAddress, filterKind, interactionDisabled, 
             fontFamily: 'var(--primitives-fontFamily-ui), sans-serif',
             pointerEvents: 'none',
             boxSizing: 'border-box',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
-              fontSize: 'var(--primitives-fontSize-xs)',
+              position: 'absolute',
+              top: 'var(--primitives-spacing-4)',
+              right: 'var(--primitives-spacing-4)',
+              width: 16,
+              height: 16,
+              color: 'var(--semantic-color-text-dim)',
+              opacity: 0.9,
+            }}
+            aria-hidden
+          >
+            <ArrowTopRightOnSquareIcon width={16} height={16} />
+          </div>
+          <div
+            style={{
+              fontSize: 'var(--semantic-component-tag-font-size)',
               letterSpacing: 'var(--primitives-letterSpacing-widest)',
               textTransform: 'uppercase',
-              color: 'var(--semantic-color-text-dim)',
+              color: 'var(--semantic-color-text-secondary)',
               marginBottom: 'var(--primitives-spacing-2)',
             }}
           >
