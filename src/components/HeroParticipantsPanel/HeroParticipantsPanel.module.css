@@ -6,7 +6,7 @@
   background: transparent;
   overflow: hidden;
   box-sizing: border-box;
-  padding: var(--primitives-spacing-5);
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--primitives-spacing-4);
@@ -39,6 +39,9 @@
   justify-content: flex-start;
   gap: var(--primitives-spacing-2);
   flex-wrap: nowrap;
+  padding: var(--primitives-spacing-5);
+  padding-bottom: 0;
+  padding-left: 0;
 }
 
 .expandBtn {
@@ -191,8 +194,8 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--semantic-color-text-primary) 8%, transparent);
   background: var(--primitives-color-neutral-50);
-  margin-left: calc(-1 * var(--primitives-spacing-5));
-  margin-right: calc(-1 * var(--primitives-spacing-5));
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .listExpanded {
@@ -217,6 +220,35 @@
 
 .row + .row {
   border-top: 1px solid var(--semantic-color-border-default);
+}
+
+.empty {
+  padding: var(--primitives-spacing-7) var(--primitives-spacing-5);
+  padding-top: 40px;
+  color: var(--semantic-color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.emptyTitle {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-lg) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+}
+
+.emptySub {
+  margin-top: var(--primitives-spacing-2);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+  color: var(--semantic-color-text-muted);
+}
+
+.emptyCta {
+  margin-top: var(--primitives-spacing-5);
 }
 
 .row:hover {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Button } from '../Button'
 import styles from './ParticipantsTable.module.css'
 
 export type ParticipantsTableFilter = 'all' | 'hop0' | 'hop1' | 'hop2'
@@ -8,9 +9,10 @@ export interface ParticipantsTableProps {
   onFilterChange?: (next: ParticipantsTableFilter) => void
   query?: string
   onQueryChange?: (next: string) => void
+  rows?: ParticipantRow[]
 }
 
-type ParticipantRow = {
+export type ParticipantRow = {
   address: string
   hops: string
   committedUsd: number
@@ -159,6 +161,7 @@ export function ParticipantsTable({
   onFilterChange,
   query: queryProp,
   onQueryChange,
+  rows: rowsProp,
 }: ParticipantsTableProps) {
   const [queryState, setQueryState] = useState('')
   const [filterState, setFilterState] = useState<ParticipantsTableFilter>('all')
@@ -171,7 +174,8 @@ export function ParticipantsTable({
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return MOCK_ROWS.filter((r) => {
+    const base = rowsProp ?? MOCK_ROWS
+    return base.filter((r) => {
       const matchesQuery = !q || r.address.toLowerCase().includes(q)
       const matchesFilter =
         filter === 'all' ||
@@ -180,7 +184,9 @@ export function ParticipantsTable({
         (filter === 'hop2' && r.hops === 'Hop 2')
       return matchesQuery && matchesFilter
     })
-  }, [query, filter])
+  }, [query, filter, rowsProp])
+
+  const isScenarioEmpty = (rowsProp?.length ?? 0) === 0 && query.trim().length === 0 && filter === 'all'
 
   return (
     <section className={styles.section} aria-label="Participants">
@@ -275,8 +281,20 @@ export function ParticipantsTable({
 
           {rows.length === 0 && (
             <div className={styles.empty}>
-              <div className={styles.emptyTitle}>No matches</div>
-              <div className={styles.emptySub}>Try a different address or filter.</div>
+              {isScenarioEmpty ? (
+                <>
+                  <div className={styles.emptyTitle}>No participants yet</div>
+                  <div className={styles.emptySub}>Be the first to participate.</div>
+                  <div className={styles.emptyCta}>
+                    <Button variant="gradient" size="md" label="Participate" showIcon />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.emptyTitle}>No matches</div>
+                  <div className={styles.emptySub}>Try a different address or filter.</div>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -278,6 +278,7 @@
 
 .empty {
   padding: var(--primitives-spacing-10) var(--primitives-spacing-6);
+  padding-top: 40px;
   text-align: center;
   border-top: 1px solid var(--semantic-color-border-default);
 }
@@ -294,6 +295,12 @@
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-md) * 1px);
   color: var(--semantic-color-text-muted);
+}
+
+.emptyCta {
+  margin-top: var(--primitives-spacing-5);
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 920px) {

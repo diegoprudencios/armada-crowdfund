@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Button } from '../Button'
 import styles from './HeroParticipantsPanel.module.css'
 
 export type HeroHopFilter = 'all' | 'seed' | 'hop1' | 'hop2'
@@ -78,6 +79,7 @@ export function HeroParticipantsPanel({
   }, [participants, query, filter])
 
   const visibleRows = showList ? rows : rows.slice(0, collapsedMaxRows)
+  const isEmpty = rows.length === 0 && query.trim().length === 0 && filter === 'all'
 
   return (
     <section className={[styles.panel, showList && styles.expanded].filter(Boolean).join(' ')} aria-label="Participants">
@@ -134,26 +136,36 @@ export function HeroParticipantsPanel({
 
       {showList && (
         <div className={[styles.list, styles.listExpanded].filter(Boolean).join(' ')}>
-        {visibleRows.map((p, idx) => {
-          const selected = p.address === selectedAddress
-          return (
-            <button
-              key={p.address}
-              type="button"
-              className={[styles.row, selected && styles.rowSelected].filter(Boolean).join(' ')}
-              onClick={() => onSelectAddress?.(selected ? undefined : p.address)}
-              aria-pressed={selected}
-            >
-              <span className={styles.rank}>{idx + 1}</span>
-              <span className={styles.addr}>{p.address}</span>
-              <span className={styles.hop}>
-                <span className={styles.dot} style={{ ['--dot' as any]: hopColor(p.hop) }} aria-hidden />
-                {p.hop}
-              </span>
-              <span className={styles.amount}>{formatUsd(p.amountUsd)}</span>
-            </button>
-          )
-        })}
+          {isEmpty ? (
+            <div className={styles.empty}>
+              <div className={styles.emptyTitle}>No participants yet</div>
+              <div className={styles.emptySub}>Be the first to participate.</div>
+              <div className={styles.emptyCta}>
+                <Button variant="gradient" size="md" label="Participate" showIcon />
+              </div>
+            </div>
+          ) : (
+            visibleRows.map((p, idx) => {
+              const selected = p.address === selectedAddress
+              return (
+                <button
+                  key={p.address}
+                  type="button"
+                  className={[styles.row, selected && styles.rowSelected].filter(Boolean).join(' ')}
+                  onClick={() => onSelectAddress?.(selected ? undefined : p.address)}
+                  aria-pressed={selected}
+                >
+                  <span className={styles.rank}>{idx + 1}</span>
+                  <span className={styles.addr}>{p.address}</span>
+                  <span className={styles.hop}>
+                    <span className={styles.dot} style={{ ['--dot' as any]: hopColor(p.hop) }} aria-hidden />
+                    {p.hop}
+                  </span>
+                  <span className={styles.amount}>{formatUsd(p.amountUsd)}</span>
+                </button>
+              )
+            })
+          )}
 
         </div>
       )}
