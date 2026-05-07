@@ -7,6 +7,8 @@ export interface HeaderProps {
   navItems?: NavBarItem[]
   ctaLabel?: string
   onCtaClick?: () => void
+  walletAddress?: string
+  onWalletClick?: () => void
   className?: string
   /** Hide header when scrolling down; show when scrolling up (near top always visible). */
   autoHideOnScroll?: boolean
@@ -47,6 +49,8 @@ export function Header({
   navItems = DEFAULT_NAV,
   ctaLabel = 'Participate',
   onCtaClick,
+  walletAddress = '0x63c2...84c6',
+  onWalletClick,
   className,
   autoHideOnScroll = true,
 }: HeaderProps) {
@@ -87,7 +91,11 @@ export function Header({
       <div className={styles.nav}>
         <NavBar items={navItems} />
       </div>
-      <div className={styles.cta}>
+      <div className={styles.actions}>
+        <button type="button" className={styles.walletBtn} onClick={onWalletClick} aria-label="Wallet">
+          <span className={styles.walletIcon} aria-hidden />
+          <span className={styles.walletText}>{walletAddress}</span>
+        </button>
         <Button variant="gradient" size="md" label={ctaLabel} showIcon onClick={onCtaClick} />
       </div>
     </header>
