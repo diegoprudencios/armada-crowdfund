@@ -63,14 +63,36 @@
 }
 
 .progressMain {
-  flex: 1 1 320px;
+  flex: 1 1 0;
   min-width: 0;
   width: auto;
   max-width: none;
 }
 
 .participateWrap {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+.participateWrap > * {
+  width: 100%;
+  height: 100%;
+}
+
+.participateDashboard {
+  width: 100%;
+  height: 100%;
+  min-height: 304px;
+}
+
+.participateDashboardHeading {
+  font-size: calc(var(--primitives-fontSize-4xl) * 1px);
+}
+
+.participateDashboardCta {
+  display: flex;
+  justify-content: center;
 }
 
 .hopRow {

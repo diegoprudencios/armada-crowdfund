@@ -12,6 +12,10 @@ export interface ParticipateProps {
   onCtaClick?: () => void
   onClose?: () => void
   className?: string
+  headingClassName?: string
+  ctaClassName?: string
+  /** Defaults to true to match the original card design. */
+  buttonFullWidth?: boolean
 }
 
 export function Participate({
@@ -24,6 +28,9 @@ export function Participate({
   onCtaClick,
   onClose,
   className,
+  headingClassName,
+  ctaClassName,
+  buttonFullWidth = true,
 }: ParticipateProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoReady, setVideoReady] = useState(false)
@@ -110,9 +117,16 @@ export function Participate({
       )}
 
       <p className={styles.eyebrow}>{eyebrow}</p>
-      <h2 className={styles.heading}>{heading}</h2>
-      <div className={styles.cta}>
-        <Button variant="gradient" size="md" label={ctaLabel} showIcon onClick={onCtaClick} style={{ width: '100%' }} />
+      <h2 className={[styles.heading, headingClassName].filter(Boolean).join(' ')}>{heading}</h2>
+      <div className={[styles.cta, ctaClassName].filter(Boolean).join(' ')}>
+        <Button
+          variant="gradient"
+          size="md"
+          label={ctaLabel}
+          showIcon
+          onClick={onCtaClick}
+          style={buttonFullWidth ? { width: '100%' } : undefined}
+        />
       </div>
     </div>
   )

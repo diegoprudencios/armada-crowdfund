@@ -32,6 +32,10 @@ export function HeroDashboard() {
           <Progress hideStatus className={styles.progressMain} />
           <div className={styles.participateWrap}>
             <Participate
+              className={styles.participateDashboard}
+              headingClassName={styles.participateDashboardHeading}
+              ctaClassName={styles.participateDashboardCta}
+              buttonFullWidth={false}
               imageSrc="/fleet.png"
               videoSrc="/fleet.mp4"
               onClose={() => {}}
