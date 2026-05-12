@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
 
 type NodeKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop' | 'Your wallet'
@@ -257,15 +260,31 @@ export function NodeSphere({
     if (!host) return
 
     const scene = new THREE.Scene()
+    // Depth-based fog matched to the page background so far-side nodes and
+    // edges fade into it. Range tuned to the default camera position; the
+    // front of the sphere stays clear and the back reads markedly dimmer.
+    scene.fog = new THREE.Fog(0x0e0d0f, 8, 22)
     const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000)
     const Z_MIN = 6
     const Z_MAX = 28
-    // Start partway out so the full sphere is visible without feeling distant.
-    camera.position.z = 14
+    // The user's chosen zoom (driven by the wheel) and a separate dolly offset
+    // that lerps on selection. Effective camera.z is the sum, clamped, so a
+    // selection can push the view in slightly without losing the user's zoom.
+    let userCameraZ = 14
+    const DOLLY_ON_SELECT = -1
+    let dollyOffset = 0
+    camera.position.z = userCameraZ
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setClearColor(0x000000, 0)
+    // Color pipeline. ColorManagement.enabled (default in modern three) makes
+    // hex inputs read as sRGB; pairing it with sRGB output keeps authored
+    // colors looking as intended on screen. Tone mapping softens highlights
+    // so the bloom pass rolls off smoothly instead of clipping.
+    renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.1
     renderer.domElement.style.position = 'absolute'
     renderer.domElement.style.inset = '0'
     renderer.domElement.style.width = '100%'
@@ -274,6 +293,22 @@ export function NodeSphere({
     renderer.domElement.style.pointerEvents = interactionDisabled ? 'none' : 'auto'
     rendererElRef.current = renderer.domElement
     host.appendChild(renderer.domElement)
+
+    // Post-processing: bloom on bright pixels gives the warm tree edges and
+    // halo rings a luminous quality and makes selection feel more alive.
+    // Threshold is set above the default node opacity so only the brightest
+    // elements (selected node, tree edges, halos) actually bloom.
+    const composer = new EffectComposer(renderer)
+    composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    const renderPass = new RenderPass(scene, camera)
+    composer.addPass(renderPass)
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(1, 1),
+      0.7, // strength
+      0.4, // radius
+      0.6, // threshold
+    )
+    composer.addPass(bloomPass)
 
     // Root handles free rotation (auto + drag). Focus handles selection-centering offset.
     const root = new THREE.Group()
@@ -287,11 +322,38 @@ export function NodeSphere({
 
     // Higher segment count so nodes read as true circles.
     const nodeGeometry = new THREE.SphereGeometry(NODE_RADIUS, 28, 20)
+
+    // Bake a vertical brightness gradient into the shared sphere geometry as
+    // vertex colors. The material's color is multiplied by these per-vertex
+    // RGB values, so the top of every node renders at full color and the
+    // bottom rolls off to a darker shade. Combined with bloom, the bright
+    // top hemisphere blooms while the dim bottom does not, which fakes the
+    // appearance of top-down lighting at no shader cost.
+    {
+      const positions = nodeGeometry.getAttribute('position')
+      const vertexColors = new Float32Array(positions.count * 3)
+      const GRADIENT_BOTTOM = 0.6
+      const GRADIENT_TOP = 1.0
+      for (let i = 0; i < positions.count; i += 1) {
+        const y = positions.getY(i)
+        const t = (y + NODE_RADIUS) / (2 * NODE_RADIUS)
+        const m = GRADIENT_BOTTOM + (GRADIENT_TOP - GRADIENT_BOTTOM) * t
+        vertexColors[i * 3 + 0] = m
+        vertexColors[i * 3 + 1] = m
+        vertexColors[i * 3 + 2] = m
+      }
+      nodeGeometry.setAttribute(
+        'color',
+        new THREE.Float32BufferAttribute(vertexColors, 3),
+      )
+    }
+
     const baseMaterialsByKind = new Map<NodeKind, THREE.MeshBasicMaterial>(
       (Object.keys(COLORS) as NodeKind[]).map(kind => ([
         kind,
         new THREE.MeshBasicMaterial({
           color: COLORS[kind],
+          vertexColors: true,
           transparent: true,
           opacity: 0.6,
           depthWrite: false,
@@ -557,7 +619,7 @@ export function NodeSphere({
     const treeEdgeMaterial = new THREE.LineBasicMaterial({
       color: 0xffe4a3,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.85,
       depthWrite: false,
     })
 
@@ -591,6 +653,8 @@ export function NodeSphere({
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h, false)
+      composer.setSize(w, h)
+      bloomPass.setSize(w, h)
     }
 
     const onPointerMove = (e: PointerEvent) => {
@@ -691,8 +755,7 @@ export function NodeSphere({
       if (top && top !== renderer.domElement && !renderer.domElement.contains(top)) return
 
       e.preventDefault()
-      const next = camera.position.z + e.deltaY * 0.01
-      camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
+      userCameraZ = Math.max(Z_MIN, Math.min(Z_MAX, userCameraZ + e.deltaY * 0.01))
     }
 
     let lastHighlightedAddress: string | null = null
@@ -705,7 +768,7 @@ export function NodeSphere({
     // Opacity targets for the two edge materials in the two states.
     const BG_OPACITY_IDLE = 0.3
     const BG_OPACITY_DIMMED = 0.08
-    const TREE_OPACITY = 0.7
+    const TREE_OPACITY = 0.85
 
     const updateEdgeHighlight = (addr: string | null) => {
       if (addr === lastHighlightedAddress) return
@@ -756,6 +819,14 @@ export function NodeSphere({
         root.rotation.y += 0.001
         root.rotation.x += 0.0003
       }
+
+      // Subtle dolly toward the sphere when a node is selected, eased back
+      // out when the selection clears. The user's wheel-zoom is preserved
+      // independently in userCameraZ.
+      const dollyTarget = selectedAddr ? DOLLY_ON_SELECT : 0
+      dollyOffset += (dollyTarget - dollyOffset) * 0.06
+      camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, userCameraZ + dollyOffset))
+
 
       // Subtle emphasis on hovered node; lineage-aware dimming when selected.
       for (let i = 0; i < nodeMeshes.length; i += 1) {
@@ -823,7 +894,7 @@ export function NodeSphere({
         setSelectedTip(null)
       }
 
-      renderer.render(scene, camera)
+      composer.render()
       raf = window.requestAnimationFrame(animate)
     }
 
@@ -863,6 +934,8 @@ export function NodeSphere({
       }
       multiHopRingTexture.dispose()
 
+      bloomPass.dispose()
+      composer.dispose()
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
