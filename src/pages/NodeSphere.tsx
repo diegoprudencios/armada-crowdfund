@@ -13,9 +13,13 @@ type HoverState = {
   committed: string
 }
 
-type NodeMeta = { kind: NodeKind; address: string; committed: string; ghost?: boolean }
+type NodeMeta = { kind: NodeKind; address: string; committed: string; ghost?: boolean; multiHop?: boolean; inviter?: string }
 
-export type PinnedNode = { kind: NodeKind; address: string; committed?: string }
+export type PinnedNode = { kind: NodeKind; address: string; committed?: string; multiHop?: boolean; inviter?: string }
+
+// Feature flag for the hover-on-node tooltip. JSX is kept intact below so
+// flipping this back to true restores the previous behavior.
+const SHOW_HOVER_POPUP = false
 
 const COLORS: Record<NodeKind, number> = {
   'Hop 0': 0x8b5cf6,
@@ -58,6 +62,58 @@ function randomUnitVector(rand: () => number) {
     Math.cos(phi),
     Math.sin(phi) * Math.sin(theta),
   )
+}
+
+// Return a unit vector within a spherical cap of half-angle `halfAngleRad`
+// centered on `base`. Used to cluster a node near its inviter on the sphere.
+function jitterDirectionNear(base: THREE.Vector3, rand: () => number, halfAngleRad: number) {
+  // Pick a uniformly random axis perpendicular to base by sampling a random
+  // unit vector and projecting onto base's tangent plane.
+  const r = randomUnitVector(rand)
+  const perp = r.sub(base.clone().multiplyScalar(r.dot(base)))
+  if (perp.lengthSq() < 1e-8) perp.set(1, 0, 0)
+  perp.normalize()
+  // Uniform distribution over the cap area uses sqrt of a uniform draw.
+  const t = Math.sqrt(rand()) * halfAngleRad
+  const c = Math.cos(t)
+  const s = Math.sin(t)
+  return base.clone().multiplyScalar(c).add(perp.multiplyScalar(s))
+}
+
+function createMultiHopRingTexture() {
+  // Soft green ring drawn into a square canvas; used as a billboard halo on
+  // multi-hop nodes so it always reads as a ring regardless of camera angle.
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const texture = new THREE.CanvasTexture(canvas)
+  if (!ctx) return texture
+
+  const cx = size / 2
+  const cy = size / 2
+  // Outer halo: wider, softer.
+  ctx.save()
+  ctx.globalAlpha = 0.55
+  ctx.shadowColor = 'rgba(34,197,94,0.95)'
+  ctx.shadowBlur = 18
+  ctx.strokeStyle = 'rgba(74,222,128,0.95)'
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.arc(cx, cy, 42, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.restore()
+
+  // Inner crisp ring for definition.
+  ctx.strokeStyle = 'rgba(187,247,208,0.9)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(cx, cy, 42, 0, Math.PI * 2)
+  ctx.stroke()
+
+  texture.needsUpdate = true
+  return texture
 }
 
 function createCenterNodeTexture() {
@@ -121,7 +177,7 @@ export interface NodeSphereProps {
   /** Notify when a node is selected via click. */
   onSelectAddress?: (address: string | undefined) => void
   /** When set, non-matching nodes are dimmed. */
-  filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2'
+  filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop'
   /** Disable pointer interactions so overlays can scroll/capture wheel. */
   interactionDisabled?: boolean
   /**
@@ -129,8 +185,9 @@ export interface NodeSphereProps {
    * first N node addresses per kind. Used to connect UI lists to the sphere.
    */
   pinnedNodes?: PinnedNode[]
-  /** Participant scenario size chosen by the page (stable per reload). */
-  scenarioParticipants?: 0 | 3 | 4 | 5 | 30 | 800
+  /** Participant scenario size chosen by the page (stable per reload). 0 means
+   *  pre-launch (ghost-only sphere); any positive number means active. */
+  scenarioParticipants?: number
   /** Seed for deterministic layout within a single reload. */
   scenarioSeed?: number
 }
@@ -156,9 +213,8 @@ export function NodeSphere({
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
 
   const scenario = useMemo(() => {
-    const participants = scenarioParticipants ?? 30
-    const id =
-      participants === 0 ? ('empty' as const) : participants <= 5 ? ('small' as const) : participants === 30 ? ('mid' as const) : ('large' as const)
+    const participants = scenarioParticipants ?? 0
+    const id = participants === 0 ? ('empty' as const) : ('active' as const)
     return { id, participants }
   }, [scenarioParticipants])
 
@@ -204,8 +260,8 @@ export function NodeSphere({
     const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000)
     const Z_MIN = 6
     const Z_MAX = 28
-    // Start at max zoom (closest)
-    camera.position.z = Z_MIN
+    // Start partway out so the full sphere is visible without feeling distant.
+    camera.position.z = 14
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
@@ -247,6 +303,19 @@ export function NodeSphere({
     const nodePositions: THREE.Vector3[] = []
     const indicesByKind = new Map<NodeKind, number[]>()
     const indexByAddress = new Map<string, number>()
+    // Parallel to nodeMeshes; entry is the halo material when the node is
+    // multi-hop, otherwise null. Each multi-hop node gets its own material
+    // clone so lineage dimming can fade halos individually.
+    const haloMaterials: Array<THREE.SpriteMaterial | null> = []
+
+    // Template material for the multi-hop halo billboard. Cloned per node so
+    // each instance can be dimmed independently.
+    const multiHopRingTexture = createMultiHopRingTexture()
+    const multiHopRingMaterialTemplate = new THREE.SpriteMaterial({
+      map: multiHopRingTexture,
+      transparent: true,
+      depthWrite: false,
+    })
 
     const shellRadii: Array<{ kind: NodeKind; radius: number }> = [
       { kind: 'Hop 0', radius: 2.4 },
@@ -254,37 +323,6 @@ export function NodeSphere({
       { kind: 'Hop 2', radius: 5.1 },
       { kind: 'Multi-hop', radius: 6.4 },
     ]
-
-    const scenarioCounts = (() => {
-      // We cap rendering for large (800) so performance stays good.
-      if (scenario.id === 'empty') {
-        return {
-          real: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
-          ghost: { hop0: 6, hop1: 10, hop2: 14, multi: 0 },
-        }
-      }
-      if (scenario.id === 'small') {
-        const n = scenario.participants
-        const hop0 = Math.max(1, Math.round(n * 0.6))
-        const hop1 = Math.max(0, Math.round(n * 0.3))
-        const hop2 = Math.max(0, n - hop0 - hop1)
-        return {
-          real: { hop0, hop1, hop2, multi: 0 },
-          ghost: { hop0: 10, hop1: 12, hop2: 14, multi: 0 },
-        }
-      }
-      if (scenario.id === 'mid') {
-        return {
-          real: { hop0: 10, hop1: 10, hop2: 10, multi: 0 },
-          ghost: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
-        }
-      }
-      // large
-      return {
-        real: { hop0: 60, hop1: 70, hop2: 70, multi: 18 },
-        ghost: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
-      }
-    })()
 
     const pinnedByKind = new Map<NodeKind, PinnedNode[]>()
     if (pinnedNodes?.length) {
@@ -294,6 +332,28 @@ export function NodeSphere({
         pinnedByKind.set(p.kind, list)
       }
     }
+
+    const scenarioCounts = (() => {
+      // When a pinned dataset is provided (the live crowdfund mock), render
+      // exactly one node per pinned entry on each shell. No synthetic padding.
+      if (pinnedNodes?.length) {
+        return {
+          real: {
+            hop0: pinnedByKind.get('Hop 0')?.length ?? 0,
+            hop1: pinnedByKind.get('Hop 1')?.length ?? 0,
+            hop2: pinnedByKind.get('Hop 2')?.length ?? 0,
+            multi: pinnedByKind.get('Multi-hop')?.length ?? 0,
+          },
+          ghost: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
+        }
+      }
+      // Fallback for the empty (pre-launch) scenario: a sparse set of ghost
+      // nodes so the sphere still has visual content.
+      return {
+        real: { hop0: 0, hop1: 0, hop2: 0, multi: 0 },
+        ghost: { hop0: 6, hop1: 10, hop2: 14, multi: 0 },
+      }
+    })()
     const pinnedIndex = new Map<NodeKind, number>()
     const takePinned = (kind: NodeKind): PinnedNode | null => {
       const list = pinnedByKind.get(kind)
@@ -317,6 +377,16 @@ export function NodeSphere({
       focus.add(mesh)
       nodeMeshes.push(mesh)
 
+      let haloMat: THREE.SpriteMaterial | null = null
+      if (meta.multiHop && !meta.ghost) {
+        haloMat = multiHopRingMaterialTemplate.clone()
+        const halo = new THREE.Sprite(haloMat)
+        const haloScale = NODE_RADIUS * 5.2
+        halo.scale.set(haloScale, haloScale, 1)
+        mesh.add(halo)
+      }
+      haloMaterials.push(haloMat)
+
       const idx = nodeMeshes.length - 1
       if (!meta.ghost) {
         const list = indicesByKind.get(meta.kind) ?? []
@@ -326,19 +396,43 @@ export function NodeSphere({
       }
     }
 
+    // Half-angle of the spherical cap a child node may occupy around its
+    // inviter's direction. Tighter on outer shells so clusters read clearly.
+    const CLUSTER_HALF_ANGLE: Partial<Record<NodeKind, number>> = {
+      'Hop 1': 0.28,
+      'Hop 2': 0.22,
+    }
+
     const addShell = (kind: NodeKind, radius: number, realCount: number, ghostCount: number) => {
       const total = realCount + ghostCount
+      const clusterAngle = CLUSTER_HALF_ANGLE[kind]
       for (let i = 0; i < total; i += 1) {
-        const dir = randomUnitVector(rand)
+        const ghost = i >= realCount
+        const pinned = ghost ? null : takePinned(kind)
+
+        let dir: THREE.Vector3
+        const inviter = pinned?.inviter
+        if (clusterAngle && inviter && inviter !== 'Armada') {
+          const parentIdx = indexByAddress.get(inviter)
+          if (parentIdx != null) {
+            const parentDir = nodePositions[parentIdx].clone().normalize()
+            dir = jitterDirectionNear(parentDir, rand, clusterAngle)
+          } else {
+            dir = randomUnitVector(rand)
+          }
+        } else {
+          dir = randomUnitVector(rand)
+        }
+
         const jitter = (rand() - 0.5) * 0.18
         const pos = dir.multiplyScalar(radius + jitter)
-        const pinned = takePinned(kind)
-        const ghost = i >= realCount
         pushNode(pos, {
           kind,
           address: pinned?.address ?? makeAddress(rand),
           committed: pinned?.committed ?? makeCommitted(rand),
           ghost,
+          multiHop: pinned?.multiHop,
+          inviter: pinned?.inviter,
         })
       }
     }
@@ -347,16 +441,6 @@ export function NodeSphere({
     addShell('Hop 1', shellRadii[1].radius, scenarioCounts.real.hop1, scenarioCounts.ghost.hop1)
     addShell('Hop 2', shellRadii[2].radius, scenarioCounts.real.hop2, scenarioCounts.ghost.hop2)
     addShell('Multi-hop', shellRadii[3].radius, scenarioCounts.real.multi, scenarioCounts.ghost.multi)
-
-    // Exactly one wallet node (outer ring-ish). Omit when there are no participants.
-    if (scenario.participants > 0) {
-      const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
-      pushNode(walletPos, {
-        kind: 'Your wallet',
-        address: makeAddress(rand),
-        committed: '$0 committed',
-      })
-    }
 
     // Center node (Armada symbol inside frosted circle) as a true 3D sprite.
     const { texture: centerBgTexture } = createCenterNodeTexture()
@@ -391,82 +475,114 @@ export function NodeSphere({
     focus.add(centerSprite)
 
     const edgePositions: number[] = []
-    const edgePairs: Array<[number, number]> = []
+    // Each edge endpoint is either a wallet address or the sentinel 'Armada'
+    // (which corresponds to the center sprite, not a node in nodeMeshes).
+    const edgePairs: Array<[string, string]> = []
 
-    const connectNearest = (fromIdxs: number[], toIdxs: number[], perFrom: number) => {
-      if (!fromIdxs.length || !toIdxs.length) return
-      const capped = Math.max(1, Math.min(6, perFrom))
-      for (const aIdx of fromIdxs) {
-        const a = nodePositions[aIdx]
-        const best: Array<{ d: number; idx: number }> = []
-        for (const bIdx of toIdxs) {
-          const b = nodePositions[bIdx]
-          const d = a.distanceToSquared(b)
-          // Insert into sorted list (small N so O(N^2) is fine).
-          let inserted = false
-          for (let i = 0; i < best.length; i += 1) {
-            if (d < best[i].d) {
-              best.splice(i, 0, { d, idx: bIdx })
-              inserted = true
-              break
-            }
+    // Invite-tree maps used both for edge construction and selection lineage walks.
+    const parentOf = new Map<string, string>()
+    const childrenOf = new Map<string, string[]>()
+
+    // Build one edge per non-Armada wallet to its inviter. Armada-direct
+    // wallets get an edge to the center (0,0,0).
+    for (let i = 0; i < nodeMeshes.length; i += 1) {
+      const m = nodeMeshes[i]
+      const meta = m.userData as NodeMeta
+      if (meta.ghost) continue
+      const inviter = meta.inviter
+      if (!inviter) continue
+
+      parentOf.set(meta.address, inviter)
+      const siblings = childrenOf.get(inviter) ?? []
+      siblings.push(meta.address)
+      childrenOf.set(inviter, siblings)
+
+      const from = nodePositions[i]
+      let toX = 0
+      let toY = 0
+      let toZ = 0
+      if (inviter !== 'Armada') {
+        const parentIdx = indexByAddress.get(inviter)
+        if (parentIdx == null) continue
+        const parent = nodePositions[parentIdx]
+        toX = parent.x
+        toY = parent.y
+        toZ = parent.z
+      }
+      edgePositions.push(from.x, from.y, from.z, toX, toY, toZ)
+      edgePairs.push([meta.address, inviter])
+    }
+
+    // Walk ancestors + descendants for selection-time lineage highlighting.
+    const computeLineage = (addr: string): Set<string> => {
+      const set = new Set<string>()
+      set.add(addr)
+      // Ancestors up to (and including) Armada.
+      let cur: string | undefined = addr
+      while (cur) {
+        const p = parentOf.get(cur)
+        if (!p) break
+        set.add(p)
+        if (p === 'Armada') break
+        cur = p
+      }
+      // Descendants via BFS.
+      const queue: string[] = [addr]
+      while (queue.length) {
+        const n = queue.shift() as string
+        const kids = childrenOf.get(n)
+        if (!kids) continue
+        for (const k of kids) {
+          if (!set.has(k)) {
+            set.add(k)
+            queue.push(k)
           }
-          if (!inserted) best.push({ d, idx: bIdx })
-          if (best.length > capped) best.length = capped
-        }
-        for (const { idx: bIdx } of best) {
-          const b = nodePositions[bIdx]
-          edgePositions.push(a.x, a.y, a.z, b.x, b.y, b.z)
-          edgePairs.push([aIdx, bIdx])
         }
       }
+      return set
     }
 
-    // Layered wiring: center → Seed, then Seed → Hop 1 → Hop 2 → Multi-hop.
-    const hop0 = indicesByKind.get('Hop 0') ?? []
-    const hop1 = indicesByKind.get('Hop 1') ?? []
-    const hop2 = indicesByKind.get('Hop 2') ?? []
-    const multi = indicesByKind.get('Multi-hop') ?? []
+    // Edges are split across two LineSegments objects so they can have
+    // independent material opacities: a "background" set for non-tree edges
+    // and a "tree" set for edges on the selected lineage path. At idle, all
+    // edges live in the background object.
+    const allEdgePositions = new Float32Array(edgePositions)
 
-    // Keep a strong-ish "origin" relationship but not overly dense.
-    // (No per-segment coloring for center links yet; keep them subtle by leaving them out.)
-
-    // Keep it sparse so it reads as layered, not webbed.
-    connectNearest(hop0, hop1, 1)
-    connectNearest(hop1, hop2, 1)
-    connectNearest(hop2, multi, 1)
-
-    // Wallet should connect to a single Seed node (more realistic).
-    if (hop0.length) {
-      // Create a synthetic "node index" for wallet by reusing its mesh index (it exists in nodes list).
-      const walletIdx = indicesByKind.get('Your wallet')?.[0]
-      if (walletIdx != null) connectNearest([walletIdx], hop0, 1)
-    }
-
-    const edgeGeometry = new THREE.BufferGeometry()
-    edgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3))
-    const edgeColorArray = new Float32Array((edgePositions.length / 3) * 3)
-    for (let i = 0; i < edgeColorArray.length; i += 3) {
-      edgeColorArray[i + 0] = 0.78
-      edgeColorArray[i + 1] = 0.57
-      edgeColorArray[i + 2] = 0.9
-    }
-    edgeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(edgeColorArray, 3))
-    const edgeMaterial = new THREE.LineBasicMaterial({
+    const bgEdgeMaterial = new THREE.LineBasicMaterial({
       color: 0xc491e5,
-      vertexColors: true,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.3,
       depthWrite: false,
     })
-    const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial)
-    focus.add(edges)
+    const treeEdgeMaterial = new THREE.LineBasicMaterial({
+      color: 0xffe4a3,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+    })
+
+    const bgEdgeGeometry = new THREE.BufferGeometry()
+    bgEdgeGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(allEdgePositions.slice(), 3),
+    )
+    const bgEdges = new THREE.LineSegments(bgEdgeGeometry, bgEdgeMaterial)
+    focus.add(bgEdges)
+
+    const treeEdgeGeometry = new THREE.BufferGeometry()
+    treeEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3))
+    const treeEdges = new THREE.LineSegments(treeEdgeGeometry, treeEdgeMaterial)
+    focus.add(treeEdges)
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
     let hovered: THREE.Mesh | null = null
     let dragLastX = 0
     let dragLastY = 0
+    let pointerDownX = 0
+    let pointerDownY = 0
+    // Squared distance threshold (px²) used to tell a click from a drag.
+    const CLICK_DRAG_THRESHOLD_SQ = 25
 
     let raf = 0
     const resize = () => {
@@ -530,6 +646,8 @@ export function NodeSphere({
       isDraggingRef.current = true
       dragLastX = e.clientX
       dragLastY = e.clientY
+      pointerDownX = e.clientX
+      pointerDownY = e.clientY
       hoverActiveRef.current = false
       setHover(null)
       renderer.domElement.setPointerCapture(e.pointerId)
@@ -544,6 +662,12 @@ export function NodeSphere({
       }
 
       if (!onSelectAddress) return
+
+      // If the pointer moved more than the click/drag threshold between down
+      // and up, treat the gesture as a drag and leave selection unchanged.
+      const dx = e.clientX - pointerDownX
+      const dy = e.clientY - pointerDownY
+      if (dx * dx + dy * dy > CLICK_DRAG_THRESHOLD_SQ) return
 
       // Click-to-select: raycast on pointer up.
       const rect = renderer.domElement.getBoundingClientRect()
@@ -571,66 +695,61 @@ export function NodeSphere({
       camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
     }
 
-    const identityQuat = new THREE.Quaternion()
-    let targetFocusQuat: THREE.Quaternion | null = null
-    let lastCenteredAddress: string | null = null
     let lastHighlightedAddress: string | null = null
-    let hadSelection = false
 
-    const edgeColorAttr = edgeGeometry.getAttribute('color') as THREE.BufferAttribute
-    const setEdgeColorForSegment = (segIndex: number, r: number, g: number, b: number) => {
-      const i = segIndex * 6
-      // Each segment has 2 vertices; set both
-      edgeColorArray[i + 0] = r
-      edgeColorArray[i + 1] = g
-      edgeColorArray[i + 2] = b
-      edgeColorArray[i + 3] = r
-      edgeColorArray[i + 4] = g
-      edgeColorArray[i + 5] = b
-    }
+    // Cached lineage set for the current selection. Read by the per-frame node
+    // loop to dim non-lineage nodes; written by updateEdgeHighlight when the
+    // selection changes.
+    let currentLineage: Set<string> | null = null
+
+    // Opacity targets for the two edge materials in the two states.
+    const BG_OPACITY_IDLE = 0.3
+    const BG_OPACITY_DIMMED = 0.08
+    const TREE_OPACITY = 0.7
 
     const updateEdgeHighlight = (addr: string | null) => {
       if (addr === lastHighlightedAddress) return
       lastHighlightedAddress = addr
 
-      // Reset all edges to dim.
-      for (let s = 0; s < edgePairs.length; s += 1) setEdgeColorForSegment(s, 0.78, 0.57, 0.9)
-
       if (!addr) {
-        edgeColorAttr.needsUpdate = true
+        currentLineage = null
+        // Restore: all edges in the background pass at full default opacity,
+        // tree pass empty.
+        bgEdgeGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(allEdgePositions.slice(), 3),
+        )
+        treeEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3))
+        bgEdgeMaterial.opacity = BG_OPACITY_IDLE
         return
       }
 
-      const idx = indexByAddress.get(addr)
-      if (idx == null) {
-        edgeColorAttr.needsUpdate = true
-        return
-      }
+      currentLineage = computeLineage(addr)
 
-      // Highlight edges that touch the selected node (its "path" to nearest nodes).
+      // Partition every edge by whether both endpoints are inside the lineage
+      // (treating 'Armada' as always in, so the edges to the center stay tree).
+      const treePos: number[] = []
+      const bgPos: number[] = []
       for (let s = 0; s < edgePairs.length; s += 1) {
         const [a, b] = edgePairs[s]
-        if (a === idx || b === idx) {
-          setEdgeColorForSegment(s, 1, 0.94, 0.78) // warm highlight
+        const aIn = a === 'Armada' || currentLineage.has(a)
+        const bIn = b === 'Armada' || currentLineage.has(b)
+        const base = s * 6
+        if (aIn && bIn) {
+          for (let k = 0; k < 6; k += 1) treePos.push(allEdgePositions[base + k])
+        } else {
+          for (let k = 0; k < 6; k += 1) bgPos.push(allEdgePositions[base + k])
         }
       }
-
-      edgeColorAttr.needsUpdate = true
+      bgEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(bgPos, 3))
+      treeEdgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(treePos, 3))
+      bgEdgeMaterial.opacity = BG_OPACITY_DIMMED
+      treeEdgeMaterial.opacity = TREE_OPACITY
     }
 
     const animate = () => {
       const selectedAddr = highlightRef.current
       updateEdgeHighlight(selectedAddr ?? null)
-
-      // If we just deselected, bake the current focused orientation into root first,
-      // then reset focus to identity. This preserves the exact current frame.
-      if (!selectedAddr && hadSelection) {
-        root.quaternion.multiply(focus.quaternion)
-        focus.quaternion.copy(identityQuat)
-        hadSelection = false
-        targetFocusQuat = null
-        lastCenteredAddress = null
-      }
 
       const shouldAutoRotate = !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
       if (shouldAutoRotate) {
@@ -638,40 +757,32 @@ export function NodeSphere({
         root.rotation.x += 0.0003
       }
 
-      // Subtle emphasis on hovered node.
-      for (const m of nodeMeshes) {
+      // Subtle emphasis on hovered node; lineage-aware dimming when selected.
+      for (let i = 0; i < nodeMeshes.length; i += 1) {
+        const m = nodeMeshes[i]
         const isHovered = hovered === m
         const meta = m.userData as NodeMeta
         const isSelected = !!selectedAddr && meta.address === selectedAddr
         const activeFilter = filterRef.current
-        const isFilteredOut = !!activeFilter && meta.kind !== activeFilter && meta.kind !== 'Your wallet'
+        const isFilteredOut =
+          !!activeFilter &&
+          (activeFilter === 'Multi-hop' ? !meta.multiHop : meta.kind !== activeFilter)
+        const isOutsideLineage = !!currentLineage && !currentLineage.has(meta.address)
+        const isDimmed = isFilteredOut || (isOutsideLineage && !isSelected)
         const target = Math.max(isHovered ? 1.35 : 1, isSelected ? 1.55 : 1)
         const s = m.scale.x + (target - m.scale.x) * 0.15
         m.scale.setScalar(s)
 
         const mat = m.material as THREE.MeshBasicMaterial
         const base = meta.ghost ? 0.12 : 0.6
-        const targetOpacity = isSelected ? 1 : isFilteredOut ? (meta.ghost ? 0.06 : 0.08) : base
+        const targetOpacity = isSelected ? 1 : isDimmed ? (meta.ghost ? 0.06 : 0.08) : base
         mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
-      }
 
-      // Center selected node in view by rotating the focus group (root keeps continuity).
-      if (selectedAddr && !isDraggingRef.current) {
-        hadSelection = true
-        if (lastCenteredAddress !== selectedAddr) {
-          const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
-          if (selectedMesh) {
-            const desiredWorld = new THREE.Vector3(0, 0, 1)
-            const desiredInFocusSpace = desiredWorld.clone().applyQuaternion(root.quaternion.clone().invert()).normalize()
-            const from = selectedMesh.position.clone().normalize()
-            targetFocusQuat = new THREE.Quaternion().setFromUnitVectors(from, desiredInFocusSpace)
-          }
-          lastCenteredAddress = selectedAddr
+        const haloMat = haloMaterials[i]
+        if (haloMat) {
+          const haloTarget = isSelected ? 1 : isDimmed ? 0.08 : 1
+          haloMat.opacity = haloMat.opacity + (haloTarget - haloMat.opacity) * 0.12
         }
-        if (targetFocusQuat) focus.quaternion.slerp(targetFocusQuat, 0.08)
-      } else {
-        lastCenteredAddress = null
-        targetFocusQuat = null
       }
 
       // Keep selected tooltip pinned near the selected node (when not hovering other nodes).
@@ -740,10 +851,17 @@ export function NodeSphere({
       root.clear()
       nodeGeometry.dispose()
       for (const mat of baseMaterialsByKind.values()) mat.dispose()
-      edgeGeometry.dispose()
-      edgeMaterial.dispose()
+      bgEdgeGeometry.dispose()
+      treeEdgeGeometry.dispose()
+      bgEdgeMaterial.dispose()
+      treeEdgeMaterial.dispose()
       centerBgTexture.dispose()
       centerMat.dispose()
+      multiHopRingMaterialTemplate.dispose()
+      for (const mat of haloMaterials) {
+        if (mat) mat.dispose()
+      }
+      multiHopRingTexture.dispose()
 
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
@@ -759,8 +877,8 @@ export function NodeSphere({
         zIndex: 0,
       }}
     >
-      {/* Hover tooltip */}
-      {hover?.visible && (
+      {/* Hover tooltip — display disabled; kept for possible reinstatement. */}
+      {SHOW_HOVER_POPUP && hover && hover.visible && (
         <div
           style={{
             position: 'fixed',
@@ -824,7 +942,7 @@ export function NodeSphere({
       )}
 
       {/* Selected tooltip (pinned) */}
-      {!hover?.visible && selectedTip?.visible && (
+      {selectedTip?.visible && (
         <div
           style={{
             position: 'fixed',

@@ -1,18 +1,72 @@
-export type ScenarioParticipants = 0 | 3 | 4 | 5 | 30 | 800
+// ABOUTME: Deterministic mock crowdfund dataset shaped like the real Armada
+// ABOUTME: invite-tree: ~100 seeds, ~1000 wallets, per-hop caps, self-invites.
 
-type HopKind = 'Hop 0' | 'Hop 1' | 'Hop 2'
-type HeroHop = 'SEED' | 'HOP-1' | 'HOP-2'
+export type Hop = 0 | 1 | 2
 
-export type HeroParticipantRow = {
+const HOP_LABELS: Record<Hop, string> = { 0: 'Hop 0', 1: 'Hop 1', 2: 'Hop 2' }
+const HOP_CAP_USD: Record<Hop, number> = { 0: 15_000, 1: 4_000, 2: 1_000 }
+const INVITES_TOTAL: Record<Hop, number> = { 0: 5, 1: 3, 2: 1 }
+
+const TARGET_SEEDS = 100
+const TARGET_HOP1 = 300
+const TARGET_HOP2 = 600
+
+const SELF_INVITE_FRACTION = 0.05
+const DIRECT_ARMADA_HOP1_RATE = 0.05
+const DIRECT_ARMADA_HOP2_RATE = 0.02
+
+const COMMIT_TARGET_LO = 1_000_000
+const COMMIT_TARGET_HI = 1_400_000
+
+// Per-hop lognormal parameters used to draw commitment sizes. Means are
+// targeted so the natural sample for a full dataset (100/300/600 entries plus
+// ~100 self-invite duplicates) lands roughly in the middle of the desired
+// $1.0M–$1.4M totalCommitted band without the rescale step constantly firing.
+const COMMIT_PARAMS: Record<Hop, { median: number; sigma: number; min: number }> = {
+  0: { median: 3_500, sigma: 0.9, min: 250 },
+  1: { median: 700, sigma: 1.0, min: 100 },
+  2: { median: 175, sigma: 1.0, min: 25 },
+}
+
+export type Participant = {
+  /** Wallet address. The same address may appear in multiple entries (multi-hop wallets). */
   address: string
-  hop: HeroHop
+  hop: Hop
+  /** 'Armada' for direct launch-team invites, the wallet's own address for self-invites,
+   *  or another participant's address otherwise. */
+  inviter: string
+  selfInvited: boolean
+  /** True when this wallet has entries at more than one hop. Set on all of the wallet's entries. */
+  multiHop: boolean
+  invitesTotal: number
+  invitesUsed: number
   amountUsd: number
 }
 
+export type Crowdfund = {
+  /** Theoretical maximum total commitment from hop economics (sum of seats × per-seat cap). */
+  cap: number
+  totalCommitted: number
+  /** Raw entries. A multi-hop wallet contributes more than one entry. */
+  participants: Participant[]
+}
+
+// View shapes preserved for existing consumers.
 export type DashboardParticipant = {
   address: string
-  hop: HopKind
+  hop: 'Hop 0' | 'Hop 1' | 'Hop 2'
   amountUsd: number
+  multiHop?: boolean
+  /** Inviter of this wallet's primary (lowest-hop) entry. 'Armada' for direct
+   *  launch-team invites, otherwise another participant's address. */
+  inviter: string
+}
+
+export type HeroParticipantRow = {
+  address: string
+  hop: 'SEED' | 'HOP-1' | 'HOP-2'
+  amountUsd: number
+  multiHop?: boolean
 }
 
 export type ParticipantsTableRow = {
@@ -22,6 +76,7 @@ export type ParticipantsTableRow = {
   invitedBy: string
   invitesUsed: number
   invitesTotal: number
+  multiHop?: boolean
 }
 
 function mulberry32(seed: number) {
@@ -41,29 +96,196 @@ function makeAddress(rand: () => number) {
   return `${out.slice(0, 6)}...${out.slice(-4)}`
 }
 
-function pickHop(rand: () => number): HopKind {
-  const r = rand()
-  if (r < 0.6) return 'Hop 0'
-  if (r < 0.9) return 'Hop 1'
-  return 'Hop 2'
+// Box-Muller transform yielding a standard normal sample from two uniform draws.
+function sampleStandardNormal(rand: () => number) {
+  const u1 = Math.max(1e-9, rand())
+  const u2 = rand()
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
 }
 
-function amountForScenario(count: ScenarioParticipants, rand: () => number) {
-  // Roughly scale ticket size by scenario size.
-  if (count === 0) return 0
-  if (count <= 5) return 1_000 + Math.floor(rand() * 19_000)
-  if (count === 30) return 2_000 + Math.floor(rand() * 28_000)
-  return 5_000 + Math.floor(rand() * 75_000)
+function sampleCommitment(rand: () => number, hop: Hop) {
+  const { median, sigma, min } = COMMIT_PARAMS[hop]
+  const value = median * Math.exp(sigma * sampleStandardNormal(rand))
+  return Math.max(min, Math.min(HOP_CAP_USD[hop], Math.round(value)))
 }
 
-export function generateDashboardParticipants(seed: number, count: ScenarioParticipants): DashboardParticipant[] {
+function shuffleInPlace<T>(arr: T[], rand: () => number) {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+}
+
+export function generateCrowdfund(seed: number): Crowdfund {
   const rand = mulberry32(seed)
+  const entries: Participant[] = []
+  const walletsByHop: string[][] = [[], [], []]
+  const inviteCapacityRemaining = new Map<string, number>()
+
+  const pushEntry = (e: Participant) => {
+    entries.push(e)
+    walletsByHop[e.hop].push(e.address)
+  }
+
+  // Seeds: 100 Hop-0 wallets, all directly invited by Armada.
+  for (let i = 0; i < TARGET_SEEDS; i += 1) {
+    const address = makeAddress(rand)
+    pushEntry({
+      address,
+      hop: 0,
+      inviter: 'Armada',
+      selfInvited: false,
+      multiHop: false,
+      invitesTotal: INVITES_TOTAL[0],
+      invitesUsed: 0,
+      amountUsd: sampleCommitment(rand, 0),
+    })
+    inviteCapacityRemaining.set(address, INVITES_TOTAL[0])
+  }
+
+  // Tree growth: each child draws an inviter (weighted toward parents with remaining
+  // invite capacity), with a small chance of being directly invited by Armada.
+  const growHop = (parentHop: Hop, childHop: Hop, count: number, directArmadaRate: number) => {
+    for (let i = 0; i < count; i += 1) {
+      const address = makeAddress(rand)
+      let inviter: string
+      const directArmada = rand() < directArmadaRate
+      if (directArmada) {
+        inviter = 'Armada'
+      } else {
+        const parents = walletsByHop[parentHop].filter(
+          (a) => (inviteCapacityRemaining.get(a) ?? 0) > 0,
+        )
+        if (parents.length === 0) {
+          // All parents saturated — fall back to Armada so the tree still grows.
+          inviter = 'Armada'
+        } else {
+          inviter = parents[Math.floor(rand() * parents.length)]
+          inviteCapacityRemaining.set(inviter, (inviteCapacityRemaining.get(inviter) ?? 0) - 1)
+        }
+      }
+      pushEntry({
+        address,
+        hop: childHop,
+        inviter,
+        selfInvited: false,
+        multiHop: false,
+        invitesTotal: INVITES_TOTAL[childHop],
+        invitesUsed: 0,
+        amountUsd: sampleCommitment(rand, childHop),
+      })
+      if (INVITES_TOTAL[childHop] > 0) {
+        inviteCapacityRemaining.set(address, INVITES_TOTAL[childHop])
+      }
+    }
+  }
+
+  growHop(0, 1, TARGET_HOP1, DIRECT_ARMADA_HOP1_RATE)
+  growHop(1, 2, TARGET_HOP2, DIRECT_ARMADA_HOP2_RATE)
+
+  // Self-invites: ~10% of unique wallets at Hop 0 or Hop 1 use one of their own
+  // invite slots to add a duplicate entry one hop lower. This is the mechanism
+  // that produces multi-hop wallets.
+  const targetSelfInvites = Math.round(
+    (TARGET_SEEDS + TARGET_HOP1 + TARGET_HOP2) * SELF_INVITE_FRACTION,
+  )
+  const candidates = [...walletsByHop[0], ...walletsByHop[1]]
+  shuffleInPlace(candidates, rand)
+
+  let selfInvitesDone = 0
+  for (const address of candidates) {
+    if (selfInvitesDone >= targetSelfInvites) break
+    if ((inviteCapacityRemaining.get(address) ?? 0) <= 0) continue
+
+    // The wallet's current highest-priority (lowest-numbered) hop entry.
+    const existing = entries.filter((e) => e.address === address)
+    const highest = existing.reduce((min, e) => (e.hop < min ? e.hop : min), 2 as Hop)
+    if (highest >= 2) continue
+
+    const childHop = (highest + 1) as Hop
+    inviteCapacityRemaining.set(address, (inviteCapacityRemaining.get(address) ?? 0) - 1)
+    pushEntry({
+      address,
+      hop: childHop,
+      inviter: address,
+      selfInvited: true,
+      multiHop: true,
+      invitesTotal: INVITES_TOTAL[childHop],
+      invitesUsed: 0,
+      amountUsd: sampleCommitment(rand, childHop),
+    })
+    selfInvitesDone += 1
+  }
+
+  // Mark every entry of a multi-hop wallet so consumers can render the ring
+  // on whichever entry they choose to display.
+  const multiHopAddresses = new Set(
+    entries.filter((e) => e.selfInvited).map((e) => e.address),
+  )
+  for (const e of entries) {
+    if (multiHopAddresses.has(e.address)) e.multiHop = true
+  }
+
+  // Tally invitesUsed: count entries whose inviter is this wallet (self-invites
+  // count too — they consume one of the wallet's own slots).
+  const usedByAddr = new Map<string, number>()
+  for (const e of entries) {
+    if (e.inviter === 'Armada') continue
+    usedByAddr.set(e.inviter, (usedByAddr.get(e.inviter) ?? 0) + 1)
+  }
+  for (const e of entries) {
+    e.invitesUsed = usedByAddr.get(e.address) ?? 0
+  }
+
+  // Rescale commitments to land in the target window. The lognormal draw can be
+  // noisy across seeds; a single linear scale keeps shapes intact while pinning
+  // the headline number to the realistic band.
+  const rawTotal = entries.reduce((s, e) => s + e.amountUsd, 0)
+  let scale = 1
+  if (rawTotal > COMMIT_TARGET_HI) scale = COMMIT_TARGET_HI / rawTotal
+  else if (rawTotal < COMMIT_TARGET_LO) scale = COMMIT_TARGET_LO / rawTotal
+  if (scale !== 1) {
+    for (const e of entries) {
+      const scaled = Math.max(1, Math.round(e.amountUsd * scale))
+      e.amountUsd = Math.min(HOP_CAP_USD[e.hop], scaled)
+    }
+  }
+  const totalCommitted = entries.reduce((s, e) => s + e.amountUsd, 0)
+
+  const cap =
+    TARGET_SEEDS * HOP_CAP_USD[0] + TARGET_HOP1 * HOP_CAP_USD[1] + TARGET_HOP2 * HOP_CAP_USD[2]
+
+  return { cap, totalCommitted, participants: entries }
+}
+
+// Group entries by wallet address; preserved order of first occurrence.
+function groupByWallet(entries: Participant[]): Map<string, Participant[]> {
+  const byAddr = new Map<string, Participant[]>()
+  for (const e of entries) {
+    const list = byAddr.get(e.address) ?? []
+    list.push(e)
+    byAddr.set(e.address, list)
+  }
+  return byAddr
+}
+
+function primaryEntry(entries: Participant[]): Participant {
+  // Highest priority is the lowest-numbered hop (Hop 0 > Hop 1 > Hop 2).
+  return entries.reduce((best, e) => (e.hop < best.hop ? e : best))
+}
+
+export function toDashboardParticipants(cf: Crowdfund): DashboardParticipant[] {
+  const grouped = groupByWallet(cf.participants)
   const out: DashboardParticipant[] = []
-  for (let i = 0; i < count; i += 1) {
+  for (const [address, list] of grouped) {
+    const primary = primaryEntry(list)
+    const amountUsd = list.reduce((s, e) => s + e.amountUsd, 0)
     out.push({
-      address: makeAddress(rand),
-      hop: pickHop(rand),
-      amountUsd: amountForScenario(count, rand),
+      address,
+      hop: HOP_LABELS[primary.hop] as DashboardParticipant['hop'],
+      amountUsd,
+      multiHop: list.length > 1,
+      inviter: primary.inviter,
     })
   }
   return out
@@ -74,25 +296,29 @@ export function toHeroParticipants(rows: DashboardParticipant[]): HeroParticipan
     address: r.address,
     hop: r.hop === 'Hop 0' ? 'SEED' : r.hop === 'Hop 1' ? 'HOP-1' : 'HOP-2',
     amountUsd: r.amountUsd,
+    multiHop: r.multiHop,
   }))
 }
 
-export function generateParticipantsTableRows(seed: number, count: ScenarioParticipants): ParticipantsTableRow[] {
-  const rand = mulberry32(seed ^ 0x9e3779b9)
+export function toParticipantsTableRows(cf: Crowdfund): ParticipantsTableRow[] {
+  const grouped = groupByWallet(cf.participants)
   const out: ParticipantsTableRow[] = []
-  const base = generateDashboardParticipants(seed, count)
-  for (let i = 0; i < base.length; i += 1) {
-    const invitesTotal = count >= 800 ? 5 : 3
-    const invitesUsed = Math.min(invitesTotal, Math.floor(rand() * (invitesTotal + 1)))
+  for (const [address, list] of grouped) {
+    const primary = primaryEntry(list)
+    const total = list.reduce((s, e) => s + e.amountUsd, 0)
+    const sortedHops = [...list].sort((a, b) => a.hop - b.hop)
+    const hops = list.length > 1
+      ? sortedHops.map((e) => HOP_LABELS[e.hop]).join(', ')
+      : HOP_LABELS[primary.hop]
     out.push({
-      address: base[i].address,
-      hops: base[i].hop,
-      committedUsd: base[i].amountUsd,
-      invitedBy: i % 7 === 0 ? 'Armada' : out[Math.max(0, i - 1)]?.address ?? 'Armada',
-      invitesUsed,
-      invitesTotal,
+      address,
+      hops,
+      committedUsd: total,
+      invitedBy: primary.inviter === address ? 'Self' : primary.inviter,
+      invitesUsed: primary.invitesUsed,
+      invitesTotal: primary.invitesTotal,
+      multiHop: list.length > 1,
     })
   }
   return out
 }
-

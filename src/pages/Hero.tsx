@@ -4,7 +4,11 @@ import { Progress } from '../components/Progress'
 import { Participate } from '../components/Participate'
 import { HeroParticipantsPanel, HeroParticipant } from '../components/HeroParticipantsPanel'
 import { NodeSphere } from './NodeSphere'
-import { generateDashboardParticipants, toHeroParticipants } from '../utils/mockParticipants'
+import {
+  generateCrowdfund,
+  toDashboardParticipants,
+  toHeroParticipants,
+} from '../utils/mockParticipants'
 import styles from './Hero.module.css'
 
 const NAV_ITEMS = [
@@ -15,35 +19,25 @@ const NAV_ITEMS = [
 ] as const
 
 export function Hero() {
-  const scenario = useRef<{ participants: 0 | 3 | 4 | 5 | 30 | 800; seed: number } | null>(null)
+  const scenario = useRef<{ seed: number; crowdfund: ReturnType<typeof generateCrowdfund> | null } | null>(null)
   if (!scenario.current) {
-    const r = Math.random()
-    const participants = (r < 0.25 ? 0 : r < 0.5 ? 3 + Math.floor(Math.random() * 3) : r < 0.75 ? 30 : 800) as
-      | 0
-      | 3
-      | 4
-      | 5
-      | 30
-      | 800
-    scenario.current = { participants, seed: Math.floor(Math.random() * 1_000_000_000) }
+    // Scenario is active by default. Append `?state=empty` to the URL to see
+    // the pre-launch (no participants) state instead.
+    const empty = new URLSearchParams(window.location.search).get('state') === 'empty'
+    const seed = Math.floor(Math.random() * 1_000_000_000)
+    scenario.current = { seed, crowdfund: empty ? null : generateCrowdfund(seed) }
   }
 
-  const committedAmount = (() => {
-    const p = scenario.current!.participants
-    if (p === 0) return 0
-    if (p <= 5) return p * 20000
-    if (p === 30) return 857000
-    return 1700000
-  })()
-
   const dashRows = useMemo(
-    () => generateDashboardParticipants(scenario.current!.seed, scenario.current!.participants),
+    () => (scenario.current!.crowdfund ? toDashboardParticipants(scenario.current!.crowdfund) : []),
     [],
   )
   const participants = useMemo(() => toHeroParticipants(dashRows) as HeroParticipant[], [dashRows])
+  const uniqueWallets = dashRows.length
+  const committedAmount = scenario.current.crowdfund?.totalCommitted ?? 0
 
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
-  const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2'>('all')
+  const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2' | 'multi'>('all')
   const [participantsListOpen, setParticipantsListOpen] = useState(false)
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
 
@@ -51,8 +45,12 @@ export function Hero() {
     if (!selectedAddress) return
 
     const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null
       const el = participantsPanelRef.current
-      if (el && el.contains(e.target as Node)) return
+      if (el && target && el.contains(target)) return
+      // The sphere has its own click/drag selection logic; pointerdowns on
+      // its canvas should not be treated as "outside" dismiss gestures.
+      if (target?.tagName === 'CANVAS') return
       setSelectedAddress(undefined)
     }
 
@@ -65,14 +63,26 @@ export function Hero() {
       <NodeSphere
         highlightAddress={selectedAddress}
         onSelectAddress={setSelectedAddress}
-        filterKind={filter === 'seed' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
+        filterKind={
+          filter === 'seed'
+            ? 'Hop 0'
+            : filter === 'hop1'
+            ? 'Hop 1'
+            : filter === 'hop2'
+            ? 'Hop 2'
+            : filter === 'multi'
+            ? 'Multi-hop'
+            : undefined
+        }
         interactionDisabled={participantsListOpen}
-        scenarioParticipants={scenario.current.participants}
+        scenarioParticipants={uniqueWallets}
         scenarioSeed={scenario.current.seed}
-        pinnedNodes={participants.map((p) => ({
-          kind: p.hop === 'SEED' ? 'Hop 0' : p.hop === 'HOP-1' ? 'Hop 1' : 'Hop 2',
+        pinnedNodes={dashRows.map((p) => ({
+          kind: p.hop,
           address: p.address,
           committed: `$${p.amountUsd.toLocaleString()} committed`,
+          multiHop: p.multiHop,
+          inviter: p.inviter,
         }))}
       />
 
@@ -85,7 +95,7 @@ export function Hero() {
       <div className={[styles.leftCorner, participantsListOpen && styles.leftCornerExpanded].filter(Boolean).join(' ')}>
         <div className={[styles.leftStack, styles.enter, styles.enterProgress].join(' ')}>
           <Progress
-            participants={`${scenario.current.participants} PARTICIPANTS`}
+            participants={`${uniqueWallets} PARTICIPANTS`}
             committedAmount={committedAmount}
           />
           <div ref={participantsPanelRef} className={styles.participantsWrap}>

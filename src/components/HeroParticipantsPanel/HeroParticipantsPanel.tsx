@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { Button } from '../Button'
 import styles from './HeroParticipantsPanel.module.css'
 
-export type HeroHopFilter = 'all' | 'seed' | 'hop1' | 'hop2'
+export type HeroHopFilter = 'all' | 'seed' | 'hop1' | 'hop2' | 'multi'
 
 export type HeroParticipant = {
   address: string
   hop: 'SEED' | 'HOP-1' | 'HOP-2'
   amountUsd: number
+  multiHop?: boolean
 }
 
 const FILTERS: Array<{ id: HeroHopFilter; label: string }> = [
@@ -15,6 +16,7 @@ const FILTERS: Array<{ id: HeroHopFilter; label: string }> = [
   { id: 'seed', label: 'Seed' },
   { id: 'hop1', label: 'Hop 1' },
   { id: 'hop2', label: 'Hop 2' },
+  { id: 'multi', label: 'Multi-hop' },
 ]
 
 function formatUsd(n: number) {
@@ -73,7 +75,8 @@ export function HeroParticipantsPanel({
         filter === 'all' ||
         (filter === 'seed' && p.hop === 'SEED') ||
         (filter === 'hop1' && p.hop === 'HOP-1') ||
-        (filter === 'hop2' && p.hop === 'HOP-2')
+        (filter === 'hop2' && p.hop === 'HOP-2') ||
+        (filter === 'multi' && !!p.multiHop)
       return matchesQuery && matchesFilter
     })
   }, [participants, query, filter])

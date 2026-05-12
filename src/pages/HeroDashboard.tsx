@@ -5,7 +5,11 @@ import { Participate } from '../components/Participate'
 import { Progress } from '../components/Progress'
 import { Tag } from '../components/Tag'
 import { NodeSphere } from './NodeSphere'
-import { generateDashboardParticipants, generateParticipantsTableRows } from '../utils/mockParticipants'
+import {
+  generateCrowdfund,
+  toDashboardParticipants,
+  toParticipantsTableRows,
+} from '../utils/mockParticipants'
 import styles from './HeroDashboard.module.css'
 
 const NAV_ITEMS = [
@@ -17,30 +21,29 @@ const NAV_ITEMS = [
 
 export function HeroDashboard() {
   const scenario = useMemo(() => {
-    const r = Math.random()
-    const participants = (r < 0.25 ? 0 : r < 0.5 ? 3 + Math.floor(Math.random() * 3) : r < 0.75 ? 30 : 800) as
-      | 0
-      | 3
-      | 4
-      | 5
-      | 30
-      | 800
+    // Scenario is active by default. Append `?state=empty` to the URL to see
+    // the pre-launch (no participants) state instead.
+    const empty = new URLSearchParams(window.location.search).get('state') === 'empty'
     const seed = Math.floor(Math.random() * 1_000_000_000)
-    const committedAmount = participants === 0 ? 0 : participants <= 5 ? participants * 20000 : participants === 30 ? 857000 : 1700000
-    return { participants, seed, committedAmount }
+    const crowdfund = empty ? null : generateCrowdfund(seed)
+    const participants = crowdfund ? crowdfund.participants.length : 0
+    const uniqueWallets = crowdfund
+      ? new Set(crowdfund.participants.map((p) => p.address)).size
+      : 0
+    return { seed, crowdfund, participants, uniqueWallets }
   }, [])
 
   const graphParticipants = useMemo(
-    () => generateDashboardParticipants(scenario.seed, scenario.participants),
-    [scenario.seed, scenario.participants],
+    () => (scenario.crowdfund ? toDashboardParticipants(scenario.crowdfund) : []),
+    [scenario.crowdfund],
   )
 
   const tableRows = useMemo(
-    () => generateParticipantsTableRows(scenario.seed, scenario.participants),
-    [scenario.seed, scenario.participants],
+    () => (scenario.crowdfund ? toParticipantsTableRows(scenario.crowdfund) : []),
+    [scenario.crowdfund],
   )
 
-  const [filter, setFilter] = useState<'all' | 'hop0' | 'hop1' | 'hop2'>('all')
+  const [filter, setFilter] = useState<'all' | 'hop0' | 'hop1' | 'hop2' | 'multi'>('all')
   const [query, setQuery] = useState('')
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
 
@@ -59,7 +62,7 @@ export function HeroDashboard() {
           <div className={styles.tags}>
             <Tag label="ACTIVE" dot="active" />
             <Tag label="3 DAYS LEFT" />
-            <Tag label={`${scenario.participants} PARTICIPANTS`} />
+            <Tag label={`${scenario.uniqueWallets} PARTICIPANTS`} />
           </div>
         </header>
 
@@ -67,8 +70,8 @@ export function HeroDashboard() {
           <Progress
             hideStatus
             className={styles.progressMain}
-            participants={`${scenario.participants} PARTICIPANTS`}
-            committedAmount={scenario.committedAmount}
+            participants={`${scenario.uniqueWallets} PARTICIPANTS`}
+            committedAmount={scenario.crowdfund?.totalCommitted ?? 0}
           />
           <div className={styles.participateWrap}>
             <Participate
@@ -87,7 +90,17 @@ export function HeroDashboard() {
             <NodeSphere
               highlightAddress={selectedAddress}
               onSelectAddress={setSelectedAddress}
-              filterKind={filter === 'hop0' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
+              filterKind={
+                filter === 'hop0'
+                  ? 'Hop 0'
+                  : filter === 'hop1'
+                  ? 'Hop 1'
+                  : filter === 'hop2'
+                  ? 'Hop 2'
+                  : filter === 'multi'
+                  ? 'Multi-hop'
+                  : undefined
+              }
               interactionDisabled={false}
               scenarioParticipants={scenario.participants}
               scenarioSeed={scenario.seed}
@@ -95,6 +108,8 @@ export function HeroDashboard() {
                 kind: p.hop,
                 address: p.address,
                 committed: `$${p.amountUsd.toLocaleString()} committed`,
+                multiHop: p.multiHop,
+                inviter: p.inviter,
               }))}
             />
           </div>
