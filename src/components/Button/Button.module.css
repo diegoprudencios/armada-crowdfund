@@ -24,32 +24,32 @@
 /* Sizes — Figma: fixed height, asymmetric horizontal padding, 4px gap */
 .sm {
   height: var(--semantic-component-button-primary-sm-height);
-  padding-left: var(--semantic-component-button-primary-sm-padding-left);
-  padding-right: var(--semantic-component-button-primary-sm-padding-right);
+  padding-left: var(--semantic-component-button-primary-sm-padding-x);
+  padding-right: var(--semantic-component-button-primary-sm-padding-x-icon);
   font-size: var(--semantic-component-button-primary-sm-font-size);
 }
 .md {
   height: var(--semantic-component-button-primary-md-height);
-  padding-left: var(--semantic-component-button-primary-md-padding-left);
-  padding-right: var(--semantic-component-button-primary-md-padding-right);
+  padding-left: var(--semantic-component-button-primary-md-padding-x);
+  padding-right: var(--semantic-component-button-primary-md-padding-x-icon);
   font-size: var(--semantic-component-button-primary-md-font-size);
 }
 .lg {
   height: var(--semantic-component-button-primary-lg-height);
-  padding-left: var(--semantic-component-button-primary-lg-padding-left);
-  padding-right: var(--semantic-component-button-primary-lg-padding-right);
+  padding-left: var(--semantic-component-button-primary-lg-padding-x);
+  padding-right: var(--semantic-component-button-primary-lg-padding-x-icon);
   font-size: var(--semantic-component-button-primary-lg-font-size);
 }
 
 /* No icon: symmetric horizontal padding (use left value on both sides) */
 .noIcon.sm {
-  padding-right: var(--semantic-component-button-primary-sm-padding-left);
+  padding-right: var(--semantic-component-button-primary-sm-padding-x);
 }
 .noIcon.md {
-  padding-right: var(--semantic-component-button-primary-md-padding-left);
+  padding-right: var(--semantic-component-button-primary-md-padding-x);
 }
 .noIcon.lg {
-  padding-right: var(--semantic-component-button-primary-lg-padding-left);
+  padding-right: var(--semantic-component-button-primary-lg-padding-x);
 }
 
 /* Primary */

@@ -13,6 +13,7 @@ export default defineConfig({
         index: resolve(__dirname, 'index.html'),
         dashboard: resolve(__dirname, 'dashboard.html'),
         hero: resolve(__dirname, 'hero.html'),
+        showcase: resolve(__dirname, 'showcase.html'),
       },
     },
   },

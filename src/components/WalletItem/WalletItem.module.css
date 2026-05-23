@@ -1,0 +1,62 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-2);
+  padding: var(--primitives-spacing-4);
+  width: 100%;
+  border-radius: var(--semantic-borderRadius-card);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease;
+}
+
+.item:hover {
+  background: var(--semantic-color-surface-raised);
+}
+
+.item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: var(--primitives-borderRadius-sm);
+  object-fit: contain;
+}
+
+.iconSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.iconPlaceholder {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: var(--primitives-borderRadius-sm);
+  background: var(--semantic-color-surface-raised);
+}
+
+.name {
+  flex: 1;
+  font-family: var(--primitives-fontFamily-ui);
+  font-weight: var(--primitives-fontWeight-medium);
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+  color: var(--semantic-color-text-primary);
+}
+
+.balance {
+  font-family: var(--primitives-fontFamily-ui);
+  font-weight: var(--primitives-fontWeight-regular);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  color: var(--semantic-color-text-muted);
+}
