@@ -50,7 +50,7 @@ export function Showcase() {
         isOpen={participateOpen}
         onClose={() => setParticipateOpen(false)}
       />
-      <Header navItems={NAV_ITEMS} />
+      <Header activeNav="crowdfund" autoHideOnScroll={false} />
 
       {/* Button */}
       <section style={sectionStyle}>
