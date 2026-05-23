@@ -49,3 +49,7 @@
 .segment.error {
   background-color: var(--semantic-color-status-error);
 }
+
+.segment.confirmed {
+  background-color: var(--semantic-color-status-success);
+}

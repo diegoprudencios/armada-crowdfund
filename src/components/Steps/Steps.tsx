@@ -7,8 +7,12 @@ interface StepsProps {
 }
 
 export default function Steps({ steps, currentStep, status = 'default' }: StepsProps) {
-  const stepName = steps[currentStep - 1]?.toUpperCase() ?? ''
-  const stepCount = `STEP ${currentStep} OF ${steps.length}`
+  const stepName =
+    status === 'confirmed' ? 'CONFIRMATION' : (steps[currentStep - 1]?.toUpperCase() ?? '')
+  const stepCount =
+    status === 'confirmed'
+      ? `STEP ${steps.length} OF ${steps.length}`
+      : `STEP ${currentStep} OF ${steps.length}`
 
   return (
     <div className={styles.container}>
@@ -21,8 +25,9 @@ export default function Steps({ steps, currentStep, status = 'default' }: StepsP
           const isActive = index < currentStep
           const className = [
             styles.segment,
-            isActive && styles.active,
-            isActive && status === 'error' && styles.error,
+            status === 'confirmed' && styles.confirmed,
+            status === 'error' && isActive && styles.error,
+            status === 'default' && isActive && styles.active,
           ]
             .filter(Boolean)
             .join(' ')

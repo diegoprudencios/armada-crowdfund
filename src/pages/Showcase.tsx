@@ -115,8 +115,18 @@ export function Showcase() {
           <Steps steps={['Connect', 'Commit', 'Review', 'Confirmation']} currentStep={2} />
           <Steps
             steps={['Connect', 'Commit', 'Review', 'Confirmation']}
-            currentStep={3}
+            currentStep={1}
             status="error"
+          />
+          <Steps
+            steps={['Connect', 'Commit', 'Review', 'Confirmation']}
+            currentStep={4}
+            status="error"
+          />
+          <Steps
+            steps={['Connect', 'Commit', 'Review', 'Confirmation']}
+            currentStep={4}
+            status="confirmed"
           />
         </div>
       </section>
