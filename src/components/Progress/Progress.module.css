@@ -150,28 +150,27 @@
 .labelLeft {
   display: flex;
   gap: 20px;
-  align-items: center;
+  align-items: baseline;
 }
 
 /* Pinned under the threshold line */
 .labelMinRaise {
   position: absolute;
   transform: translateX(0);
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
   white-space: nowrap;
 }
 
 .stat {
   display: flex;
   align-items: baseline;
+  gap: var(--primitives-spacing-1);
 }
 
 .statValue {
   font-family: "Geist", sans-serif;
   font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: 700;
+  line-height: var(--primitives-lineHeight-none);
   color: var(--semantic-color-text-primary);
 }
 
@@ -179,5 +178,6 @@
   font-family: "Geist", sans-serif;
   font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: 300;
+  line-height: var(--primitives-lineHeight-none);
   color: var(--semantic-color-text-muted);
 }

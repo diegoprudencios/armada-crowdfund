@@ -123,11 +123,11 @@ export function Progress({
             <div className={styles.labelLeft}>
               <div className={styles.stat}>
                 <span className={styles.statValue}>{raisedTowardMin}%</span>
-                <span className={styles.statKey}> RAISED</span>
+                <span className={styles.statKey}>RAISED</span>
               </div>
               <div className={styles.stat}>
                 <span className={styles.statValue}>{leftToMin}</span>
-                <span className={styles.statKey}> LEFT</span>
+                <span className={styles.statKey}>LEFT</span>
               </div>
             </div>
 
@@ -136,8 +136,10 @@ export function Progress({
               className={styles.labelMinRaise}
               style={{ left: `${minRaisePct}%` }}
             >
-              <span className={styles.statValue}>$1.2M</span>
-              <span className={styles.statKey}> MIN RAISE</span>
+              <div className={styles.stat}>
+                <span className={styles.statValue}>$1.2M</span>
+                <span className={styles.statKey}>MIN RAISE</span>
+              </div>
             </div>
           </div>
         </div>
