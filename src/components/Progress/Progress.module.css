@@ -170,14 +170,14 @@
 
 .statValue {
   font-family: "Geist", sans-serif;
-  font-size: 14px;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: 700;
   color: var(--semantic-color-text-primary);
 }
 
 .statKey {
   font-family: "Geist", sans-serif;
-  font-size: 14px;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: 300;
   color: var(--semantic-color-text-muted);
 }
