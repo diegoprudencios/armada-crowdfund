@@ -43,23 +43,10 @@
 .searchIcon {
   width: 14px;
   height: 14px;
-  border: 2px solid var(--semantic-color-text-dim);
-  border-radius: 999px;
-  position: relative;
+  color: var(--semantic-color-text-dim);
   margin-right: var(--primitives-spacing-3);
   opacity: 0.8;
   flex: 0 0 auto;
-}
-.searchIcon::after {
-  content: '';
-  position: absolute;
-  width: 7px;
-  height: 2px;
-  background: var(--semantic-color-text-dim);
-  right: -6px;
-  bottom: -3px;
-  transform: rotate(45deg);
-  border-radius: 2px;
 }
 
 .search {

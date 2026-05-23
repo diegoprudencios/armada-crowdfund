@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Header } from '../components/Header'
 import { Progress } from '../components/Progress'
 import { Participate } from '../components/Participate'
@@ -6,13 +6,6 @@ import { HeroParticipantsPanel, HeroParticipant } from '../components/HeroPartic
 import { NodeSphere } from './NodeSphere'
 import { generateDashboardParticipants, toHeroParticipants } from '../utils/mockParticipants'
 import styles from './Hero.module.css'
-
-const NAV_ITEMS = [
-  { label: 'The project' },
-  { label: 'Crowdfund', active: true },
-  { label: 'My position' },
-  { label: 'Claim' },
-] as const
 
 export function Hero() {
   const scenario = useRef<{ participants: 0 | 3 | 4 | 5 | 30 | 800; seed: number } | null>(null)
@@ -43,9 +36,49 @@ export function Hero() {
   const participants = useMemo(() => toHeroParticipants(dashRows) as HeroParticipant[], [dashRows])
 
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
-  const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2'>('all')
+  const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2' | 'multihop'>('all')
   const [participantsListOpen, setParticipantsListOpen] = useState(false)
+  const [holdColumnExpanded, setHoldColumnExpanded] = useState(false)
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
+  const leftStackRef = useRef<HTMLDivElement | null>(null)
+
+  const HERO_EXPAND_MS = 380
+
+  useLayoutEffect(() => {
+    const el = leftStackRef.current
+    if (!el) return
+
+    const applyCollapsedHeight = () => {
+      el.style.minHeight = '0'
+      el.style.maxHeight = 'none'
+      const h = Math.ceil(el.getBoundingClientRect().height)
+      el.style.minHeight = ''
+      el.style.maxHeight = ''
+      if (h < 1) return false
+      const px = `${h}px`
+      el.style.setProperty('--hero-stack-collapsed-height', px)
+      el.closest<HTMLElement>('[class*="leftCorner"]')?.style.setProperty('--hero-stack-collapsed-height', px)
+      return true
+    }
+
+    if (applyCollapsedHeight()) return
+
+    const raf = requestAnimationFrame(() => {
+      if (!applyCollapsedHeight()) requestAnimationFrame(applyCollapsedHeight)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  useLayoutEffect(() => {
+    if (participantsListOpen) {
+      setHoldColumnExpanded(true)
+      return
+    }
+    const id = window.setTimeout(() => setHoldColumnExpanded(false), HERO_EXPAND_MS)
+    return () => window.clearTimeout(id)
+  }, [participantsListOpen])
+
+  const columnExpanded = participantsListOpen || holdColumnExpanded
 
   useEffect(() => {
     if (!selectedAddress) return
@@ -65,25 +98,41 @@ export function Hero() {
       <NodeSphere
         highlightAddress={selectedAddress}
         onSelectAddress={setSelectedAddress}
-        filterKind={filter === 'seed' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
+        filterKind={
+          filter === 'seed'
+            ? 'Hop 0'
+            : filter === 'hop1'
+              ? 'Hop 1'
+              : filter === 'hop2'
+                ? 'Hop 2'
+                : filter === 'multihop'
+                  ? 'Multi-hop'
+                  : undefined
+        }
         interactionDisabled={participantsListOpen}
         scenarioParticipants={scenario.current.participants}
         scenarioSeed={scenario.current.seed}
         pinnedNodes={participants.map((p) => ({
-          kind: p.hop === 'SEED' ? 'Hop 0' : p.hop === 'HOP-1' ? 'Hop 1' : 'Hop 2',
+          kind:
+            p.hop === 'SEED'
+              ? 'Hop 0'
+              : p.hop === 'HOP-1'
+                ? 'Hop 1'
+                : p.hop === 'HOP-2'
+                  ? 'Hop 2'
+                  : 'Multi-hop',
           address: p.address,
           committed: `$${p.amountUsd.toLocaleString()} committed`,
         }))}
       />
 
       <Header
-        navItems={[...NAV_ITEMS]}
-        ctaLabel="Participate"
+        activeNav="crowdfund"
         className={[styles.headerOverride, styles.enter, styles.enterHeader].join(' ')}
       />
 
       <div className={[styles.leftCorner, participantsListOpen && styles.leftCornerExpanded].filter(Boolean).join(' ')}>
-        <div className={[styles.leftStack, styles.enter, styles.enterProgress].join(' ')}>
+        <div ref={leftStackRef} className={[styles.leftStack, styles.enter, styles.enterProgress].join(' ')}>
           <Progress
             participants={`${scenario.current.participants} PARTICIPANTS`}
             committedAmount={committedAmount}
@@ -96,6 +145,7 @@ export function Hero() {
               collapsedMaxRows={3}
               filter={filter}
               onFilterChange={setFilter}
+              layoutExpanded={columnExpanded}
               showList={participantsListOpen}
               onShowListChange={(open) => {
                 setParticipantsListOpen(open)

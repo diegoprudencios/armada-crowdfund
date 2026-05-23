@@ -1,3 +1,4 @@
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Button } from '../Button'
 import { useEffect, useRef, useState } from 'react'
 import styles from './Participate.module.css'
@@ -110,9 +111,7 @@ export function Participate({
 
       {onClose && (
         <button className={styles.close} onClick={onClose} aria-label="Close">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
+          <XMarkIcon width={16} height={16} aria-hidden />
         </button>
       )}
 
@@ -124,6 +123,7 @@ export function Participate({
           size="md"
           label={ctaLabel}
           showIcon
+          icon="arrow-right-micro"
           onClick={onCtaClick}
           style={buttonFullWidth ? { width: '100%' } : undefined}
         />

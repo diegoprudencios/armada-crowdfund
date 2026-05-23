@@ -23,17 +23,15 @@ const eyebrow = {
   marginBottom: 20,
 }
 
-const NAV_ITEMS = [
+const NAV_SHOWCASE = [
   { label: 'The project' },
   { label: 'Crowdfund', active: true },
-  { label: 'My position' },
-  { label: 'Claim' },
 ]
 
 export function Showcase() {
   return (
     <div style={{ minHeight: '100vh', background: '#0e0d0f', paddingTop: 56 }}>
-      <Header navItems={NAV_ITEMS} />
+      <Header activeNav="crowdfund" />
 
       {/* Button */}
       <section style={sectionStyle}>
@@ -76,7 +74,7 @@ export function Showcase() {
       {/* NavBar */}
       <section style={sectionStyle}>
         <div style={eyebrow}>NavBar</div>
-        <NavBar items={NAV_ITEMS} />
+        <NavBar items={NAV_SHOWCASE} />
       </section>
 
       {/* Progress */}

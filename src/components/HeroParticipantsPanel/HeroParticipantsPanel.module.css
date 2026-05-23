@@ -4,14 +4,18 @@
   border-radius: 15px;
   border: none;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--primitives-spacing-4);
+  gap: 0;
   position: relative;
   min-height: 0;
+}
+
+.panel.expanded {
+  gap: var(--hero-stack-gap, var(--primitives-spacing-5));
 }
 
 .panel::before {
@@ -31,6 +35,11 @@
 .expanded {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
+}
+
+.expanded .controlsRow {
+  flex-shrink: 0;
 }
 
 .controlsRow {
@@ -39,9 +48,10 @@
   justify-content: flex-start;
   gap: var(--primitives-spacing-2);
   flex-wrap: nowrap;
-  padding: var(--primitives-spacing-5);
-  padding-bottom: 0;
-  padding-left: 0;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .expandBtn {
@@ -111,22 +121,9 @@
 .searchIcon {
   width: 14px;
   height: 14px;
-  border: 2px solid var(--semantic-color-text-dim);
-  border-radius: 999px;
-  position: relative;
+  color: var(--semantic-color-text-dim);
   opacity: 0.8;
   flex: 0 0 auto;
-}
-.searchIcon::after {
-  content: '';
-  position: absolute;
-  width: 7px;
-  height: 2px;
-  background: var(--semantic-color-text-dim);
-  right: -6px;
-  bottom: -3px;
-  transform: rotate(45deg);
-  border-radius: 2px;
 }
 
 .search {
@@ -186,19 +183,64 @@
   color: var(--semantic-component-navitem-active-text);
 }
 
-.list {
+.listShell {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border-radius: 12px;
+  justify-content: flex-end;
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--semantic-color-text-primary) 8%, transparent);
-  background: var(--primitives-color-neutral-50);
-  margin-left: 0;
-  margin-right: 0;
+  flex: 0 0 0;
 }
 
-.listExpanded {
+.listShellClosed {
+  flex: 0 0 0;
+  pointer-events: none;
+}
+
+.listShellOpen {
+  flex: 1 1 0;
+  min-height: 0;
+  pointer-events: auto;
+}
+
+.listBackdrop {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--semantic-color-text-primary) 8%, transparent);
+  background: var(--primitives-color-neutral-50);
+}
+
+.listAnimOpen .listBackdrop {
+}
+
+.listAnimClosed .listBackdrop {
+}
+
+.listContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.listContentHidden {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 120ms;
+  transition-delay: 0ms;
+}
+
+.listContentVisible {
+  opacity: 1;
+  transition-duration: 220ms;
+  transition-delay: 200ms;
+}
+
+.listContentExpanded {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;

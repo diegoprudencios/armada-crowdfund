@@ -121,7 +121,7 @@ export interface NodeSphereProps {
   /** Notify when a node is selected via click. */
   onSelectAddress?: (address: string | undefined) => void
   /** When set, non-matching nodes are dimmed. */
-  filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2'
+  filterKind?: 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop'
   /** Disable pointer interactions so overlays can scroll/capture wheel. */
   interactionDisabled?: boolean
   /**

@@ -1,7 +1,7 @@
 export type ScenarioParticipants = 0 | 3 | 4 | 5 | 30 | 800
 
-type HopKind = 'Hop 0' | 'Hop 1' | 'Hop 2'
-type HeroHop = 'SEED' | 'HOP-1' | 'HOP-2'
+type HopKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop'
+type HeroHop = 'SEED' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
 
 export type HeroParticipantRow = {
   address: string
@@ -43,9 +43,10 @@ function makeAddress(rand: () => number) {
 
 function pickHop(rand: () => number): HopKind {
   const r = rand()
-  if (r < 0.6) return 'Hop 0'
-  if (r < 0.9) return 'Hop 1'
-  return 'Hop 2'
+  if (r < 0.55) return 'Hop 0'
+  if (r < 0.8) return 'Hop 1'
+  if (r < 0.95) return 'Hop 2'
+  return 'Multi-hop'
 }
 
 function amountForScenario(count: ScenarioParticipants, rand: () => number) {
@@ -72,7 +73,14 @@ export function generateDashboardParticipants(seed: number, count: ScenarioParti
 export function toHeroParticipants(rows: DashboardParticipant[]): HeroParticipantRow[] {
   return rows.map((r) => ({
     address: r.address,
-    hop: r.hop === 'Hop 0' ? 'SEED' : r.hop === 'Hop 1' ? 'HOP-1' : 'HOP-2',
+    hop:
+      r.hop === 'Hop 0'
+        ? 'SEED'
+        : r.hop === 'Hop 1'
+          ? 'HOP-1'
+          : r.hop === 'Hop 2'
+            ? 'HOP-2'
+            : 'MULTI-HOP',
     amountUsd: r.amountUsd,
   }))
 }

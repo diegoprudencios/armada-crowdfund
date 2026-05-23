@@ -1,8 +1,9 @@
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useMemo, useState } from 'react'
 import { Button } from '../Button'
 import styles from './ParticipantsTable.module.css'
 
-export type ParticipantsTableFilter = 'all' | 'hop0' | 'hop1' | 'hop2'
+export type ParticipantsTableFilter = 'all' | 'hop0' | 'hop1' | 'hop2' | 'multihop'
 
 export interface ParticipantsTableProps {
   filter?: ParticipantsTableFilter
@@ -26,6 +27,7 @@ const FILTERS: Array<{ id: ParticipantsTableFilter; label: string }> = [
   { id: 'hop0', label: 'Seed' },
   { id: 'hop1', label: 'Hop 1' },
   { id: 'hop2', label: 'Hop 2' },
+  { id: 'multihop', label: 'Multi-hop' },
 ]
 
 const MOCK_ROWS: ParticipantRow[] = [
@@ -181,7 +183,8 @@ export function ParticipantsTable({
         filter === 'all' ||
         (filter === 'hop0' && r.hops === 'Hop 0') ||
         (filter === 'hop1' && r.hops === 'Hop 1') ||
-        (filter === 'hop2' && r.hops === 'Hop 2')
+        (filter === 'hop2' && r.hops === 'Hop 2') ||
+        (filter === 'multihop' && r.hops === 'Multi-hop')
       return matchesQuery && matchesFilter
     })
   }, [query, filter, rowsProp])
@@ -195,7 +198,7 @@ export function ParticipantsTable({
 
         <div className={styles.controls}>
           <div className={styles.searchWrap}>
-            <span className={styles.searchIcon} aria-hidden />
+            <MagnifyingGlassIcon className={styles.searchIcon} width={14} height={14} aria-hidden />
             <input
               className={styles.search}
               value={query}
@@ -286,7 +289,7 @@ export function ParticipantsTable({
                   <div className={styles.emptyTitle}>No participants yet</div>
                   <div className={styles.emptySub}>Be the first to participate.</div>
                   <div className={styles.emptyCta}>
-                    <Button variant="gradient" size="md" label="Participate" showIcon />
+                    <Button variant="gradient" size="md" label="Participate" showIcon icon="arrow-right-micro" />
                   </div>
                 </>
               ) : (

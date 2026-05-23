@@ -8,13 +8,6 @@ import { NodeSphere } from './NodeSphere'
 import { generateDashboardParticipants, generateParticipantsTableRows } from '../utils/mockParticipants'
 import styles from './HeroDashboard.module.css'
 
-const NAV_ITEMS = [
-  { label: 'The project' },
-  { label: 'Crowdfund', active: true },
-  { label: 'My position' },
-  { label: 'Claim' },
-] as const
-
 export function HeroDashboard() {
   const scenario = useMemo(() => {
     const r = Math.random()
@@ -40,18 +33,13 @@ export function HeroDashboard() {
     [scenario.seed, scenario.participants],
   )
 
-  const [filter, setFilter] = useState<'all' | 'hop0' | 'hop1' | 'hop2'>('all')
+  const [filter, setFilter] = useState<'all' | 'hop0' | 'hop1' | 'hop2' | 'multihop'>('all')
   const [query, setQuery] = useState('')
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
 
   return (
     <div className={styles.page}>
-      <Header
-        navItems={[...NAV_ITEMS]}
-        ctaLabel="Participate"
-        className={styles.headerDashboard}
-        autoHideOnScroll={false}
-      />
+      <Header activeNav="crowdfund" className={styles.headerDashboard} autoHideOnScroll={false} />
 
       <main className={styles.main}>
         <header className={styles.headline}>
@@ -87,7 +75,17 @@ export function HeroDashboard() {
             <NodeSphere
               highlightAddress={selectedAddress}
               onSelectAddress={setSelectedAddress}
-              filterKind={filter === 'hop0' ? 'Hop 0' : filter === 'hop1' ? 'Hop 1' : filter === 'hop2' ? 'Hop 2' : undefined}
+              filterKind={
+                filter === 'hop0'
+                  ? 'Hop 0'
+                  : filter === 'hop1'
+                    ? 'Hop 1'
+                    : filter === 'hop2'
+                      ? 'Hop 2'
+                      : filter === 'multihop'
+                        ? 'Multi-hop'
+                        : undefined
+              }
               interactionDisabled={false}
               scenarioParticipants={scenario.participants}
               scenarioSeed={scenario.seed}
