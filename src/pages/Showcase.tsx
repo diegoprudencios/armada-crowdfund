@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Button } from '../components/Button'
 import { Tag } from '../components/Tag'
 import { NavBar } from '../components/NavBar'
@@ -14,7 +13,13 @@ import {
 import WalletItem from '../components/WalletItem/WalletItem'
 import { Participate } from '../components/Participate'
 import { Progress } from '../components/Progress'
-import ParticipateFlow from '../components/ParticipateFlow/ParticipateFlow'
+import Step0Invite from '../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
+import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
+import Step2Commit from '../components/ParticipateFlow/screens/Step2Commit.tsx'
+import Step3Review from '../components/ParticipateFlow/screens/Step3Review.tsx'
+import Step4Approve from '../components/ParticipateFlow/screens/Step4Approve'
+import Step5Confirmation from '../components/ParticipateFlow/screens/Step5Confirmation'
+import Tooltip from '../components/Tooltip/Tooltip'
 
 const variants = ['primary', 'secondary', 'ghost', 'gradient'] as const
 const sizes = ['sm', 'md', 'lg'] as const
@@ -42,14 +47,8 @@ const NAV_ITEMS = [
 ]
 
 export function Showcase() {
-  const [participateOpen, setParticipateOpen] = useState(false)
-
   return (
     <div style={{ minHeight: '100vh', background: '#0e0d0f', paddingTop: 56 }}>
-      <ParticipateFlow
-        isOpen={participateOpen}
-        onClose={() => setParticipateOpen(false)}
-      />
       <Header activeNav="crowdfund" autoHideOnScroll={false} />
 
       {/* Button */}
@@ -90,6 +89,39 @@ export function Showcase() {
         </div>
       </section>
 
+      {/* Tooltip */}
+      <section style={{ ...sectionStyle, overflow: 'visible' }}>
+        <div style={eyebrow}>TOOLTIP</div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 48,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            overflow: 'visible',
+            minHeight: 280,
+            paddingTop: 160,
+          }}
+        >
+          <Tooltip variant="centered" content="This is a simple centered tooltip.">
+            <Button variant="secondary" size="sm" label="Hover me" showIcon={false} />
+          </Tooltip>
+
+          <Tooltip
+            variant="rich"
+            title="EST. ARM Allocation"
+            description="Your estimated allocation based on the amount committed."
+            bullets={[
+              "Proportional to your USDC committed",
+              "Final allocation confirmed at close",
+              "Subject to pool cap",
+            ]}
+          >
+            <Button variant="secondary" size="sm" label="Hover me" showIcon={false} />
+          </Tooltip>
+        </div>
+      </section>
+
       {/* NavBar */}
       <section style={sectionStyle}>
         <div style={eyebrow}>NavBar</div>
@@ -105,7 +137,7 @@ export function Showcase() {
       {/* Participate */}
       <section style={sectionStyle}>
         <div style={eyebrow}>Participate</div>
-        <Participate imageSrc="/fleet.png" onClose={() => {}} />
+        <Participate imageSrc="/fleet.png" videoSrc="/fleet.mp4" />
       </section>
 
       {/* Steps */}
@@ -134,7 +166,14 @@ export function Showcase() {
       {/* WalletItem */}
       <section style={sectionStyle}>
         <div style={eyebrow}>WalletItem</div>
-        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 360 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--primitives-spacing-3)',
+            maxWidth: 360,
+          }}
+        >
           <WalletItem
             name="MetaMask"
             balance="1,240 USDC"
@@ -180,17 +219,64 @@ export function Showcase() {
       <section style={sectionStyle}>
         <div style={eyebrow}>ParticipateFlow</div>
         <p style={{ ...eyebrow, textTransform: 'none', letterSpacing: 'normal', marginBottom: 20 }}>
-          Inline preview below. Open full-screen for the real modal experience.
+          Each step is isolated for now — side by side until the full flow is wired up.
         </p>
-        <ParticipateFlow variant="embedded" />
-        <div style={{ marginTop: 20 }}>
-          <Button
-            variant="primary"
-            size="md"
-            label="Open full-screen modal"
-            showIcon={false}
-            onClick={() => setParticipateOpen(true)}
-          />
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'nowrap',
+            gap: 24,
+            alignItems: 'flex-start',
+            overflowX: 'auto',
+            width: '100%',
+            paddingBottom: 16,
+          }}
+        >
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>Step 0 (Invite)</div>
+            <Step0Invite
+              hopVariant="hop-1"
+              daysLeft={3}
+              onJoin={() => console.log('join clicked')}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>Step 1 (Wallet)</div>
+            <Step1Wallet onNext={(wallet) => console.log('wallet:', wallet)} />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 2 (COMMIT)</div>
+            <Step2Commit
+              onNext={(amount: number) => console.log('amount:', amount)}
+              onBack={() => console.log('back')}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 3 (REVIEW)</div>
+            <Step3Review
+              onNext={() => console.log('approve')}
+              onBack={() => console.log('back')}
+              hopLevel="Hop 1"
+              amount={1000}
+              estimatedArm={1000}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 4 (APPROVE)</div>
+            <Step4Approve
+              onDone={() => console.log('approve done')}
+              amount={1000}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 5 (CONFIRMATION)</div>
+            <Step5Confirmation
+              onViewPosition={() => console.log('view position')}
+              onInvite={() => console.log('invite')}
+              amount={1000}
+              estimatedArm={1000}
+            />
+          </div>
         </div>
       </section>
 

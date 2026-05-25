@@ -745,6 +745,16 @@
       "badge": {
         "value": "{borderRadius.sm}",
         "type": "borderRadius"
+      },
+      "item": {
+        "value": "8",
+        "type": "borderRadius",
+        "description": "Interactive list rows and items"
+      },
+      "modal": {
+        "value": "20",
+        "type": "borderRadius",
+        "description": "Modal and overlay containers"
       }
     },
     "component": {

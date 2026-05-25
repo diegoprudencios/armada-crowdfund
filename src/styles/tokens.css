@@ -77,6 +77,7 @@
   --primitives-spacing-6: 24px;
   --primitives-spacing-8: 32px;
   --primitives-spacing-10: 40px;
+  --primitives-spacing-11: 44px;
   --primitives-spacing-12: 48px;
   --primitives-spacing-16: 64px;
   --primitives-spacing-20: 80px;
@@ -114,6 +115,8 @@
   --semantic-spacing-section-gap: var(--primitives-spacing-10);
   --semantic-spacing-component-gap: var(--primitives-spacing-3);
   --semantic-borderRadius-card: var(--primitives-borderRadius-lg);
+  --semantic-borderRadius-item: 8;
+  --semantic-borderRadius-modal: 20;
   --semantic-borderRadius-button: var(--primitives-borderRadius-full);
   --semantic-borderRadius-input: var(--primitives-borderRadius-md);
   --semantic-borderRadius-badge: var(--primitives-borderRadius-sm);
@@ -307,6 +310,7 @@
   --primitives-spacing-6: 24px;
   --primitives-spacing-8: 32px;
   --primitives-spacing-10: 40px;
+  --primitives-spacing-11: 44px;
   --primitives-spacing-12: 48px;
   --primitives-spacing-16: 64px;
   --primitives-spacing-20: 80px;
@@ -344,6 +348,8 @@
   --semantic-spacing-section-gap: var(--primitives-spacing-10);
   --semantic-spacing-component-gap: var(--primitives-spacing-3);
   --semantic-borderRadius-card: var(--primitives-borderRadius-lg);
+  --semantic-borderRadius-item: 8;
+  --semantic-borderRadius-modal: 20;
   --semantic-borderRadius-button: var(--primitives-borderRadius-full);
   --semantic-borderRadius-input: var(--primitives-borderRadius-md);
   --semantic-borderRadius-badge: var(--primitives-borderRadius-sm);

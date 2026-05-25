@@ -1,0 +1,45 @@
+---
+description: Armada UI repo layout, design tokens, build, and component conventions
+alwaysApply: true
+---
+
+# Armada project
+
+## Required workflow
+
+1. **Read `ARMADA_DESIGN_SYSTEM.md`** at the repo root before writing or editing any component, page, or CSS.
+2. **Never hardcode** hex colors, raw `px` spacing/sizing, or font sizes — use CSS custom properties from `src/styles/tokens.css`.
+3. **Verify token names** in `src/styles/tokens.css` before using any `var(--…)` (semantic and primitive names must exist).
+4. **Run `npm run build`** before marking any task complete (catches `tsc` errors Vercel will reject).
+
+Exceptions: rare cases called out in the design system (e.g. gradient overlays on media). When in doubt, check the doc and tokens first.
+
+## Single source of truth
+
+- **Only work in this folder:** `armada-crowdfund` (git + GitHub + Vercel).
+- Do **not** edit `armada-v2` — it is an old duplicate and is out of date (e.g. centered header nav).
+- Run `npm run dev` here only → `http://localhost:5173/`
+
+## Build & deploy
+
+- Production build: `npm run build` → `tsc && vite build`.
+- `npm run dev` does not run `tsc`.
+- Do not commit unless the user asks.
+
+## Styling
+
+- CSS Modules per component (`Component.module.css`).
+- Prefer semantic tokens (`--semantic-*`); use primitives (`--primitives-*`) when semantic aliases do not exist.
+- Prefer minimal, focused diffs; match existing naming and patterns.
+
+## Components (patterns)
+
+**Header** — `activeNav="project" | "crowdfund"`, not `navItems`. Custom nav demos use `<NavBar items={...} />` in Showcase.
+
+**ParticipateFlow** — one component per step under `src/components/ParticipateFlow/steps/` (e.g. `Step0Invite`). Wire into a flow later; do not bundle steps in one file yet.
+
+**Step 0 invite card** — grid stack (`grid-area: stack`) for video, overlay, content. Overlay gradient: black 20% top → 80% bottom (Figma).
+
+**Steps** — `status`: `default` | `error` | `confirmed`. Errors at connect (step 1) and confirmation (step 4).
+
+**JoinButton** — `expanded` prop for parent hover (e.g. fleet card).

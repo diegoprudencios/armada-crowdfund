@@ -1,5 +1,20 @@
 # Armada Crowdfund UI
 
+**This is the only project folder.** Edit here, run dev here, commit here. Ignore `armada-v2` (old duplicate).
+
+## Daily use (simple)
+
+1. Open this folder in Cursor: `armada-crowdfund`
+2. In the terminal: `npm run dev`
+3. In the browser: **http://localhost:5173/**
+   - Showcase (components): http://localhost:5173/showcase.html
+   - Hero: http://localhost:5173/
+   - Dashboard: http://localhost:5173/dashboard.html
+
+If you see the wrong design (e.g. nav centered under the logo), you are probably on port **5174** or another old copy — close that tab and use **5173** from this folder only.
+
+---
+
 React + Vite UI prototype for the Armada crowdfund experience.
 
 This project includes **two main screens**:
