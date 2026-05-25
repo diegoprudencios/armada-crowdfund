@@ -97,6 +97,7 @@
   --semantic-color-surface-bg: var(--primitives-color-neutral-0);
   --semantic-color-surface-default: var(--primitives-color-neutral-50);
   --semantic-color-surface-raised: var(--primitives-color-neutral-100);
+  --semantic-color-surface-hover: var(--primitives-color-neutral-100);
   --semantic-color-border-default: rgba(255,255,255,0.07);
   --semantic-color-border-lavender: rgba(196,145,229,0.14);
   --semantic-color-border-amber: rgba(243,208,160,0.14);
@@ -229,6 +230,7 @@
   --semantic-component-tag-dot-warning: #fbbf24;
   --semantic-component-tag-dot-error: #f87171;
   --semantic-component-tag-dot-neutral: #9990a9;
+  --semantic-component-tag-dot-lavender: var(--semantic-color-brand-lavender);
 }
 
 /* Light theme — values TBD; duplicated from dark so nothing breaks */
@@ -330,6 +332,7 @@
   --semantic-color-surface-bg: var(--primitives-color-neutral-0);
   --semantic-color-surface-default: var(--primitives-color-neutral-50);
   --semantic-color-surface-raised: var(--primitives-color-neutral-100);
+  --semantic-color-surface-hover: var(--primitives-color-neutral-100);
   --semantic-color-border-default: rgba(255,255,255,0.07);
   --semantic-color-border-lavender: rgba(196,145,229,0.14);
   --semantic-color-border-amber: rgba(243,208,160,0.14);
@@ -462,4 +465,5 @@
   --semantic-component-tag-dot-warning: #fbbf24;
   --semantic-component-tag-dot-error: #f87171;
   --semantic-component-tag-dot-neutral: #9990a9;
+  --semantic-component-tag-dot-lavender: var(--semantic-color-brand-lavender);
 }

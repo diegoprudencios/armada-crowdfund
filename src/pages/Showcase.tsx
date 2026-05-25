@@ -20,6 +20,8 @@ import Step3Review from '../components/ParticipateFlow/screens/Step3Review.tsx'
 import Step4Approve from '../components/ParticipateFlow/screens/Step4Approve'
 import Step5Confirmation from '../components/ParticipateFlow/screens/Step5Confirmation'
 import Tooltip from '../components/Tooltip/Tooltip'
+import InviteSlots from '../components/InviteFlow/screens/InviteSlots'
+import SlotCard from '../components/InviteFlow/screens/SlotCard'
 
 const variants = ['primary', 'secondary', 'ghost', 'gradient'] as const
 const sizes = ['sm', 'md', 'lg'] as const
@@ -287,6 +289,82 @@ export function Showcase() {
           Hover to expand — collapsed shows icon only
         </p>
         <JoinButton onClick={() => {}} />
+      </section>
+
+      {/* InviteFlow */}
+      <section style={sectionStyle}>
+        <div style={eyebrow}>INVITEFLOW</div>
+        <p style={{ ...eyebrow, textTransform: 'none', letterSpacing: 'normal', marginBottom: 20 }}>
+          Each step is isolated for now — side by side until the full flow is wired up.
+        </p>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'nowrap',
+            gap: 24,
+            alignItems: 'flex-start',
+            overflowX: 'auto',
+            width: '100%',
+            paddingBottom: 16,
+          }}
+        >
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>SLOTS OVERVIEW</div>
+            <InviteSlots
+              totalSlots={3}
+              hopLevel="Hop-1"
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>SLOT STATES</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 480 }}>
+              <SlotCard
+                slot={{ id: 1, status: 'empty' }}
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+              <SlotCard
+                slot={{ id: 2, status: 'empty' }}
+                defaultExpandedAction="link"
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+              <SlotCard
+                slot={{ id: 3, status: 'empty' }}
+                defaultExpandedAction="onchain"
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+              <SlotCard
+                slot={{ id: 4, status: 'link-active', link: 'https://armada.wtf/join?invite=abc123&hop=hop-1', expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) }}
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+              <SlotCard
+                slot={{ id: 5, status: 'onchain-pending', invitedAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', ensName: 'vitalik.eth' }}
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+              <SlotCard
+                slot={{ id: 6, status: 'redeemed', redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c' }}
+                onGenerateLink={async () => {}}
+                onCopy={() => {}}
+                onRevoke={() => {}}
+                onInviteOnchain={async () => {}}
+              />
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   )

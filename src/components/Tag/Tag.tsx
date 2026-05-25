@@ -1,6 +1,6 @@
 import styles from './Tag.module.css'
 
-export type TagDot = 'active' | 'warning' | 'error' | 'neutral'
+export type TagDot = 'active' | 'warning' | 'error' | 'neutral' | 'lavender'
 
 export interface TagProps {
   label: string

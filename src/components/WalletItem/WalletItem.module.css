@@ -5,7 +5,7 @@
   padding: var(--primitives-spacing-4);
   width: 100%;
   border-radius: calc(var(--semantic-borderRadius-item) * 1px);
-  background: var(--semantic-color-surface-raised);
+  background: var(--semantic-color-surface-default);
   border: none;
   cursor: pointer;
   text-align: left;
@@ -13,7 +13,7 @@
 }
 
 .item:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--semantic-color-surface-raised), white 6%);
+  background: var(--semantic-color-surface-hover);
 }
 
 .item:disabled {

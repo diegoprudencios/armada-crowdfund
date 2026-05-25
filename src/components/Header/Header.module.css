@@ -43,3 +43,13 @@
   gap: var(--primitives-spacing-3);
   flex-shrink: 0;
 }
+
+.myPositionActive {
+  background: var(--semantic-component-navitem-active-bg) !important;
+  color: var(--semantic-component-navitem-active-text) !important;
+}
+
+.myPositionActive:hover:not(:disabled) {
+  background: var(--semantic-component-navitem-active-bg) !important;
+  color: var(--semantic-component-navitem-active-text) !important;
+}

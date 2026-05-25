@@ -133,6 +133,12 @@ export interface NodeSphereProps {
   scenarioParticipants?: 0 | 3 | 4 | 5 | 30 | 800
   /** Seed for deterministic layout within a single reload. */
   scenarioSeed?: number
+  /** When set, used for the Your wallet node address. */
+  walletAddress?: string
+  /** Keep focus and edge highlight on the wallet; disables auto-rotate. */
+  lockOnWallet?: boolean
+  /** Wire wallet to Hop-1 invitees instead of crowdfund hop layers. */
+  inviteGraph?: boolean
 }
 
 export function NodeSphere({
@@ -143,6 +149,9 @@ export function NodeSphere({
   pinnedNodes,
   scenarioParticipants,
   scenarioSeed,
+  walletAddress,
+  lockOnWallet = false,
+  inviteGraph = false,
 }: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
@@ -152,6 +161,9 @@ export function NodeSphere({
   const highlightRef = useRef<string | undefined>(highlightAddress)
   const filterRef = useRef<NodeSphereProps['filterKind']>(filterKind)
   const interactionDisabledRef = useRef(!!interactionDisabled)
+  const walletAddressRef = useRef(walletAddress)
+  const lockOnWalletRef = useRef(lockOnWallet)
+  const inviteGraphRef = useRef(inviteGraph)
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -186,6 +198,24 @@ export function NodeSphere({
   useEffect(() => {
     interactionDisabledRef.current = !!interactionDisabled
   }, [interactionDisabled])
+
+  useEffect(() => {
+    walletAddressRef.current = walletAddress
+  }, [walletAddress])
+
+  useEffect(() => {
+    lockOnWalletRef.current = lockOnWallet
+  }, [lockOnWallet])
+
+  useEffect(() => {
+    inviteGraphRef.current = inviteGraph
+  }, [inviteGraph])
+
+  useEffect(() => {
+    if (lockOnWallet && walletAddress) {
+      highlightRef.current = walletAddress
+    }
+  }, [lockOnWallet, walletAddress])
 
   useEffect(() => {
     const el = rendererElRef.current
@@ -350,11 +380,12 @@ export function NodeSphere({
 
     // Exactly one wallet node (outer ring-ish). Omit when there are no participants.
     if (scenario.participants > 0) {
+      const walletPinned = pinnedByKind.get('Your wallet')?.[0]
       const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
       pushNode(walletPos, {
         kind: 'Your wallet',
-        address: makeAddress(rand),
-        committed: '$0 committed',
+        address: walletAddress ?? walletPinned?.address ?? makeAddress(rand),
+        committed: walletPinned?.committed ?? '$0 committed',
       })
     }
 
@@ -436,11 +467,14 @@ export function NodeSphere({
     connectNearest(hop1, hop2, 1)
     connectNearest(hop2, multi, 1)
 
-    // Wallet should connect to a single Seed node (more realistic).
-    if (hop0.length) {
-      // Create a synthetic "node index" for wallet by reusing its mesh index (it exists in nodes list).
-      const walletIdx = indicesByKind.get('Your wallet')?.[0]
-      if (walletIdx != null) connectNearest([walletIdx], hop0, 1)
+    const walletIdx = indicesByKind.get('Your wallet')?.[0]
+
+    if (inviteGraphRef.current) {
+      if (walletIdx != null && hop1.length) {
+        connectNearest([walletIdx], hop1, Math.min(hop1.length, 8))
+      }
+    } else if (hop0.length && walletIdx != null) {
+      connectNearest([walletIdx], hop0, 1)
     }
 
     const edgeGeometry = new THREE.BufferGeometry()
@@ -619,12 +653,14 @@ export function NodeSphere({
     }
 
     const animate = () => {
+      const lockedWallet = lockOnWalletRef.current ? walletAddressRef.current : undefined
       const selectedAddr = highlightRef.current
-      updateEdgeHighlight(selectedAddr ?? null)
+      const focusAddr = lockedWallet ?? selectedAddr
+      updateEdgeHighlight(focusAddr ?? null)
 
       // If we just deselected, bake the current focused orientation into root first,
       // then reset focus to identity. This preserves the exact current frame.
-      if (!selectedAddr && hadSelection) {
+      if (!focusAddr && hadSelection) {
         root.quaternion.multiply(focus.quaternion)
         focus.quaternion.copy(identityQuat)
         hadSelection = false
@@ -632,7 +668,8 @@ export function NodeSphere({
         lastCenteredAddress = null
       }
 
-      const shouldAutoRotate = !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
+      const shouldAutoRotate =
+        !lockedWallet && !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
       if (shouldAutoRotate) {
         root.rotation.y += 0.001
         root.rotation.x += 0.0003
@@ -642,7 +679,7 @@ export function NodeSphere({
       for (const m of nodeMeshes) {
         const isHovered = hovered === m
         const meta = m.userData as NodeMeta
-        const isSelected = !!selectedAddr && meta.address === selectedAddr
+        const isSelected = !!focusAddr && meta.address === focusAddr
         const activeFilter = filterRef.current
         const isFilteredOut = !!activeFilter && meta.kind !== activeFilter && meta.kind !== 'Your wallet'
         const target = Math.max(isHovered ? 1.35 : 1, isSelected ? 1.55 : 1)
@@ -655,28 +692,28 @@ export function NodeSphere({
         mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
       }
 
-      // Center selected node in view by rotating the focus group (root keeps continuity).
-      if (selectedAddr && !isDraggingRef.current) {
+      // Center focused node in view by rotating the focus group (root keeps continuity).
+      if (focusAddr && !isDraggingRef.current) {
         hadSelection = true
-        if (lastCenteredAddress !== selectedAddr) {
-          const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
+        if (lastCenteredAddress !== focusAddr) {
+          const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
           if (selectedMesh) {
             const desiredWorld = new THREE.Vector3(0, 0, 1)
             const desiredInFocusSpace = desiredWorld.clone().applyQuaternion(root.quaternion.clone().invert()).normalize()
             const from = selectedMesh.position.clone().normalize()
             targetFocusQuat = new THREE.Quaternion().setFromUnitVectors(from, desiredInFocusSpace)
           }
-          lastCenteredAddress = selectedAddr
+          lastCenteredAddress = focusAddr
         }
         if (targetFocusQuat) focus.quaternion.slerp(targetFocusQuat, 0.08)
-      } else {
+      } else if (!lockedWallet) {
         lastCenteredAddress = null
         targetFocusQuat = null
       }
 
-      // Keep selected tooltip pinned near the selected node (when not hovering other nodes).
-      if (selectedAddr && !hoverActiveRef.current) {
-        const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === selectedAddr) ?? null
+      // Keep selected tooltip pinned near the focused node (when not hovering other nodes).
+      if (focusAddr && !lockOnWalletRef.current && !hoverActiveRef.current) {
+        const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
         if (selectedMesh) {
           const meta = selectedMesh.userData as NodeMeta
           const world = new THREE.Vector3()
@@ -748,7 +785,7 @@ export function NodeSphere({
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [instanceId, pinnedNodesKey, seed])
+  }, [instanceId, pinnedNodesKey, seed, walletAddress, lockOnWallet, inviteGraph])
 
   return (
     <div
@@ -824,7 +861,7 @@ export function NodeSphere({
       )}
 
       {/* Selected tooltip (pinned) */}
-      {!hover?.visible && selectedTip?.visible && (
+      {!lockOnWallet && !hover?.visible && selectedTip?.visible && (
         <div
           style={{
             position: 'fixed',

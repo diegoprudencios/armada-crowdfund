@@ -14,6 +14,7 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'dashboard.html'),
         hero: resolve(__dirname, 'hero.html'),
         showcase: resolve(__dirname, 'showcase.html'),
+        myposition: resolve(__dirname, 'myposition.html'),
       },
     },
   },

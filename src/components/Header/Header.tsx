@@ -4,7 +4,7 @@ import { Button } from '../Button'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
-  activeNav?: 'project' | 'crowdfund'
+  activeNav?: 'project' | 'crowdfund' | 'myposition'
   walletAddress?: string
   claimAvailable?: boolean
   onInvite?: () => void
@@ -125,7 +125,14 @@ export function Header({
         {!claimAvailable && (
           <Button variant="ghost" size="md" label="Invite" showIcon={false} onClick={onInvite} />
         )}
-        <Button variant="ghost" size="md" label="My position" showIcon={false} onClick={onMyPosition} />
+        <Button
+          variant="ghost"
+          size="md"
+          label="My position"
+          showIcon={false}
+          onClick={onMyPosition}
+          className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
+        />
         {claimAvailable && (
           <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
         )}

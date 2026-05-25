@@ -432,6 +432,11 @@
         "raised": {
           "value": "{color.neutral.100}",
           "type": "color"
+        },
+        "hover": {
+          "value": "{color.neutral.100}",
+          "type": "color",
+          "description": "Surface color for interactive hover states"
         }
       },
       "border": {
