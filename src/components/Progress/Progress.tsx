@@ -81,6 +81,9 @@ export function Progress({
     return () => cancelAnimationFrame(raf)
   }, [animateOnMount, filledPct, committedAmount])
 
+  const gradientFillPct = Math.min(animatedPct, minRaisePct)
+  const overMinFillPct = Math.max(0, animatedPct - minRaisePct)
+
   return (
     <div className={[styles.card, hideStatus && styles.cardSansStatus, className].filter(Boolean).join(' ')}>
 
@@ -111,8 +114,14 @@ export function Progress({
           <div className={styles.barTrack}>
             {/* Fixed tick grid; fill is painted above and covers the filled segment */}
             <BarTrackTicks />
-            {/* Gradient fill */}
-            <div className={styles.barFill} style={{ width: `${animatedPct}%` }} />
+            {/* Gradient up to min raise; lavender beyond */}
+            <div className={styles.barFillGradient} style={{ width: `${gradientFillPct}%` }} />
+            {overMinFillPct > 0 && (
+              <div
+                className={styles.barFillOverMin}
+                style={{ left: `${minRaisePct}%`, width: `${overMinFillPct}%` }}
+              />
+            )}
             {/* Threshold line — taller than bar */}
             <div className={styles.threshold} style={{ left: `${minRaisePct}%` }} />
           </div>

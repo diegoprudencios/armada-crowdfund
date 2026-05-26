@@ -111,7 +111,7 @@
   overflow: visible;
 }
 
-.barFill {
+.barFillGradient {
   position: absolute;
   top: 0;
   left: 0;
@@ -125,6 +125,44 @@
   );
   pointer-events: none;
   will-change: width;
+}
+
+.barFillOverMin {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    var(--semantic-color-brand-lavender) 0%,
+    var(--primitives-color-purple-600) 28%,
+    var(--primitives-color-purple-700) 50%,
+    var(--primitives-color-purple-600) 72%,
+    var(--semantic-color-brand-lavender) 100%
+  );
+  background-size: 280% 100%;
+  animation: barOverMinShine 2.2s ease-in-out infinite alternate;
+  pointer-events: none;
+  will-change: width, left;
+}
+
+@keyframes barOverMinShine {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFillOverMin {
+    animation: none;
+    background: var(--semantic-color-brand-lavender);
+    background-size: auto;
+  }
 }
 
 /* Threshold — taller than bar, extends above and below track */
