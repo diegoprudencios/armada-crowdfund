@@ -3,7 +3,7 @@
   width: 582px;
   padding: var(--semantic-spacing-card-padding);
   border-radius: 15px;
-  border: none;
+  border: 1px solid var(--semantic-color-border-default);
   background: color-mix(in srgb, var(--primitives-color-neutral-50) 72%, transparent);
   overflow: hidden;
   display: flex;
@@ -127,14 +127,14 @@
   will-change: width;
 }
 
-/* Threshold — taller than bar, extends 4px above and below */
+/* Threshold — taller than bar, extends above and below track */
 .threshold {
   position: absolute;
-  top: -4px;
-  bottom: -4px;
+  top: calc(-1 * var(--primitives-spacing-2));
+  bottom: calc(-1 * var(--primitives-spacing-2));
   width: 1px;
   z-index: 2;
-  background: var(--semantic-color-brand-lavender);
+  background: var(--semantic-color-text-primary);
   pointer-events: none;
 }
 
@@ -143,7 +143,7 @@
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  margin-top: 8px;
+  margin-top: var(--primitives-spacing-5);
   height: 20px;
 }
 

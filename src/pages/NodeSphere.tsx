@@ -532,6 +532,7 @@ export function NodeSphere({
     let isPointerDown = false
     let pointerDidDrag = false
     let userAdjustedView = false
+    let cameraResetActive = false
     const DRAG_CLICK_THRESHOLD_PX = 8
 
     let raf = 0
@@ -665,7 +666,9 @@ export function NodeSphere({
 
       e.preventDefault()
       userAdjustedView = true
-      const next = camera.position.z + e.deltaY * 0.01
+      cameraResetActive = false
+      const deltaScale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1
+      const next = camera.position.z + e.deltaY * deltaScale * 0.002
       camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
       targetCameraZ = camera.position.z
     }
@@ -753,6 +756,8 @@ export function NodeSphere({
         targetFocusQuat = null
         lastCenteredAddress = null
         targetCameraZ = Z_MIN
+        userAdjustedView = false
+        cameraResetActive = true
       }
 
       const shouldAutoRotate =
@@ -810,8 +815,16 @@ export function NodeSphere({
       } else {
         lastCenteredAddress = null
         targetFocusQuat = null
-        targetCameraZ = Z_MIN
-        camera.position.z += (Z_MIN - camera.position.z) * CAMERA_Z_LERP
+        // Only ease zoom back after deselecting a node — not while browsing with no selection.
+        if (cameraResetActive) {
+          targetCameraZ = Z_MIN
+          if (Math.abs(camera.position.z - Z_MIN) > 0.08) {
+            camera.position.z += (Z_MIN - camera.position.z) * CAMERA_Z_LERP
+          } else {
+            camera.position.z = Z_MIN
+            cameraResetActive = false
+          }
+        }
       }
 
       const showSelectedTip =
