@@ -7,7 +7,10 @@ import { HeroParticipantsPanel, type HeroParticipant } from '../components/HeroP
 import { Tag } from '../components/Tag/Tag'
 import Tooltip from '../components/Tooltip/Tooltip'
 import SlotCard from '../components/InviteFlow/screens/SlotCard'
-import { ParticipateFlowCrowdfund } from '../components/ParticipateFlow'
+import {
+  ParticipateFlowCrowdfund,
+  type ParticipateFlowCloseContext,
+} from '../components/ParticipateFlow'
 import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
 import { ParticipateFlowModal } from '../components/ParticipateFlow/ParticipateFlowModal'
 import { DemoSessionProvider, useDemoSession } from '../context/DemoSessionContext'
@@ -85,6 +88,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     fillPct,
     slots,
     connectWallet,
+    disconnectWallet,
     completeParticipation,
     generateSlotLink,
     revokeSlot,
@@ -277,10 +281,17 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     startPanelTransition('crowdfund')
   }
 
-  const closeParticipateFlow = () => {
+  const closeParticipateFlow = ({ step }: ParticipateFlowCloseContext) => {
     setParticipateOpen(false)
     setPendingParticipateOpen(false)
-    if (walletConnected) goToMyPosition()
+    if (step === 'confirmation') goToMyPosition()
+  }
+
+  const handleDisconnectWallet = () => {
+    setParticipateOpen(false)
+    setConnectOpen(false)
+    setPendingParticipateOpen(false)
+    disconnectWallet()
   }
 
   const closeConnectModal = () => {
@@ -357,7 +368,19 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     return pins
   }, [displayParticipants, wallet, committedUsdc, slots])
 
-  const graphLayoutKey = `${scenario.current!.seed}-${walletConnected ? 'connected' : 'guest'}-${hasParticipated ? committedUsdc : 0}-${slots.map((s) => s.status).join('-')}`
+  // Only remount when graph structure changes — not on link create/revoke (link-active ↔ empty).
+  const graphLayoutKey = useMemo(() => {
+    const invitePinKey = slots
+      .filter((s) => s.status === 'onchain-pending' || s.status === 'redeemed')
+      .map((s) => `${s.id}:${s.status}:${s.invitedAddress ?? s.redeemedBy ?? ''}`)
+      .join('|')
+    return [
+      scenario.current!.seed,
+      walletConnected ? 'connected' : 'guest',
+      hasParticipated ? committedUsdc : 0,
+      invitePinKey,
+    ].join('-')
+  }, [slots, walletConnected, hasParticipated, committedUsdc])
 
   return (
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
@@ -393,6 +416,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         activeNav={isMyPosition ? 'myposition' : 'crowdfund'}
         walletConnected={walletConnected}
         walletAddress={wallet?.displayAddress ?? ''}
+        walletCopyAddress={wallet?.address}
+        walletProvider={wallet?.provider}
+        onDisconnect={handleDisconnectWallet}
         autoHideOnScroll={false}
         className={[heroStyles.headerOverride, heroStyles.enter, heroStyles.enterHeader].join(' ')}
         onMyPosition={goToMyPosition}
@@ -537,6 +563,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         walletConnected={walletConnected}
         onConnectWallet={connectWallet}
         onCompleteParticipation={completeParticipation}
+        hasParticipated={hasParticipated}
+        committedUsdc={committedUsdc}
         slots={slots}
         onGenerateSlotLink={generateSlotLink}
         onRevokeSlot={revokeSlot}

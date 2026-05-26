@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavBar, NavBarItem } from '../NavBar'
 import { Button } from '../Button'
+import { WalletPillMenu } from './WalletPillMenu'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
   activeNav?: 'project' | 'crowdfund' | 'myposition'
   walletAddress?: string
+  /** Full address for clipboard copy in the wallet menu. */
+  walletCopyAddress?: string
+  walletProvider?: string
+  onDisconnect?: () => void
   /** When false, show Connect wallet pill and hide My position. Defaults to true. */
   walletConnected?: boolean
   claimAvailable?: boolean
@@ -73,6 +78,9 @@ const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
 export function Header({
   activeNav = 'crowdfund',
   walletAddress = '0x6545...54534',
+  walletCopyAddress,
+  walletProvider = 'metamask',
+  onDisconnect,
   walletConnected = true,
   claimAvailable = false,
   onMyPosition,
@@ -168,7 +176,12 @@ export function Header({
           <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
         )}
         {walletConnected ? (
-          <Button variant="secondary" size="md" label={walletAddress} showIcon={false} />
+          <WalletPillMenu
+            displayAddress={walletAddress}
+            copyAddress={walletCopyAddress ?? walletAddress}
+            walletProvider={walletProvider}
+            onDisconnect={onDisconnect}
+          />
         ) : (
           <Button
             variant="secondary"

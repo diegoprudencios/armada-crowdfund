@@ -8,25 +8,51 @@ interface Step5ConfirmationProps extends ParticipateStepBarProps {
   onViewPosition?: () => void
   amount?: number
   estimatedArm?: number
+  /** User committed more USDC in a follow-up visit (not first participation). */
+  isAdditionalCommit?: boolean
+  totalCommittedUsdc?: number
 }
 
 const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+
+function formatUsd(value: number) {
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+}
 
 export default function Step5Confirmation({
   onInvite,
   onViewPosition,
   amount = 1000,
   estimatedArm = 1000,
+  isAdditionalCommit = false,
+  totalCommittedUsdc,
   steps = DEFAULT_STEPS,
   stepIndex = 4,
   stepsStatus = 'confirmed',
 }: Step5ConfirmationProps) {
-  const formattedAmount = amount.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
+  const formattedAmount = formatUsd(amount)
+  const totalCommitted = totalCommittedUsdc ?? estimatedArm
+  const formattedTotal = formatUsd(totalCommitted)
+
+  const headline = isAdditionalCommit ? 'Commitment updated.' : "You're in."
+  const subline = isAdditionalCommit ? (
+    <>
+      {formattedAmount} added to your position.
+      <br />
+      {formattedTotal} USDC committed · up to {estimatedArm.toLocaleString()} ARM reserved.
+    </>
+  ) : (
+    <>
+      {formattedAmount} USDC committed.
+      <br />
+      Up to {estimatedArm.toLocaleString()} ARM reserved for you.
+    </>
+  )
 
   return (
     <div className={styles.shell}>
@@ -34,18 +60,16 @@ export default function Step5Confirmation({
 
       <div className={styles.content}>
         <div className={styles.heroBlock}>
-          <h1 className={styles.headline}>You're in.</h1>
-          <p className={styles.subline}>
-            {formattedAmount} USDC committed.<br />
-            Up to {estimatedArm.toLocaleString()} ARM reserved for you.
-          </p>
+          <h1 className={styles.headline}>{headline}</h1>
+          <p className={styles.subline}>{subline}</p>
         </div>
 
         <div className={styles.nextCard}>
           <span className={styles.nextEyebrow}>WHAT HAPPENS NEXT</span>
           <p className={styles.nextText}>
-            The window stays open for 3 weeks. When it closes, your ARM
-            allocation is calculated and you can claim your tokens.
+            {isAdditionalCommit
+              ? 'Your updated allocation will be recalculated when the window closes. You can claim your tokens then.'
+              : 'The window stays open for 3 weeks. When it closes, your ARM allocation is calculated and you can claim your tokens.'}
           </p>
         </div>
       </div>

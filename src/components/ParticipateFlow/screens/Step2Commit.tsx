@@ -12,6 +12,9 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   maxAmount?: number
   availableBalance?: number
   maxArm?: number
+  /** Already committed USDC — bar shows this before new input. */
+  existingCommittedUsdc?: number
+  showBack?: boolean
 }
 
 const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
@@ -22,21 +25,27 @@ export default function Step2Commit({
   maxAmount = 4000,
   availableBalance = 215154.14,
   maxArm = 4000,
+  existingCommittedUsdc = 0,
+  showBack = true,
   steps = DEFAULT_STEPS,
   stepIndex = 2,
 }: Step2CommitProps) {
   const [amount, setAmount] = useState<number>(0)
 
-  const allocationRatio = Math.min(amount / maxAmount, 1)
-  const estimatedArm = Math.round(amount)
-  const hasAmount = amount > 0
+  const remainingCap = Math.max(0, maxAmount - existingCommittedUsdc)
+  const existingRatio = Math.min(existingCommittedUsdc / maxAmount, 1)
+  const newRatio = Math.min(amount / maxAmount, 1)
+  const totalCommitted = existingCommittedUsdc + amount
+  const totalArm = Math.round(totalCommitted)
+  const hasNewAmount = amount > 0
+  const hasExisting = existingCommittedUsdc > 0
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''))
     if (isNaN(val)) {
       setAmount(0)
     } else {
-      setAmount(Math.min(val, maxAmount))
+      setAmount(Math.min(val, remainingCap))
     }
   }
 
@@ -50,10 +59,11 @@ export default function Step2Commit({
       <div className={styles.content}>
         <div className={styles.inputBlock}>
           <div className={styles.titleBlock}>
-            {/* id used by aria-labelledby on the input */}
             <h2 className={styles.title} id="commit-title">How much USDC?</h2>
             <p className={styles.maxLabel} id="commit-max">
-              Max {maxAmount.toLocaleString()}
+              {hasExisting
+                ? `${remainingCap.toLocaleString()} remaining · ${maxAmount.toLocaleString()} cap`
+                : `Max ${maxAmount.toLocaleString()}`}
             </p>
           </div>
 
@@ -63,19 +73,19 @@ export default function Step2Commit({
               <span
                 className={[
                   styles.amountDisplay,
-                  hasAmount ? styles.amountDisplayActive : '',
+                  hasNewAmount ? styles.amountDisplayActive : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
                 aria-hidden="true"
               >
-                {hasAmount ? amount.toLocaleString() : '0'}
+                {hasNewAmount ? amount.toLocaleString() : '0'}
               </span>
               <input
                 id="commit-amount"
                 type="number"
                 min={0}
-                max={maxAmount}
+                max={remainingCap}
                 value={amount === 0 ? '' : amount}
                 onChange={handleInput}
                 className={styles.amountInput}
@@ -85,10 +95,7 @@ export default function Step2Commit({
             </span>
           </label>
 
-          <p
-            className={styles.availableLabel}
-            id="commit-available"
-          >
+          <p className={styles.availableLabel} id="commit-available">
             Available {formatBalance(availableBalance)}
           </p>
         </div>
@@ -97,15 +104,20 @@ export default function Step2Commit({
           <div
             className={styles.barTrack}
             role="progressbar"
-            aria-valuenow={Math.round(allocationRatio * 100)}
+            aria-valuenow={Math.round((existingRatio + newRatio) * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Committed amount progress"
           >
-            <div
-              className={styles.barFill}
-              style={{ width: `${allocationRatio * 100}%` }}
-            />
+            {hasExisting && (
+              <div
+                className={styles.barFillExisting}
+                style={{ width: `${existingRatio * 100}%` }}
+              />
+            )}
+            {hasNewAmount && (
+              <div className={styles.barFillNew} style={{ width: `${newRatio * 100}%` }} />
+            )}
           </div>
           <div className={styles.allocationRow}>
             <div className={styles.allocationLeft}>
@@ -130,10 +142,16 @@ export default function Step2Commit({
               </Tooltip>
             </div>
             <div className={styles.allocationRight}>
-              <span className={hasAmount ? styles.allocationValueActive : styles.allocationValue}>
-                {estimatedArm.toLocaleString()}
+              <span
+                className={
+                  hasNewAmount || hasExisting ? styles.allocationValueActive : styles.allocationValue
+                }
+              >
+                {totalArm.toLocaleString()}
               </span>
-              <span className={styles.allocationDivider} aria-hidden="true">/</span>
+              <span className={styles.allocationDivider} aria-hidden="true">
+                /
+              </span>
               <span className={styles.allocationMax}>{maxArm.toLocaleString()} ARM</span>
             </div>
           </div>
@@ -141,20 +159,16 @@ export default function Step2Commit({
       </div>
 
       <div className={styles.buttonRow}>
-        <Button
-          variant="secondary"
-          size="lg"
-          label="Back"
-          showIcon={false}
-          onClick={onBack}
-        />
+        {showBack && (
+          <Button variant="secondary" size="lg" label="Back" showIcon={false} onClick={onBack} />
+        )}
         <Button
           variant="primary"
           size="lg"
           label="Review"
           showIcon={false}
           onClick={() => onNext(amount)}
-          disabled={!hasAmount}
+          disabled={!hasNewAmount}
         />
       </div>
     </div>

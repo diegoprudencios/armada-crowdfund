@@ -51,7 +51,13 @@ const NAV_ITEMS = [
 export function Showcase() {
   return (
     <div style={{ minHeight: '100vh', background: '#0e0d0f', paddingTop: 56 }}>
-      <Header activeNav="crowdfund" autoHideOnScroll={false} />
+      <Header
+        activeNav="crowdfund"
+        autoHideOnScroll={false}
+        walletAddress="0x1a2b...9a3c"
+        walletCopyAddress="0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c"
+        walletProvider="metamask"
+      />
 
       {/* Button */}
       <section style={sectionStyle}>

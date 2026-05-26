@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './SlotCard.module.css'
 import { Button } from '../../Button'
 import { Tag } from '../../Tag'
@@ -76,6 +77,12 @@ export default function SlotCard({
   const [addressInput, setAddressInput] = useState('')
   const [ensState, setEnsState] = useState<EnsState>('idle')
   const [resolvedAddress, setResolvedAddress] = useState('')
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false)
+  const [revokePopoverPos, setRevokePopoverPos] = useState<{ top: number; left: number } | null>(
+    null,
+  )
+  const revokeBtnRef = useRef<HTMLButtonElement>(null)
+  const revokePopoverRef = useRef<HTMLDivElement>(null)
 
   const resetInput = () => {
     setAddressInput('')
@@ -133,6 +140,59 @@ export default function SlotCard({
 
   const canSubmitOnchain =
     ensState === 'resolved' && (resolvedAddress !== '' || isValidAddress(addressInput))
+
+  const updateRevokePopoverPosition = () => {
+    const anchor = revokeBtnRef.current
+    if (!anchor) return
+    const rect = anchor.getBoundingClientRect()
+    const popover = revokePopoverRef.current
+    const popoverHeight = popover?.offsetHeight ?? 120
+    const gap = 6
+    const top = rect.top - gap - popoverHeight
+    setRevokePopoverPos({ top, left: rect.right })
+  }
+
+  useLayoutEffect(() => {
+    if (!revokeConfirmOpen) {
+      setRevokePopoverPos(null)
+      return
+    }
+    updateRevokePopoverPosition()
+  }, [revokeConfirmOpen])
+
+  useEffect(() => {
+    if (!revokeConfirmOpen) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setRevokeConfirmOpen(false)
+    }
+
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node
+      if (revokeBtnRef.current?.contains(target)) return
+      if (revokePopoverRef.current?.contains(target)) return
+      setRevokeConfirmOpen(false)
+    }
+
+    const onReposition = () => updateRevokePopoverPosition()
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [revokeConfirmOpen])
+
+  const handleConfirmRevoke = () => {
+    onRevoke(slot.id)
+    setRevokeConfirmOpen(false)
+  }
 
   const isExpanded = expandedAction !== null
   const isAvailable = slot.status === 'empty'
@@ -202,8 +262,22 @@ export default function SlotCard({
                   {copied ? 'Copied' : 'Copy'}
                 </button>
                 <button
+                  ref={revokeBtnRef}
+                  type="button"
                   className={[styles.textBtn, styles.textBtnDanger].join(' ')}
-                  onClick={() => onRevoke(slot.id)}
+                  aria-expanded={revokeConfirmOpen}
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    if (revokeConfirmOpen) {
+                      setRevokeConfirmOpen(false)
+                      return
+                    }
+                    const rect = revokeBtnRef.current?.getBoundingClientRect()
+                    if (rect) {
+                      setRevokePopoverPos({ top: rect.top - 6, left: rect.right })
+                    }
+                    setRevokeConfirmOpen(true)
+                  }}
                 >
                   Revoke
                 </button>
@@ -309,6 +383,45 @@ export default function SlotCard({
           </div>
         </div>
       )}
+
+      {revokeConfirmOpen &&
+        revokePopoverPos &&
+        createPortal(
+          <div
+            ref={revokePopoverRef}
+            className={styles.revokePopover}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={`revoke-title-${slot.id}`}
+            style={{ top: revokePopoverPos.top, left: revokePopoverPos.left }}
+          >
+            <p id={`revoke-title-${slot.id}`} className={styles.revokeTitle}>
+              Revoke invite link?
+            </p>
+            <p className={styles.revokeBody}>
+              This link will stop working. You can generate a new one anytime.
+            </p>
+            <div className={styles.revokeActions}>
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Revoke link"
+                showIcon={false}
+                className={styles.revokeConfirmBtn}
+                onClick={handleConfirmRevoke}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Cancel"
+                showIcon={false}
+                className={styles.revokeCancelBtn}
+                onClick={() => setRevokeConfirmOpen(false)}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

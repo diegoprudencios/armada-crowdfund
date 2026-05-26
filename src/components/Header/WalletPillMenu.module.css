@@ -1,0 +1,130 @@
+.root {
+  position: relative;
+}
+
+.trigger {
+  gap: var(--primitives-spacing-2);
+}
+
+.triggerIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.triggerLabel {
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  width: calc(var(--primitives-fontSize-md) * 1px);
+  height: calc(var(--primitives-fontSize-md) * 1px);
+  color: var(--semantic-color-text-muted);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--primitives-spacing-2));
+  right: 0;
+  z-index: 150;
+  min-width: 220px;
+  padding: var(--primitives-spacing-2);
+  background: var(--semantic-color-surface-default);
+  border: 1px solid var(--semantic-component-button-secondary-border);
+  border-radius: calc(var(--semantic-borderRadius-item) * 1px);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--semantic-color-surface-bg) 55%, transparent);
+  animation: menuIn 160ms ease;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+  padding: var(--primitives-spacing-2) var(--primitives-spacing-3);
+}
+
+.identityIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.address {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.divider {
+  height: 1px;
+  margin: var(--primitives-spacing-1) 0;
+  background: var(--semantic-color-border-default);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+  padding: var(--primitives-spacing-2) var(--primitives-spacing-3);
+  border: none;
+  border-radius: calc(var(--primitives-borderRadius-md) * 1px);
+  background: transparent;
+  font-family: var(--primitives-fontFamily-ui);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.menuItem:hover {
+  background: var(--semantic-color-surface-hover);
+  color: var(--semantic-color-text-primary);
+}
+
+.menuItem:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--semantic-color-border-focus);
+}
+
+.menuItemIcon {
+  width: calc(var(--primitives-fontSize-md) * 1px);
+  height: calc(var(--primitives-fontSize-md) * 1px);
+  flex-shrink: 0;
+}
+
+.menuItemCopied {
+  color: var(--semantic-color-text-primary);
+}
+
+.disconnect {
+  color: var(--semantic-color-status-error);
+}
+
+.disconnect:hover {
+  color: var(--semantic-color-status-error);
+  background: color-mix(in srgb, var(--semantic-color-status-error) 12%, transparent);
+}

@@ -156,6 +156,7 @@
 }
 
 .barTrack {
+  display: flex;
   width: 100%;
   height: 6px;
   border-radius: 999px;
@@ -163,12 +164,29 @@
   overflow: hidden;
 }
 
-.barFill {
+.barFillExisting,
+.barFillNew {
   height: 100%;
-  border-radius: 999px;
-  background: var(--semantic-color-brand-lavender);
-  transition: width 150ms ease;
   min-width: 0;
+  transition: width 150ms ease;
+}
+
+.barFillExisting {
+  border-radius: 999px 0 0 999px;
+  background: var(--primitives-color-purple-700);
+}
+
+.barFillExisting:only-child {
+  border-radius: 999px;
+}
+
+.barFillNew {
+  border-radius: 0 999px 999px 0;
+  background: var(--semantic-color-brand-lavender);
+}
+
+.barFillNew:first-child {
+  border-radius: 999px;
 }
 
 .allocationRow {

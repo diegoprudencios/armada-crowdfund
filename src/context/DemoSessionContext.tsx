@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
+import { isProviderWhitelisted } from '../components/ParticipateFlow/participateFlowWallets'
 import { CAP, DEMO_WALLET, DEMO_WALLET_DISPLAY } from '../components/MyPosition/myPositionDemo'
 
 const INITIAL_SLOTS: SlotData[] = [
@@ -33,6 +34,7 @@ type DemoSessionContextValue = {
   fillPct: number
   slots: SlotData[]
   connectWallet: (provider: string) => void
+  disconnectWallet: () => void
   completeParticipation: (amountUsdc: number) => void
   generateSlotLink: (slotId: number) => Promise<void>
   revokeSlot: (slotId: number) => void
@@ -55,6 +57,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const hopLabel = 'HOP-1'
 
   const connectWallet = useCallback((provider: string) => {
+    if (!isProviderWhitelisted(provider)) return
     setWallet({
       provider,
       address: DEMO_WALLET,
@@ -62,8 +65,12 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const disconnectWallet = useCallback(() => {
+    setWallet(null)
+  }, [])
+
   const completeParticipation = useCallback((amountUsdc: number) => {
-    setCommittedUsdc(amountUsdc)
+    setCommittedUsdc((prev) => prev + amountUsdc)
     setHasParticipated(true)
   }, [])
 
@@ -114,6 +121,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       fillPct: (committedUsdc / CAP) * 100,
       slots,
       connectWallet,
+      disconnectWallet,
       completeParticipation,
       generateSlotLink,
       revokeSlot,
@@ -126,6 +134,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       hasParticipated,
       slots,
       connectWallet,
+      disconnectWallet,
       completeParticipation,
       generateSlotLink,
       revokeSlot,

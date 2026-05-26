@@ -52,6 +52,8 @@ export function MyPositionSplit() {
       <Header
         activeNav="myposition"
         walletAddress={DEMO_WALLET_DISPLAY}
+        walletCopyAddress={DEMO_WALLET}
+        walletProvider="metamask"
         autoHideOnScroll={false}
       />
 

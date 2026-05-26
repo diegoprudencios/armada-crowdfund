@@ -1,2 +1,5 @@
 export { ParticipateFlowModal } from './ParticipateFlowModal'
-export { ParticipateFlowCrowdfund } from './ParticipateFlowCrowdfund'
+export {
+  ParticipateFlowCrowdfund,
+  type ParticipateFlowCloseContext,
+} from './ParticipateFlowCrowdfund'

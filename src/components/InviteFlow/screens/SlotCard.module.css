@@ -259,3 +259,69 @@
   font-size: calc(var(--primitives-fontSize-sm) * 1px);
   color: var(--semantic-color-status-error);
 }
+
+/* ── Revoke confirmation popover (anchored to Revoke button) ── */
+.revokePopover {
+  position: fixed;
+  z-index: 250;
+  width: 220px;
+  padding: var(--primitives-spacing-4);
+  background: var(--semantic-color-surface-default);
+  border: 1px solid var(--semantic-component-button-secondary-border);
+  border-radius: calc(var(--semantic-borderRadius-item) * 1px);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--semantic-color-surface-bg) 55%, transparent);
+  transform: translateX(-100%);
+  animation: revokePopoverIn 160ms ease;
+}
+
+@keyframes revokePopoverIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-100%) translateY(0);
+  }
+}
+
+.revokeTitle {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+  line-height: 1.4;
+}
+
+.revokeBody {
+  margin: var(--primitives-spacing-2) 0 var(--primitives-spacing-4);
+  font-family: var(--primitives-fontFamily-ui);
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  color: var(--semantic-color-text-muted);
+  line-height: 1.45;
+}
+
+.revokeActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--primitives-spacing-2);
+}
+
+.revokeConfirmBtn {
+  width: 100%;
+  color: var(--semantic-color-status-error);
+  border-color: color-mix(in srgb, var(--semantic-color-status-error) 35%, transparent);
+  background: color-mix(in srgb, var(--semantic-color-status-error) 12%, transparent);
+}
+
+.revokeConfirmBtn:hover:not(:disabled) {
+  color: var(--semantic-color-status-error);
+  border-color: color-mix(in srgb, var(--semantic-color-status-error) 50%, transparent);
+  background: color-mix(in srgb, var(--semantic-color-status-error) 20%, transparent);
+}
+
+.revokeCancelBtn {
+  width: 100%;
+}
