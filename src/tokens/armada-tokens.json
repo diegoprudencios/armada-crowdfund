@@ -140,7 +140,7 @@
           "type": "color"
         },
         "mid": {
-          "value": "rgba(255,255,255,0.38)",
+          "value": "rgba(255,255,255,0.45)",
           "type": "color"
         },
         "high": {

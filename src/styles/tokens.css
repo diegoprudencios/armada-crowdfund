@@ -32,8 +32,9 @@
   --primitives-color-neutral-700: #c0bece;
   --primitives-color-neutral-800: #e0deea;
   --primitives-color-white-low: rgba(255,255,255,0.18);
-  --primitives-color-white-mid: rgba(255,255,255,0.38);
+  --primitives-color-white-mid: rgba(255,255,255,0.45);
   --primitives-color-white-high: rgba(255,255,255,0.87);
+  --primitives-color-white-70: rgba(255,255,255,0.7);
   --primitives-color-white-full: #ffffff;
   --primitives-color-status-success: #34d399;
   --primitives-color-status-warning: #fbbf24;
@@ -103,7 +104,7 @@
   --semantic-color-border-amber: rgba(243,208,160,0.14);
   --semantic-color-border-focus: var(--primitives-color-purple-500);
   --semantic-color-text-primary: var(--primitives-color-white-full);
-  --semantic-color-text-secondary: var(--primitives-color-white-high);
+  --semantic-color-text-secondary: var(--primitives-color-white-70);
   --semantic-color-text-muted: var(--primitives-color-white-mid);
   --semantic-color-text-dim: var(--primitives-color-white-low);
   --semantic-color-text-lavender: var(--primitives-color-purple-500);
@@ -174,8 +175,8 @@
   --semantic-component-button-ghost-bg: rgba(0,0,0,0);
   --semantic-component-button-ghost-bg-hover: var(--primitives-color-neutral-100);
   --semantic-component-button-ghost-bg-active: var(--primitives-color-neutral-200);
-  --semantic-component-button-ghost-text: var(--primitives-color-white-mid);
-  --semantic-component-button-ghost-text-hover: var(--primitives-color-white-full);
+  --semantic-component-button-ghost-text: var(--semantic-component-button-secondary-text);
+  --semantic-component-button-ghost-text-hover: var(--semantic-component-button-secondary-text);
   --semantic-component-button-ghost-sm-height: var(--primitives-spacing-8);
   --semantic-component-button-ghost-sm-padding-x: var(--primitives-spacing-4);
   --semantic-component-button-ghost-sm-padding-x-icon: 16px;
@@ -267,8 +268,9 @@
   --primitives-color-neutral-700: #c0bece;
   --primitives-color-neutral-800: #e0deea;
   --primitives-color-white-low: rgba(255,255,255,0.18);
-  --primitives-color-white-mid: rgba(255,255,255,0.38);
+  --primitives-color-white-mid: rgba(255,255,255,0.45);
   --primitives-color-white-high: rgba(255,255,255,0.87);
+  --primitives-color-white-70: rgba(255,255,255,0.7);
   --primitives-color-white-full: #ffffff;
   --primitives-color-status-success: #34d399;
   --primitives-color-status-warning: #fbbf24;
@@ -338,7 +340,7 @@
   --semantic-color-border-amber: rgba(243,208,160,0.14);
   --semantic-color-border-focus: var(--primitives-color-purple-500);
   --semantic-color-text-primary: var(--primitives-color-white-full);
-  --semantic-color-text-secondary: var(--primitives-color-white-high);
+  --semantic-color-text-secondary: var(--primitives-color-white-70);
   --semantic-color-text-muted: var(--primitives-color-white-mid);
   --semantic-color-text-dim: var(--primitives-color-white-low);
   --semantic-color-text-lavender: var(--primitives-color-purple-500);
@@ -409,8 +411,8 @@
   --semantic-component-button-ghost-bg: rgba(0,0,0,0);
   --semantic-component-button-ghost-bg-hover: var(--primitives-color-neutral-100);
   --semantic-component-button-ghost-bg-active: var(--primitives-color-neutral-200);
-  --semantic-component-button-ghost-text: var(--primitives-color-white-mid);
-  --semantic-component-button-ghost-text-hover: var(--primitives-color-white-full);
+  --semantic-component-button-ghost-text: var(--semantic-component-button-secondary-text);
+  --semantic-component-button-ghost-text-hover: var(--semantic-component-button-secondary-text);
   --semantic-component-button-ghost-sm-height: var(--primitives-spacing-8);
   --semantic-component-button-ghost-sm-padding-x: var(--primitives-spacing-4);
   --semantic-component-button-ghost-sm-padding-x-icon: 16px;

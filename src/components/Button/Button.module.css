@@ -64,10 +64,11 @@
 .secondary:active:not(:disabled) { background: var(--semantic-component-button-secondary-bg-active); }
 .secondary:disabled { color: var(--semantic-component-button-secondary-text-disabled); }
 
-/* Ghost */
-.ghost { background: transparent; color: var(--semantic-component-button-ghost-text); }
-.ghost:hover:not(:disabled) { background: var(--semantic-component-button-ghost-bg-hover); color: var(--semantic-component-button-ghost-text-hover); }
+/* Ghost — text matches secondary (no border) */
+.ghost { background: transparent; color: var(--semantic-component-button-secondary-text); }
+.ghost:hover:not(:disabled) { background: var(--semantic-component-button-ghost-bg-hover); color: var(--semantic-component-button-secondary-text); }
 .ghost:active:not(:disabled) { background: var(--semantic-component-button-ghost-bg-active); }
+.ghost:disabled { color: var(--semantic-component-button-secondary-text-disabled); }
 
 /* Gradient */
 .gradient { border: none; background: linear-gradient(to right, #F3D0A0 0%, #C491E5 100%); color: var(--semantic-component-button-gradient-text); }

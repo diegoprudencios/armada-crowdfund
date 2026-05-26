@@ -130,7 +130,7 @@
   font-family: var(--primitives-fontFamily-ui);
   font-size: calc(var(--primitives-fontSize-sm) * 1px);
   font-weight: var(--primitives-fontWeight-regular);
-  color: var(--semantic-color-text-muted);
+  color: var(--semantic-color-text-secondary);
   margin: 0;
   text-align: center;
   line-height: 1.5;

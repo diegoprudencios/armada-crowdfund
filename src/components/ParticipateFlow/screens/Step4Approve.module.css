@@ -22,7 +22,7 @@
 }
 
 .title {
-  font-family: var(--primitives-fontFamily-display);
+  font-family: var(--primitives-fontFamily-ui);
   font-size: calc(var(--primitives-fontSize-2xl) * 1px);
   font-weight: var(--primitives-fontWeight-regular);
   color: var(--semantic-color-text-primary);
@@ -112,7 +112,7 @@
   font-family: var(--primitives-fontFamily-ui);
   font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: var(--primitives-fontWeight-regular);
-  color: var(--semantic-color-text-muted);
+  color: var(--semantic-color-text-secondary);
   margin: 0;
 }
 

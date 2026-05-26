@@ -145,10 +145,10 @@
   white-space: nowrap;
 }
 
-.textBtn:hover { opacity: 0.75; }
+.textBtn:not(.textBtnDanger):hover { opacity: 0.75; }
 
 .textBtnDanger { color: var(--semantic-color-text-muted); }
-.textBtnDanger:hover { color: var(--semantic-color-status-error); opacity: 1; }
+.textBtnDanger:hover { color: var(--semantic-color-status-error); }
 
 /* ── Onchain / redeemed ── */
 .statusRow {
