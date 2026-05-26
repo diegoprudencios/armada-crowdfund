@@ -141,6 +141,8 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
     if (next === 'crowdfund') {
       setGraphMode('crowdfund')
       setSelectedAddress(undefined)
+    } else if (next === 'myposition') {
+      setSelectedAddress(undefined)
     }
 
     setPanelPhase('exit')
@@ -294,8 +296,8 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
   return (
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
       <NodeSphere
-        highlightAddress={isGraphMyPosition ? DEMO_WALLET : selectedAddress}
-        onSelectAddress={isGraphCrowdfund ? setSelectedAddress : undefined}
+        highlightAddress={isGraphMyPosition ? selectedAddress ?? DEMO_WALLET : selectedAddress}
+        onSelectAddress={setSelectedAddress}
         filterKind={
           isGraphCrowdfund
             ? filter === 'seed'

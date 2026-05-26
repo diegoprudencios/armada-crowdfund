@@ -39,7 +39,14 @@ function makeAddress(rand: () => number) {
   const pick = () => hex[Math.floor(rand() * hex.length)]
   let out = '0x'
   for (let i = 0; i < 40; i += 1) out += pick()
-  return `${out.slice(0, 6)}...${out.slice(-4)}`
+  return shortAddress(out)
+}
+
+/** Display form for tooltips (matches generated node addresses). */
+function shortAddress(address: string) {
+  if (address.includes('...')) return address
+  if (!address.startsWith('0x') || address.length <= 13) return address
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 function makeCommitted(rand: () => number) {
@@ -164,6 +171,7 @@ export function NodeSphere({
   const walletAddressRef = useRef(walletAddress)
   const lockOnWalletRef = useRef(lockOnWallet)
   const inviteGraphRef = useRef(inviteGraph)
+  const onSelectAddressRef = useRef(onSelectAddress)
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -186,12 +194,12 @@ export function NodeSphere({
   const { scenario, seed, pinnedNodes: layoutPinnedNodes } = graphLayoutRef.current
 
   useEffect(() => {
-    if (lockOnWallet && walletAddress) {
-      highlightRef.current = walletAddress
-      return
-    }
     highlightRef.current = highlightAddress
-  }, [highlightAddress, lockOnWallet, walletAddress])
+  }, [highlightAddress])
+
+  useEffect(() => {
+    onSelectAddressRef.current = onSelectAddress
+  }, [onSelectAddress])
 
   useEffect(() => {
     filterRef.current = filterKind
@@ -490,11 +498,41 @@ export function NodeSphere({
     const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial)
     focus.add(edges)
 
+    const walletConnectedIndices = new Set<number>()
+    if (walletIdx != null) {
+      walletConnectedIndices.add(walletIdx)
+      for (const [a, b] of edgePairs) {
+        if (a !== walletIdx && b !== walletIdx) continue
+        const other = a === walletIdx ? b : a
+        const otherKind = (nodeMeshes[other].userData as NodeMeta).kind
+        if (otherKind === 'Hop 1') walletConnectedIndices.add(other)
+      }
+    }
+
+    const isInviteFocusMode = () => inviteGraphRef.current && lockOnWalletRef.current
+
+    const meshIndex = (mesh: THREE.Mesh) => nodeMeshes.indexOf(mesh)
+
+    const isSelectableNode = (mesh: THREE.Mesh) => {
+      const meta = mesh.userData as NodeMeta
+      if (meta.ghost) return false
+      if (!isInviteFocusMode()) return true
+      const idx = meshIndex(mesh)
+      return idx >= 0 && walletConnectedIndices.has(idx)
+    }
+
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
     let hovered: THREE.Mesh | null = null
+    let hoveredAddress: string | undefined
     let dragLastX = 0
     let dragLastY = 0
+    let dragStartX = 0
+    let dragStartY = 0
+    let isPointerDown = false
+    let pointerDidDrag = false
+    let userAdjustedView = false
+    const DRAG_CLICK_THRESHOLD_PX = 8
 
     let raf = 0
     const resize = () => {
@@ -506,6 +544,15 @@ export function NodeSphere({
     }
 
     const onPointerMove = (e: PointerEvent) => {
+      if (isPointerDown) {
+        const totalDx = e.clientX - dragStartX
+        const totalDy = e.clientY - dragStartY
+        if (totalDx * totalDx + totalDy * totalDy > DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX) {
+          pointerDidDrag = true
+          isDraggingRef.current = true
+        }
+      }
+
       if (isDraggingRef.current) {
         const dx = e.clientX - dragLastX
         const dy = e.clientY - dragLastY
@@ -529,20 +576,22 @@ export function NodeSphere({
       const hits = raycaster.intersectObjects(nodeMeshes, false)
       const hit = hits[0]?.object as THREE.Mesh | undefined
 
-      if (hit && hit.userData?.kind && !(hit.userData as NodeMeta).ghost) {
+      if (hit && isSelectableNode(hit)) {
         hovered = hit
         const meta = hit.userData as NodeMeta
+        hoveredAddress = meta.address
         hoverActiveRef.current = true
         setHover({
           visible: true,
           x: e.clientX + 14,
           y: e.clientY + 14,
           kind: meta.kind,
-          address: meta.address,
+          address: shortAddress(meta.address),
           committed: meta.committed,
         })
       } else {
         hovered = null
+        hoveredAddress = undefined
         hoverActiveRef.current = false
         setHover(null)
       }
@@ -550,28 +599,40 @@ export function NodeSphere({
 
     const onPointerLeave = () => {
       hovered = null
+      hoveredAddress = undefined
       hoverActiveRef.current = false
       setHover(null)
     }
 
     const onPointerDown = (e: PointerEvent) => {
-      isDraggingRef.current = true
+      isPointerDown = true
+      pointerDidDrag = false
+      isDraggingRef.current = false
+      dragStartX = e.clientX
+      dragStartY = e.clientY
       dragLastX = e.clientX
       dragLastY = e.clientY
+      hoveredAddress = undefined
       hoverActiveRef.current = false
       setHover(null)
       renderer.domElement.setPointerCapture(e.pointerId)
     }
 
     const onPointerUp = (e: PointerEvent) => {
+      isPointerDown = false
+      const wasDrag = pointerDidDrag
       isDraggingRef.current = false
+      pointerDidDrag = false
       try {
         renderer.domElement.releasePointerCapture(e.pointerId)
       } catch {
         // ignore
       }
 
-      if (!onSelectAddress) return
+      if (wasDrag) userAdjustedView = true
+
+      const onSelect = onSelectAddressRef.current
+      if (!onSelect || wasDrag) return
 
       // Click-to-select: raycast on pointer up.
       const rect = renderer.domElement.getBoundingClientRect()
@@ -581,11 +642,18 @@ export function NodeSphere({
       pointer.y = -(y / rect.height) * 2 + 1
       raycaster.setFromCamera(pointer, camera)
       const hits = raycaster.intersectObjects(nodeMeshes, false)
-      const hit = hits[0]?.object as THREE.Mesh | undefined
+      const hit = hits.find((h) => isSelectableNode(h.object as THREE.Mesh))?.object as THREE.Mesh | undefined
       const meta = hit?.userData as NodeMeta | undefined
-      const addr = meta && !meta.ghost ? meta.address : undefined
+      const addr = meta ? meta.address : undefined
       const current = highlightRef.current
-      onSelectAddress(addr && addr !== current ? addr : undefined)
+      const nextAddr = addr && addr !== current ? addr : undefined
+      onSelect(nextAddr)
+      highlightRef.current =
+        nextAddr ?? (lockOnWalletRef.current && walletAddressRef.current ? walletAddressRef.current : undefined)
+      hovered = null
+      hoveredAddress = undefined
+      hoverActiveRef.current = false
+      setHover(null)
     }
 
     const onWheel = (e: WheelEvent) => {
@@ -596,8 +664,10 @@ export function NodeSphere({
       if (top && top !== renderer.domElement && !renderer.domElement.contains(top)) return
 
       e.preventDefault()
+      userAdjustedView = true
       const next = camera.position.z + e.deltaY * 0.01
       camera.position.z = Math.max(Z_MIN, Math.min(Z_MAX, next))
+      targetCameraZ = camera.position.z
     }
 
     const identityQuat = new THREE.Quaternion()
@@ -605,6 +675,29 @@ export function NodeSphere({
     let lastCenteredAddress: string | null = null
     let lastHighlightedAddress: string | null = null
     let hadSelection = false
+
+    // Focused nodes sit right and above center so tooltips / cards have room.
+    const FOCUS_OFFSET_X = 0.18
+    const FOCUS_OFFSET_Y = 0.1
+    const FOCUS_INNER_RADIUS = 2.6
+    const FOCUS_OUTER_RADIUS = 6.2
+    const FOCUS_ZOOM_OUT_MAX = 0.65
+    const INVITE_FOCUS_ZOOM_OUT_MAX = 0.3
+    const CAMERA_Z_LERP = 0.08
+    const focusTargetWorld = new THREE.Vector3()
+    const getFocusTargetWorld = (focused: boolean) => {
+      if (!focused) return focusTargetWorld.set(0, 0, 1)
+      return focusTargetWorld.set(FOCUS_OFFSET_X, FOCUS_OFFSET_Y, 1).normalize()
+    }
+    const cameraZForNodeRadius = (radius: number, zoomOutMax: number) => {
+      const t = THREE.MathUtils.clamp(
+        (radius - FOCUS_INNER_RADIUS) / (FOCUS_OUTER_RADIUS - FOCUS_INNER_RADIUS),
+        0,
+        1,
+      )
+      return THREE.MathUtils.lerp(Z_MIN, Z_MAX, t * zoomOutMax)
+    }
+    let targetCameraZ = Z_MIN
 
     const edgeColorAttr = edgeGeometry.getAttribute('color') as THREE.BufferAttribute
     const setEdgeColorForSegment = (segIndex: number, r: number, g: number, b: number) => {
@@ -648,9 +741,7 @@ export function NodeSphere({
     }
 
     const animate = () => {
-      const lockedWallet = lockOnWalletRef.current ? walletAddressRef.current : undefined
-      const selectedAddr = highlightRef.current
-      const focusAddr = lockedWallet ?? selectedAddr
+      const focusAddr = highlightRef.current
       updateEdgeHighlight(focusAddr ?? null)
 
       // If we just deselected, bake the current focused orientation into root first,
@@ -661,29 +752,36 @@ export function NodeSphere({
         hadSelection = false
         targetFocusQuat = null
         lastCenteredAddress = null
+        targetCameraZ = Z_MIN
       }
 
       const shouldAutoRotate =
-        !lockedWallet && !selectedAddr && !hoverActiveRef.current && !isDraggingRef.current
+        !lockOnWalletRef.current && !focusAddr && !hoverActiveRef.current && !isDraggingRef.current
       if (shouldAutoRotate) {
         root.rotation.y += 0.001
         root.rotation.x += 0.0003
       }
 
       // Subtle emphasis on hovered node.
-      for (const m of nodeMeshes) {
+      const inviteFocus = isInviteFocusMode()
+      for (let i = 0; i < nodeMeshes.length; i += 1) {
+        const m = nodeMeshes[i]
         const isHovered = hovered === m
         const meta = m.userData as NodeMeta
         const isSelected = !!focusAddr && meta.address === focusAddr
         const activeFilter = filterRef.current
         const isFilteredOut = !!activeFilter && meta.kind !== activeFilter && meta.kind !== 'Your wallet'
+        const isWalletNeighbor = walletConnectedIndices.has(i)
         const target = Math.max(isHovered ? 1.35 : 1, isSelected ? 1.55 : 1)
         const s = m.scale.x + (target - m.scale.x) * 0.15
         m.scale.setScalar(s)
 
         const mat = m.material as THREE.MeshBasicMaterial
         const base = meta.ghost ? 0.12 : 0.6
-        const targetOpacity = isSelected ? 1 : isFilteredOut ? (meta.ghost ? 0.06 : 0.08) : base
+        let targetOpacity = isSelected ? 1 : isFilteredOut ? (meta.ghost ? 0.06 : 0.08) : base
+        if (inviteFocus && !meta.ghost && !isWalletNeighbor) {
+          targetOpacity = 0.1
+        }
         mat.opacity = mat.opacity + (targetOpacity - mat.opacity) * 0.12
       }
 
@@ -691,23 +789,36 @@ export function NodeSphere({
       if (focusAddr && !isDraggingRef.current) {
         hadSelection = true
         if (lastCenteredAddress !== focusAddr) {
+          userAdjustedView = false
           const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
           if (selectedMesh) {
-            const desiredWorld = new THREE.Vector3(0, 0, 1)
+            const desiredWorld = getFocusTargetWorld(true)
             const desiredInFocusSpace = desiredWorld.clone().applyQuaternion(root.quaternion.clone().invert()).normalize()
             const from = selectedMesh.position.clone().normalize()
             targetFocusQuat = new THREE.Quaternion().setFromUnitVectors(from, desiredInFocusSpace)
+            const zoomOutMax = isInviteFocusMode() ? INVITE_FOCUS_ZOOM_OUT_MAX : FOCUS_ZOOM_OUT_MAX
+            targetCameraZ = cameraZForNodeRadius(selectedMesh.position.length(), zoomOutMax)
           }
           lastCenteredAddress = focusAddr
         }
-        if (targetFocusQuat) focus.quaternion.slerp(targetFocusQuat, 0.08)
-      } else if (!lockedWallet) {
+        if (!userAdjustedView) {
+          if (targetFocusQuat) focus.quaternion.slerp(targetFocusQuat, 0.08)
+          if (Math.abs(camera.position.z - targetCameraZ) > 0.08) {
+            camera.position.z += (targetCameraZ - camera.position.z) * CAMERA_Z_LERP
+          }
+        }
+      } else {
         lastCenteredAddress = null
         targetFocusQuat = null
+        targetCameraZ = Z_MIN
+        camera.position.z += (Z_MIN - camera.position.z) * CAMERA_Z_LERP
       }
 
+      const showSelectedTip =
+        !!focusAddr && (!hoverActiveRef.current || hoveredAddress !== focusAddr)
+
       // Keep selected tooltip pinned near the focused node (when not hovering other nodes).
-      if (focusAddr && !lockOnWalletRef.current && !hoverActiveRef.current) {
+      if (showSelectedTip) {
         const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
         if (selectedMesh) {
           const meta = selectedMesh.userData as NodeMeta
@@ -723,7 +834,7 @@ export function NodeSphere({
             x,
             y,
             kind: meta.kind,
-            address: meta.address,
+            address: shortAddress(meta.address),
             committed: meta.committed,
           }
 
@@ -791,8 +902,8 @@ export function NodeSphere({
         zIndex: 0,
       }}
     >
-      {/* Hover tooltip */}
-      {hover?.visible && (
+      {/* Hover tooltip (hidden when pinned selection tip is showing for the same node) */}
+      {hover?.visible && (!selectedTip?.visible || hover.address !== selectedTip.address) && (
         <div
           style={{
             position: 'fixed',
@@ -856,7 +967,7 @@ export function NodeSphere({
       )}
 
       {/* Selected tooltip (pinned) */}
-      {!lockOnWallet && !hover?.visible && selectedTip?.visible && (
+      {selectedTip?.visible && (
         <div
           style={{
             position: 'fixed',
