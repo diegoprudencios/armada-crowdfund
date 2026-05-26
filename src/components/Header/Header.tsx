@@ -64,6 +64,9 @@ const ArmadaLogo = () => (
 
 const SCROLL_DELTA = 6
 
+const MY_POSITION_PATH = `${import.meta.env.BASE_URL}myposition.html`
+const CROWDFUND_PATH = `${import.meta.env.BASE_URL}index.html`
+
 export function Header({
   activeNav = 'crowdfund',
   walletAddress = '0x6545...54534',
@@ -81,10 +84,25 @@ export function Header({
   const navItems = useMemo<NavBarItem[]>(
     () => [
       { label: 'The project', active: activeNav === 'project' },
-      { label: 'Crowdfund', active: activeNav === 'crowdfund' },
+      {
+        label: 'Crowdfund',
+        active: activeNav === 'crowdfund',
+        onClick:
+          activeNav !== 'crowdfund' ? () => window.location.assign(CROWDFUND_PATH) : undefined,
+      },
     ],
     [activeNav],
   )
+
+  const handleMyPosition = () => {
+    if (onMyPosition) {
+      onMyPosition()
+      return
+    }
+    if (activeNav !== 'myposition') {
+      window.location.assign(MY_POSITION_PATH)
+    }
+  }
 
   useEffect(() => {
     if (!autoHideOnScroll) {
@@ -130,7 +148,7 @@ export function Header({
           size="md"
           label="My position"
           showIcon={false}
-          onClick={onMyPosition}
+          onClick={handleMyPosition}
           className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
         />
         {claimAvailable && (

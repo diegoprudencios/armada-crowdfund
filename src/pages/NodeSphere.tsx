@@ -597,6 +597,7 @@ export function NodeSphere({
     const onWheel = (e: WheelEvent) => {
       // If a UI overlay is on top (e.g. the participants list), don't hijack the wheel.
       // In some browsers, the canvas can still receive wheel events even when visually covered.
+      if (interactionDisabledRef.current) return
       const top = document.elementFromPoint(e.clientX, e.clientY)
       if (top && top !== renderer.domElement && !renderer.domElement.contains(top)) return
 

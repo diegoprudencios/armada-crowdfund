@@ -56,7 +56,6 @@ export function HeroParticipantsPanel({
   const [uncontrolledShowList, setUncontrolledShowList] = useState(false)
   const showList = controlledShowList ?? uncontrolledShowList
   const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
   const [uncontrolledFilter, setUncontrolledFilter] = useState<HeroHopFilter>('all')
   const filter = controlledFilter ?? uncontrolledFilter
   const layoutExpanded = layoutExpandedProp ?? showList
@@ -85,7 +84,8 @@ export function HeroParticipantsPanel({
     })
   }, [participants, query, filter])
 
-  const isEmpty = rows.length === 0 && query.trim().length === 0 && filter === 'all'
+  const isEmpty = participants.length === 0
+  const noResults = !isEmpty && rows.length === 0
 
   return (
     <section className={[styles.panel, layoutExpanded && styles.expanded].filter(Boolean).join(' ')} aria-label="Participants">
@@ -100,44 +100,61 @@ export function HeroParticipantsPanel({
         <div className={styles.listBackdrop}>
           <div
             className={[
-              styles.listContent,
-              showList ? styles.listContentVisible : styles.listContentHidden,
-              showList && styles.listContentExpanded,
-            ]
-              .filter(Boolean)
-              .join(' ')}
+              styles.listInner,
+              showList ? styles.listInnerVisible : styles.listInnerHidden,
+            ].join(' ')}
           >
-          {isEmpty ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyTitle}>No participants yet</div>
-              <div className={styles.emptySub}>Be the first to participate.</div>
-              <div className={styles.emptyCta}>
-                <Button variant="gradient" size="md" label="Participate" showIcon icon="arrow-right-micro" />
-              </div>
+            <label className={styles.listSearch}>
+              <MagnifyingGlassIcon className={styles.listSearchIcon} width={14} height={14} aria-hidden />
+              <input
+                className={styles.listSearchInput}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search participant address…"
+                inputMode="search"
+                aria-label="Search participant address"
+                tabIndex={showList ? 0 : -1}
+              />
+            </label>
+
+            <div className={styles.listScroll}>
+              {isEmpty ? (
+                <div className={styles.empty}>
+                  <div className={styles.emptyTitle}>No participants yet</div>
+                  <div className={styles.emptySub}>Be the first to participate.</div>
+                  <div className={styles.emptyCta}>
+                    <Button variant="gradient" size="md" label="Participate" showIcon icon="arrow-right-micro" />
+                  </div>
+                </div>
+              ) : noResults ? (
+                <div className={styles.empty}>
+                  <div className={styles.emptyTitle}>No matches</div>
+                  <div className={styles.emptySub}>Try a different address or filter.</div>
+                </div>
+              ) : (
+                rows.map((p, idx) => {
+                  const selected = p.address === selectedAddress
+                  return (
+                    <button
+                      key={p.address}
+                      type="button"
+                      className={[styles.row, selected && styles.rowSelected].filter(Boolean).join(' ')}
+                      onClick={() => onSelectAddress?.(selected ? undefined : p.address)}
+                      aria-pressed={selected}
+                      tabIndex={showList ? 0 : -1}
+                    >
+                      <span className={styles.rank}>{idx + 1}</span>
+                      <span className={styles.addr}>{p.address}</span>
+                      <span className={styles.hop}>
+                        <span className={styles.dot} style={{ ['--dot' as string]: hopColor(p.hop) }} aria-hidden />
+                        {p.hop}
+                      </span>
+                      <span className={styles.amount}>{formatUsd(p.amountUsd)}</span>
+                    </button>
+                  )
+                })
+              )}
             </div>
-          ) : (
-            rows.map((p, idx) => {
-              const selected = p.address === selectedAddress
-              return (
-                <button
-                  key={p.address}
-                  type="button"
-                  className={[styles.row, selected && styles.rowSelected].filter(Boolean).join(' ')}
-                  onClick={() => onSelectAddress?.(selected ? undefined : p.address)}
-                  aria-pressed={selected}
-                  tabIndex={showList ? 0 : -1}
-                >
-                  <span className={styles.rank}>{idx + 1}</span>
-                  <span className={styles.addr}>{p.address}</span>
-                  <span className={styles.hop}>
-                    <span className={styles.dot} style={{ ['--dot' as any]: hopColor(p.hop) }} aria-hidden />
-                    {p.hop}
-                  </span>
-                  <span className={styles.amount}>{formatUsd(p.amountUsd)}</span>
-                </button>
-              )
-            })
-          )}
           </div>
         </div>
       </div>
@@ -158,39 +175,16 @@ export function HeroParticipantsPanel({
           ))}
         </div>
 
-        <div className={styles.rightControls}>
-          <button
-            type="button"
-            className={styles.expandBtn}
-            onClick={() => {
-              setShowList(!showList)
-            }}
-            aria-expanded={showList}
-          >
-            {showList ? 'Hide list' : 'View list'}
-          </button>
-
-          <div className={[styles.searchWrap, searchOpen && styles.searchWrapOpen].filter(Boolean).join(' ')}>
-            <button
-              type="button"
-              className={styles.searchBtn}
-              aria-label="Search"
-              onClick={() => setSearchOpen(true)}
-            >
-              <MagnifyingGlassIcon className={styles.searchIcon} width={14} height={14} aria-hidden />
-            </button>
-            <input
-              className={styles.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search address…"
-              inputMode="search"
-              aria-label="Search participants"
-              onFocus={() => setSearchOpen(true)}
-              onBlur={() => setSearchOpen(false)}
-            />
-          </div>
-        </div>
+        <button
+          type="button"
+          className={styles.toggleBtn}
+          onClick={() => {
+            setShowList(!showList)
+          }}
+          aria-expanded={showList}
+        >
+          {showList ? 'Hide participants' : 'Show participants'}
+        </button>
       </div>
     </section>
   )

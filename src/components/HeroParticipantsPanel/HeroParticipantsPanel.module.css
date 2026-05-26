@@ -33,7 +33,7 @@
 }
 
 .expanded {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   height: 100%;
 }
@@ -44,17 +44,19 @@
 
 .controlsRow {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
   gap: var(--primitives-spacing-2);
-  flex-wrap: nowrap;
   padding: 0;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+  min-width: 0;
 }
 
-.expandBtn {
+.toggleBtn {
+  flex: 1 1 0;
+  min-width: 0;
   height: var(--semantic-component-navitem-height);
   padding: 0 var(--primitives-spacing-4);
   border-radius: var(--semantic-component-navitem-radius);
@@ -63,87 +65,18 @@
   color: var(--semantic-color-text-secondary);
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: var(--semantic-component-navitem-font-size);
+  font-weight: var(--primitives-fontWeight-medium);
   cursor: pointer;
-  flex: 0 0 auto;
   white-space: nowrap;
+  box-sizing: border-box;
 }
-.expandBtn:hover {
+.toggleBtn:hover {
   background: var(--semantic-component-navitem-default-bg-hover);
   color: var(--semantic-component-navitem-default-text-hover);
 }
-.expandBtn:focus-visible {
+.toggleBtn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--semantic-color-border-focus);
-}
-
-.rightControls {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--primitives-spacing-2);
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.searchWrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: var(--semantic-component-navitem-height);
-  border-radius: var(--semantic-component-navitem-radius);
-  border: 1px solid var(--semantic-color-border-default);
-  background: color-mix(in srgb, var(--semantic-color-surface-raised) 62%, transparent);
-  box-sizing: border-box;
-  overflow: hidden;
-  flex: 0 0 40px;
-  min-width: 40px;
-  max-width: 100%;
-  transition: flex 160ms ease;
-}
-
-.searchWrapOpen {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.searchBtn {
-  height: 100%;
-  width: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
-.searchIcon {
-  width: 14px;
-  height: 14px;
-  color: var(--semantic-color-text-dim);
-  opacity: 0.8;
-  flex: 0 0 auto;
-}
-
-.search {
-  width: 100%;
-  min-width: 0;
-  padding-right: var(--primitives-spacing-4);
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--semantic-color-text-primary);
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-md) * 1px);
-}
-.search::placeholder {
-  color: var(--semantic-color-text-dim);
-}
-.searchWrap:focus-within {
-  /* Inset so it doesn't "bleed" outside the row */
-  box-shadow: inset 0 0 0 2px var(--semantic-color-border-focus);
-  border-color: transparent;
 }
 
 .filters {
@@ -156,10 +89,13 @@
   background: color-mix(in srgb, var(--semantic-color-surface-raised) 58%, transparent);
   border: 1px solid var(--semantic-color-border-default);
   flex: 0 0 auto;
-  min-width: 0;
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .filterBtn {
+  flex-shrink: 0;
   height: 100%;
   padding: 0 var(--primitives-spacing-4);
   border-radius: var(--semantic-component-navitem-radius);
@@ -204,6 +140,8 @@
 }
 
 .listBackdrop {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -219,45 +157,86 @@
 .listAnimClosed .listBackdrop {
 }
 
-.listContent {
+.listInner {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   min-height: 0;
   opacity: 0;
   transition: opacity 220ms ease;
 }
 
-.listContentHidden {
+.listInnerHidden {
   opacity: 0;
   pointer-events: none;
   transition-duration: 120ms;
   transition-delay: 0ms;
 }
 
-.listContentVisible {
+.listInnerVisible {
   opacity: 1;
   transition-duration: 220ms;
   transition-delay: 200ms;
 }
 
-.listContentExpanded {
-  flex: 1 1 auto;
+.listSearch {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+  flex-shrink: 0;
+  padding: var(--primitives-spacing-4) var(--primitives-spacing-5);
+  border-bottom: 1px solid var(--semantic-color-border-default);
+  background: var(--semantic-color-surface-default);
+  box-sizing: border-box;
+}
+
+.listSearch:focus-within {
+  box-shadow: inset 0 -2px 0 0 var(--semantic-color-border-focus);
+}
+
+.listSearchIcon {
+  flex: 0 0 auto;
+  color: var(--semantic-color-text-secondary);
+}
+
+.listSearchInput {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--semantic-color-text-primary);
+  font-family: var(--primitives-fontFamily-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+}
+
+.listSearchInput::placeholder {
+  color: var(--semantic-color-text-muted);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+}
+
+.listScroll {
+  flex: 1 1 0;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 24px 1fr 90px 110px;
+  grid-template-columns: 32px minmax(0, 1.4fr) minmax(72px, auto) minmax(88px, auto);
   align-items: center;
-  gap: var(--primitives-spacing-4);
-  padding: var(--primitives-spacing-4) var(--primitives-spacing-5);
+  gap: var(--primitives-spacing-5);
+  padding: var(--primitives-spacing-4) var(--primitives-spacing-6);
   border: none;
   background: transparent;
   color: var(--semantic-color-text-secondary);
   cursor: pointer;
   text-align: left;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .row + .row {
@@ -310,6 +289,7 @@
 .addr {
   font-family: var(--primitives-fontFamily-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--semantic-component-tag-font-size);
+  color: var(--semantic-color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -320,7 +300,8 @@
   align-items: center;
   gap: var(--primitives-spacing-2);
   justify-content: flex-start;
-  color: var(--semantic-color-text-dim);
+  justify-self: start;
+  color: var(--semantic-color-text-muted);
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: var(--semantic-component-tag-font-size);
   letter-spacing: var(--primitives-letterSpacing-wide);
@@ -340,6 +321,8 @@
   font-weight: var(--primitives-fontWeight-medium);
   color: var(--semantic-color-text-primary);
   text-align: right;
+  justify-self: end;
+  white-space: nowrap;
 }
 
 .clipHint {
@@ -358,19 +341,5 @@
     left: var(--primitives-spacing-6);
   }
 
-  .controlsRow {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
-
-  .rightControls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .searchWrapOpen {
-    width: 100%;
-    flex: 1 1 auto;
-  }
 }
 
