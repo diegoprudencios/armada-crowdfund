@@ -21,6 +21,18 @@
   overflow: hidden;
 }
 
+.shellCompact {
+  height: auto;
+  min-height: 0;
+  padding: var(--primitives-spacing-8);
+  gap: var(--primitives-spacing-8);
+  justify-content: flex-start;
+}
+
+.shellExit {
+  animation: walletStepOut 220ms ease forwards;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -28,6 +40,23 @@
   justify-content: center;
   flex: 1;
   padding-top: var(--primitives-spacing-10);
+}
+
+.contentCompact {
+  flex: none;
+  padding-top: 0;
+  gap: var(--primitives-spacing-8);
+}
+
+@keyframes walletStepOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .titleBlock {

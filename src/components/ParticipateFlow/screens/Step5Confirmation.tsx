@@ -1,21 +1,25 @@
 import styles from './Step5Confirmation.module.css'
 import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
+import type { ParticipateStepBarProps } from '../participateFlowSteps'
 
-interface Step5ConfirmationProps {
-  onViewPosition: () => void
+interface Step5ConfirmationProps extends ParticipateStepBarProps {
   onInvite: () => void
+  onViewPosition?: () => void
   amount?: number
   estimatedArm?: number
 }
 
-const STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
 
 export default function Step5Confirmation({
-  onViewPosition,
   onInvite,
+  onViewPosition,
   amount = 1000,
   estimatedArm = 1000,
+  steps = DEFAULT_STEPS,
+  stepIndex = 4,
+  stepsStatus = 'confirmed',
 }: Step5ConfirmationProps) {
   const formattedAmount = amount.toLocaleString('en-US', {
     style: 'currency',
@@ -26,7 +30,7 @@ export default function Step5Confirmation({
 
   return (
     <div className={styles.shell}>
-      <Steps steps={STEPS} currentStep={4} status="confirmed" />
+      <Steps steps={[...steps]} currentStep={stepIndex} status={stepsStatus} />
 
       <div className={styles.content}>
         <div className={styles.heroBlock}>
@@ -47,13 +51,15 @@ export default function Step5Confirmation({
       </div>
 
       <div className={styles.buttonRow}>
-        <Button
-          variant="secondary"
-          size="lg"
-          label="View your position"
-          showIcon={false}
-          onClick={onViewPosition}
-        />
+        {onViewPosition && (
+          <Button
+            variant="secondary"
+            size="lg"
+            label="View your position"
+            showIcon={false}
+            onClick={onViewPosition}
+          />
+        )}
         <Button
           variant="primary"
           size="lg"

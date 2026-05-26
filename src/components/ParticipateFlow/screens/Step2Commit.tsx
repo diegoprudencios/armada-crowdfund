@@ -2,8 +2,11 @@ import { useState } from 'react'
 import styles from './Step2Commit.module.css'
 import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
+import Tooltip from '../../Tooltip/Tooltip'
+import { InformationCircleIcon } from '@heroicons/react/24/solid'
+import type { ParticipateStepBarProps } from '../participateFlowSteps'
 
-interface Step2CommitProps {
+interface Step2CommitProps extends ParticipateStepBarProps {
   onNext: (amount: number) => void
   onBack: () => void
   maxAmount?: number
@@ -11,7 +14,7 @@ interface Step2CommitProps {
   maxArm?: number
 }
 
-const STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
 
 export default function Step2Commit({
   onNext,
@@ -19,6 +22,8 @@ export default function Step2Commit({
   maxAmount = 4000,
   availableBalance = 215154.14,
   maxArm = 4000,
+  steps = DEFAULT_STEPS,
+  stepIndex = 2,
 }: Step2CommitProps) {
   const [amount, setAmount] = useState<number>(0)
 
@@ -40,7 +45,7 @@ export default function Step2Commit({
 
   return (
     <div className={styles.shell}>
-      <Steps steps={STEPS} currentStep={2} />
+      <Steps steps={[...steps]} currentStep={stepIndex} />
 
       <div className={styles.content}>
         <div className={styles.inputBlock}>
@@ -54,18 +59,30 @@ export default function Step2Commit({
 
           <label className={styles.amountWrapper} htmlFor="commit-amount">
             <span className={styles.visuallyHidden}>Amount in USDC</span>
-            <input
-              id="commit-amount"
-              type="number"
-              min={0}
-              max={maxAmount}
-              value={amount === 0 ? '' : amount}
-              onChange={handleInput}
-              placeholder="0"
-              className={styles.amountInput}
-              aria-labelledby="commit-title"
-              aria-describedby="commit-max commit-available"
-            />
+            <span className={styles.amountField}>
+              <span
+                className={[
+                  styles.amountDisplay,
+                  hasAmount ? styles.amountDisplayActive : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-hidden="true"
+              >
+                {hasAmount ? amount.toLocaleString() : '0'}
+              </span>
+              <input
+                id="commit-amount"
+                type="number"
+                min={0}
+                max={maxAmount}
+                value={amount === 0 ? '' : amount}
+                onChange={handleInput}
+                className={styles.amountInput}
+                aria-labelledby="commit-title"
+                aria-describedby="commit-max commit-available"
+              />
+            </span>
           </label>
 
           <p
@@ -93,12 +110,24 @@ export default function Step2Commit({
           <div className={styles.allocationRow}>
             <div className={styles.allocationLeft}>
               <span className={styles.allocationLabel}>EST. ARM ALLOCATION</span>
-              <div className={styles.infoIcon} aria-hidden="true">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <circle cx="6" cy="6" r="5.5" stroke="currentColor" strokeOpacity="0.4"/>
-                  <path d="M6 5.5V8.5M6 3.5V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                </svg>
-              </div>
+              <Tooltip
+                variant="rich"
+                title="EST. ARM Allocation"
+                description="Your estimated allocation based on the amount committed."
+                bullets={[
+                  '1 ARM per 1 USDC committed',
+                  'Final allocation confirmed at close',
+                  'Subject to pool cap',
+                ]}
+              >
+                <button
+                  type="button"
+                  className={styles.infoTrigger}
+                  aria-label="Estimated ARM allocation details"
+                >
+                  <InformationCircleIcon className={styles.infoIcon} aria-hidden />
+                </button>
+              </Tooltip>
             </div>
             <div className={styles.allocationRight}>
               <span className={hasAmount ? styles.allocationValueActive : styles.allocationValue}>

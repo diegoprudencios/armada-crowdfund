@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import styles from './Step1Wallet.module.css'
 import Steps from '../../Steps/Steps'
 import WalletItem from '../../WalletItem/WalletItem'
@@ -9,15 +10,38 @@ import {
 
 interface Step1WalletProps {
   onNext: (wallet: string) => void
+  showSteps?: boolean
+  compact?: boolean
 }
 
 const STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const SELECT_EXIT_MS = 220
 
-export default function Step1Wallet({ onNext }: Step1WalletProps) {
+export default function Step1Wallet({
+  onNext,
+  showSteps = true,
+  compact = false,
+}: Step1WalletProps) {
+  const [exiting, setExiting] = useState(false)
+
+  const handleSelect = (wallet: string) => {
+    if (exiting) return
+    setExiting(true)
+    window.setTimeout(() => onNext(wallet), SELECT_EXIT_MS)
+  }
+
   return (
-    <div className={styles.shell}>
-      <Steps steps={STEPS} currentStep={1} />
-      <div className={styles.content}>
+    <div
+      className={[
+        styles.shell,
+        compact && styles.shellCompact,
+        exiting && styles.shellExit,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {showSteps && <Steps steps={STEPS} currentStep={1} />}
+      <div className={[styles.content, compact && styles.contentCompact].filter(Boolean).join(' ')}>
         <div className={styles.titleBlock}>
           <h2 className={styles.title}>Select your wallet</h2>
           <p className={styles.subtitle}>
@@ -28,17 +52,17 @@ export default function Step1Wallet({ onNext }: Step1WalletProps) {
           <WalletItem
             name="MetaMask"
             iconComponent={<WalletMetamask size={24} />}
-            onClick={() => onNext('metamask')}
+            onClick={() => handleSelect('metamask')}
           />
           <WalletItem
             name="Phantom"
             iconComponent={<WalletPhantom size={24} />}
-            onClick={() => onNext('phantom')}
+            onClick={() => handleSelect('phantom')}
           />
           <WalletItem
             name="WalletConnect"
             iconComponent={<WalletWalletConnect size={24} />}
-            onClick={() => onNext('walletconnect')}
+            onClick={() => handleSelect('walletconnect')}
           />
         </div>
       </div>

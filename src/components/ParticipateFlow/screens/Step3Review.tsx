@@ -3,8 +3,9 @@ import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
 import Tooltip from '../../Tooltip/Tooltip'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
+import type { ParticipateStepBarProps } from '../participateFlowSteps'
 
-interface Step3ReviewProps {
+interface Step3ReviewProps extends ParticipateStepBarProps {
   onNext: () => void
   onBack: () => void
   hopLevel?: string
@@ -12,7 +13,7 @@ interface Step3ReviewProps {
   estimatedArm?: number
 }
 
-const STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
 
 export default function Step3Review({
   onNext,
@@ -20,6 +21,8 @@ export default function Step3Review({
   hopLevel = 'Hop 1',
   amount = 1000,
   estimatedArm = 1000,
+  steps = DEFAULT_STEPS,
+  stepIndex = 3,
 }: Step3ReviewProps) {
   const formattedAmount = amount.toLocaleString('en-US', {
     style: 'currency',
@@ -30,7 +33,7 @@ export default function Step3Review({
 
   return (
     <div className={styles.shell}>
-      <Steps steps={STEPS} currentStep={3} />
+      <Steps steps={[...steps]} currentStep={stepIndex} />
 
       <div className={styles.content}>
         <h2 className={styles.title}>Review</h2>

@@ -7,12 +7,15 @@ export interface Step0InviteProps {
   hopVariant?: HopVariant
   daysLeft?: number
   onJoin: () => void
+  /** Path 2/3 modal: wallet already connected — hide pre-connect eyebrow. */
+  hideConnectEyebrow?: boolean
 }
 
 export default function Step0Invite({
   hopVariant = 'hop-1',
   daysLeft = 3,
   onJoin,
+  hideConnectEyebrow = false,
 }: Step0InviteProps) {
   const [joinExpanded, setJoinExpanded] = useState(false)
 
@@ -40,7 +43,9 @@ export default function Step0Invite({
         </div>
         <div className={styles.bottom}>
           <div className={styles.copy}>
-            <p className={styles.eyebrow}>CONNECT YOUR WALLET</p>
+            {!hideConnectEyebrow && (
+              <p className={styles.eyebrow}>CONNECT YOUR WALLET</p>
+            )}
             <h1 className={styles.headline}>You are invited to join the fleet</h1>
           </div>
           <div className={styles.footer}>

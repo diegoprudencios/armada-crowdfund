@@ -6,11 +6,14 @@ import styles from './Header.module.css'
 export interface HeaderProps {
   activeNav?: 'project' | 'crowdfund' | 'myposition'
   walletAddress?: string
+  /** When false, show Connect wallet pill and hide My position. Defaults to true. */
+  walletConnected?: boolean
   claimAvailable?: boolean
   onMyPosition?: () => void
   onCrowdfund?: () => void
   onClaim?: () => void
   onParticipate?: () => void
+  onConnectWallet?: () => void
   className?: string
   /** Hide header when scrolling down; show when scrolling up (near top always visible). */
   autoHideOnScroll?: boolean
@@ -70,11 +73,13 @@ const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
 export function Header({
   activeNav = 'crowdfund',
   walletAddress = '0x6545...54534',
+  walletConnected = true,
   claimAvailable = false,
   onMyPosition,
   onCrowdfund,
   onClaim,
   onParticipate,
+  onConnectWallet,
   className,
   autoHideOnScroll = true,
 }: HeaderProps) {
@@ -149,18 +154,30 @@ export function Header({
       </div>
 
       <div className={styles.actions}>
-        <Button
-          variant="ghost"
-          size="md"
-          label="My position"
-          showIcon={false}
-          onClick={handleMyPosition}
-          className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
-        />
+        {walletConnected && (
+          <Button
+            variant="ghost"
+            size="md"
+            label="My position"
+            showIcon={false}
+            onClick={handleMyPosition}
+            className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
+          />
+        )}
         {claimAvailable && (
           <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
         )}
-        <Button variant="secondary" size="md" label={walletAddress} showIcon={false} />
+        {walletConnected ? (
+          <Button variant="secondary" size="md" label={walletAddress} showIcon={false} />
+        ) : (
+          <Button
+            variant="secondary"
+            size="md"
+            label="Connect wallet"
+            showIcon={false}
+            onClick={onConnectWallet}
+          />
+        )}
         {!claimAvailable && (
           <Button
             variant="gradient"

@@ -8,6 +8,7 @@ import SlotCard from '../InviteFlow/screens/SlotCard'
 import { NodeSphere } from '../../pages/NodeSphere'
 import {
   buildInvitePinnedNodes,
+  COMMITTED,
   DEMO_SLOTS,
   DEMO_WALLET,
   DEMO_WALLET_DISPLAY,
@@ -22,7 +23,10 @@ export function MyPositionSplit() {
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [loadingId, setLoadingId] = useState<number | null>(null)
 
-  const invitePinnedNodes = useMemo(() => buildInvitePinnedNodes(DEMO_SLOTS), [])
+  const invitePinnedNodes = useMemo(
+    () => buildInvitePinnedNodes(DEMO_SLOTS, DEMO_WALLET, COMMITTED),
+    [],
+  )
 
   const handleGenerateLink = async (slotId: number) => {
     setLoadingId(slotId)

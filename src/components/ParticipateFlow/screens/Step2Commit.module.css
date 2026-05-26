@@ -15,26 +15,28 @@
   padding: var(--primitives-spacing-8);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 /* ── Content ── */
 .content {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--primitives-spacing-11);
-  align-items: center;
   width: 100%;
 }
 
 /* ── Input block ── */
 .inputBlock {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
   align-items: center;
+  justify-content: center;
   width: 100%;
 }
 
@@ -63,47 +65,74 @@
   text-align: center;
 }
 
-/* Hidden input, displays as big number */
+/* Centered amount with caret to the right of digits (display layer + transparent input) */
 .amountWrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: text;
   width: 100%;
+  min-height: calc(var(--primitives-fontSize-6xl) * 1.1 * 1px);
 }
 
+.amountField {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.amountDisplay,
 .amountInput {
   font-family: var(--primitives-fontFamily-display);
   font-size: calc(var(--primitives-fontSize-6xl) * 1px);
   font-weight: var(--primitives-fontWeight-regular);
+  line-height: 1.1;
+}
+
+.amountInput {
+  font-variant-numeric: tabular-nums;
+}
+
+.amountDisplay {
+  display: block;
   color: var(--semantic-color-text-primary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.amountDisplayActive {
+  color: var(--semantic-color-brand-lavender);
+}
+
+.amountInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: transparent;
+  caret-color: var(--semantic-color-text-primary);
   background: transparent;
   border: none;
   outline: none;
   text-align: right;
-  width: auto;
-  min-width: 1.2ch;
-  max-width: 100%;
-  field-sizing: content;
-  line-height: 1.1;
-  /* Hide number input arrows */
   -moz-appearance: textfield;
 }
 
 .amountInput:not(:placeholder-shown) {
-  color: var(--semantic-color-brand-lavender);
   caret-color: var(--semantic-color-brand-lavender);
+}
+
+.amountInput::placeholder {
+  color: transparent;
+  opacity: 0;
 }
 
 .amountInput::-webkit-outer-spin-button,
 .amountInput::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-.amountInput::placeholder {
-  color: var(--semantic-color-text-primary);
-  opacity: 1;
 }
 
 .availableLabel {
@@ -117,12 +146,13 @@
   letter-spacing: var(--primitives-letterSpacing-wider);
 }
 
-/* ── Allocation block ── */
+/* ── Allocation block — pinned above button row ── */
 .allocationBlock {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--primitives-spacing-4);
   width: 100%;
+  flex-shrink: 0;
 }
 
 .barTrack {
@@ -163,29 +193,52 @@
   color: var(--semantic-color-text-muted);
 }
 
-.infoIcon {
-  color: var(--semantic-color-text-muted);
-  display: flex;
+.infoTrigger {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: help;
+  line-height: 0;
+}
+
+.infoTrigger:hover .infoIcon {
+  color: var(--semantic-color-brand-lavender);
+}
+
+.infoIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--semantic-color-text-muted);
+  flex-shrink: 0;
+  transition: color 150ms ease;
 }
 
 .allocationRight {
   display: flex;
   align-items: baseline;
   gap: var(--primitives-spacing-1);
+  min-width: 9ch;
+  justify-content: flex-end;
 }
 
-.allocationValue {
-  font-family: var(--primitives-fontFamily-ui);
-  font-size: calc(var(--primitives-fontSize-base) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  color: var(--semantic-color-text-muted);
-}
-
+.allocationValue,
 .allocationValueActive {
   font-family: var(--primitives-fontFamily-ui);
   font-size: calc(var(--primitives-fontSize-base) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  text-align: right;
+}
+
+.allocationValue {
+  color: var(--semantic-color-text-muted);
+}
+
+.allocationValueActive {
   color: var(--semantic-color-brand-lavender);
 }
 
@@ -206,6 +259,8 @@
   display: flex;
   gap: var(--primitives-spacing-3);
   width: 100%;
+  flex-shrink: 0;
+  margin-top: var(--primitives-spacing-11);
 }
 
 .buttonRow > * {

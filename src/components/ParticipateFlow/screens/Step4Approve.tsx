@@ -1,18 +1,19 @@
 import { useEffect, useState, useRef } from 'react'
 import styles from './Step4Approve.module.css'
 import Steps from '../../Steps/Steps'
+import type { ParticipateStepBarProps } from '../participateFlowSteps'
 
 interface Transaction {
   label: string
   status: 'pending' | 'loading' | 'done'
 }
 
-interface Step4ApproveProps {
+interface Step4ApproveProps extends ParticipateStepBarProps {
   onDone: () => void
   amount?: number
 }
 
-const STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
 
 const STATUS_LABEL: Record<Transaction['status'], string> = {
   loading: 'Loading',
@@ -20,7 +21,12 @@ const STATUS_LABEL: Record<Transaction['status'], string> = {
   done: 'Complete',
 }
 
-export default function Step4Approve({ onDone, amount = 1000 }: Step4ApproveProps) {
+export default function Step4Approve({
+  onDone,
+  amount = 1000,
+  steps = DEFAULT_STEPS,
+  stepIndex = 4,
+}: Step4ApproveProps) {
   const [txs, setTxs] = useState<Transaction[]>([
     { label: `Approve ${amount.toLocaleString()} USDC`, status: 'loading' },
     { label: 'Commit participation', status: 'pending' },
@@ -46,7 +52,7 @@ export default function Step4Approve({ onDone, amount = 1000 }: Step4ApproveProp
 
   return (
     <div className={styles.shell}>
-      <Steps steps={STEPS} currentStep={4} />
+      <Steps steps={[...steps]} currentStep={stepIndex} />
 
       <div className={styles.content}>
         <h2 className={styles.title}>

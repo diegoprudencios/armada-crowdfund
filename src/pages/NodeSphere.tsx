@@ -377,8 +377,8 @@ export function NodeSphere({
     addShell('Hop 2', shellRadii[2].radius, scenarioCounts.real.hop2, scenarioCounts.ghost.hop2)
     addShell('Multi-hop', shellRadii[3].radius, scenarioCounts.real.multi, scenarioCounts.ghost.multi)
 
-    // Exactly one wallet node (outer ring-ish). Omit when there are no participants.
-    if (scenario.participants > 0) {
+    // Wallet node when there are participants or a connected demo wallet.
+    if (scenario.participants > 0 || walletAddress) {
       const walletPinned = pinnedByKind.get('Your wallet')?.[0]
       const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
       pushNode(walletPos, {
@@ -507,6 +507,19 @@ export function NodeSphere({
     const isInviteFocusMode = () => inviteGraphRef.current && lockOnWalletRef.current
 
     const meshIndex = (mesh: THREE.Mesh) => nodeMeshes.indexOf(mesh)
+
+    /** Prefer the yellow wallet node when the same address appears on a hop shell. */
+    const resolveFocusedMesh = (addr: string | undefined): THREE.Mesh | null => {
+      if (!addr) return null
+      if (lockOnWalletRef.current) {
+        const walletMesh = nodeMeshes.find((m) => {
+          const meta = m.userData as NodeMeta
+          return meta.kind === 'Your wallet' && meta.address === addr
+        })
+        if (walletMesh) return walletMesh
+      }
+      return nodeMeshes.find((m) => (m.userData as NodeMeta).address === addr) ?? null
+    }
 
     const isSelectableNode = (mesh: THREE.Mesh) => {
       const meta = mesh.userData as NodeMeta
@@ -721,8 +734,9 @@ export function NodeSphere({
         return
       }
 
-      const idx = indexByAddress.get(addr)
-      if (idx == null) {
+      const focusedMesh = resolveFocusedMesh(addr)
+      const idx = focusedMesh ? meshIndex(focusedMesh) : null
+      if (idx == null || idx < 0) {
         edgeColorAttr.needsUpdate = true
         return
       }
@@ -740,6 +754,7 @@ export function NodeSphere({
 
     const animate = () => {
       const focusAddr = highlightRef.current
+      const focusedMesh = resolveFocusedMesh(focusAddr)
       updateEdgeHighlight(focusAddr ?? null)
 
       // If we just deselected, bake the current focused orientation into root first,
@@ -768,7 +783,7 @@ export function NodeSphere({
         const m = nodeMeshes[i]
         const isHovered = hovered === m
         const meta = m.userData as NodeMeta
-        const isSelected = !!focusAddr && meta.address === focusAddr
+        const isSelected = focusedMesh === m
         const activeFilter = filterRef.current
         const isFilteredOut = !!activeFilter && meta.kind !== activeFilter && meta.kind !== 'Your wallet'
         const isWalletNeighbor = walletConnectedIndices.has(i)
@@ -790,14 +805,13 @@ export function NodeSphere({
         hadSelection = true
         if (lastCenteredAddress !== focusAddr) {
           userAdjustedView = false
-          const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
-          if (selectedMesh) {
+          if (focusedMesh) {
             const desiredWorld = getFocusTargetWorld(true)
             const desiredInFocusSpace = desiredWorld.clone().applyQuaternion(root.quaternion.clone().invert()).normalize()
-            const from = selectedMesh.position.clone().normalize()
+            const from = focusedMesh.position.clone().normalize()
             targetFocusQuat = new THREE.Quaternion().setFromUnitVectors(from, desiredInFocusSpace)
             const zoomOutMax = isInviteFocusMode() ? INVITE_FOCUS_ZOOM_OUT_MAX : FOCUS_ZOOM_OUT_MAX
-            targetCameraZ = cameraZForNodeRadius(selectedMesh.position.length(), zoomOutMax)
+            targetCameraZ = cameraZForNodeRadius(focusedMesh.position.length(), zoomOutMax)
           }
           lastCenteredAddress = focusAddr
         }
@@ -827,11 +841,10 @@ export function NodeSphere({
 
       // Keep selected tooltip pinned near the focused node (when not hovering other nodes).
       if (showSelectedTip) {
-        const selectedMesh = nodeMeshes.find((m) => (m.userData as NodeMeta).address === focusAddr) ?? null
-        if (selectedMesh) {
-          const meta = selectedMesh.userData as NodeMeta
+        if (focusedMesh) {
+          const meta = focusedMesh.userData as NodeMeta
           const world = new THREE.Vector3()
-          selectedMesh.getWorldPosition(world)
+          focusedMesh.getWorldPosition(world)
           const projected = world.project(camera)
           const rect = renderer.domElement.getBoundingClientRect()
           const x = rect.left + (projected.x * 0.5 + 0.5) * rect.width + 14

@@ -7,16 +7,17 @@ import { HeroParticipantsPanel, type HeroParticipant } from '../components/HeroP
 import { Tag } from '../components/Tag/Tag'
 import Tooltip from '../components/Tooltip/Tooltip'
 import SlotCard from '../components/InviteFlow/screens/SlotCard'
+import { ParticipateFlowCrowdfund } from '../components/ParticipateFlow'
+import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
+import { ParticipateFlowModal } from '../components/ParticipateFlow/ParticipateFlowModal'
+import { DemoSessionProvider, useDemoSession } from '../context/DemoSessionContext'
 import {
-  DEMO_SLOTS,
-  DEMO_WALLET,
-  DEMO_WALLET_DISPLAY,
-  FILL_PCT,
+  CAP,
   formatArmAllocation,
   formatUsdcCommitted,
-  GRAPH_PARTICIPANTS,
+  buildInvitePinnedNodes,
 } from '../components/MyPosition/myPositionDemo'
-import { NodeSphere } from './NodeSphere'
+import { NodeSphere, type PinnedNode } from './NodeSphere'
 import { generateDashboardParticipants, toHeroParticipants } from '../utils/mockParticipants'
 import heroStyles from './Hero.module.css'
 import mpStyles from '../components/MyPosition/MyPositionHero.module.css'
@@ -65,18 +66,37 @@ function panelAnimates(view: CrowdfundView, layer: CrowdfundView, phase: PanelPh
   return view === layer
 }
 
-export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
-  const scenario = useRef<{ participants: 0 | 3 | 4 | 5 | 30 | 800; seed: number } | null>(null)
+export function CrowdfundExperience(props: CrowdfundExperienceProps) {
+  return (
+    <DemoSessionProvider>
+      <CrowdfundExperienceInner {...props} />
+    </DemoSessionProvider>
+  )
+}
+
+function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
+  const session = useDemoSession()
+  const {
+    wallet,
+    walletConnected,
+    committedUsdc,
+    hasParticipated,
+    hopLabel,
+    fillPct,
+    slots,
+    connectWallet,
+    completeParticipation,
+    generateSlotLink,
+    revokeSlot,
+    inviteSlotOnchain,
+    loadingSlotId,
+  } = session
+  const scenario = useRef<{ participants: 800; seed: number } | null>(null)
   if (!scenario.current) {
-    const r = Math.random()
-    const participants = (r < 0.25 ? 0 : r < 0.5 ? 3 + Math.floor(Math.random() * 3) : r < 0.75 ? 30 : 800) as
-      | 0
-      | 3
-      | 4
-      | 5
-      | 30
-      | 800
-    scenario.current = { participants, seed: Math.floor(Math.random() * 1_000_000_000) }
+    scenario.current = {
+      participants: 800,
+      seed: Math.floor(Math.random() * 1_000_000_000),
+    }
   }
 
   const [view, setView] = useState<CrowdfundView>(() => readInitialView(initialView))
@@ -85,25 +105,32 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
   const [motionReady, setMotionReady] = useState(false)
   const panelTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const committedAmount = (() => {
-    const p = scenario.current!.participants
-    if (p === 0) return 0
-    if (p <= 5) return p * 20000
-    if (p === 30) return 857000
-    return 1700000
-  })()
+  const committedAmount = 1_700_000
 
   const dashRows = useMemo(
     () => generateDashboardParticipants(scenario.current!.seed, scenario.current!.participants),
     [],
   )
   const participants = useMemo(() => toHeroParticipants(dashRows) as HeroParticipant[], [dashRows])
+
+  const displayParticipants = useMemo(() => {
+    if (!hasParticipated || !wallet) return participants
+    const self: HeroParticipant = {
+      address: wallet.displayAddress,
+      hop: 'HOP-1',
+      amountUsd: committedUsdc,
+      isSelf: true,
+    }
+    return [self, ...participants.filter((p) => p.address !== wallet.displayAddress)]
+  }, [participants, hasParticipated, wallet, committedUsdc])
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
   const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2' | 'multihop'>('all')
   const [participantsListOpen, setParticipantsListOpen] = useState(false)
   const [holdColumnExpanded, setHoldColumnExpanded] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [loadingId, setLoadingId] = useState<number | null>(null)
+  const [participateOpen, setParticipateOpen] = useState(false)
+  const [connectOpen, setConnectOpen] = useState(false)
+  const [pendingParticipateOpen, setPendingParticipateOpen] = useState(false)
 
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
   const leftStackRef = useRef<HTMLDivElement | null>(null)
@@ -113,8 +140,7 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
   const isMyPosition = view === 'myposition'
   const isGraphCrowdfund = graphMode === 'crowdfund'
   const isGraphMyPosition = graphMode === 'myposition'
-  const graphParticipants =
-    scenario.current!.participants === 0 ? GRAPH_PARTICIPANTS : scenario.current!.participants
+  const graphParticipants = scenario.current!.participants
   const columnExpanded = participantsListOpen || holdColumnExpanded
 
   useEffect(() => {
@@ -142,7 +168,8 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
       setGraphMode('crowdfund')
       setSelectedAddress(undefined)
     } else if (next === 'myposition') {
-      setSelectedAddress(undefined)
+      setGraphMode('myposition')
+      setSelectedAddress(wallet?.displayAddress)
     }
 
     setPanelPhase('exit')
@@ -151,7 +178,6 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
     panelTransitionTimer.current = setTimeout(() => {
       setView(next)
       syncUrl(next)
-      if (next === 'myposition') setGraphMode('myposition')
       setPanelPhase('enter')
 
       panelTransitionTimer.current = setTimeout(() => {
@@ -243,7 +269,6 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
   const goToMyPosition = () => {
     if (isMyPosition || panelPhase !== 'idle') return
     setParticipantsListOpen(false)
-    setSelectedAddress(undefined)
     startPanelTransition('myposition')
   }
 
@@ -252,16 +277,50 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
     startPanelTransition('crowdfund')
   }
 
+  const closeParticipateFlow = () => {
+    setParticipateOpen(false)
+    setPendingParticipateOpen(false)
+    if (walletConnected) goToMyPosition()
+  }
+
+  const closeConnectModal = () => {
+    setConnectOpen(false)
+  }
+
+  const openParticipateFlow = () => {
+    if (isCrowdfund && panelPhase === 'idle') {
+      setParticipateOpen(true)
+      return
+    }
+    if (!isCrowdfund) {
+      setPendingParticipateOpen(true)
+      goToCrowdfund()
+    }
+  }
+
+  useEffect(() => {
+    if (!pendingParticipateOpen || !isCrowdfund || panelPhase !== 'idle') return
+    setPendingParticipateOpen(false)
+    setParticipateOpen(true)
+  }, [pendingParticipateOpen, isCrowdfund, panelPhase])
+
+  useEffect(() => {
+    if (isMyPosition && !pendingParticipateOpen) {
+      setParticipateOpen(false)
+    }
+  }, [isMyPosition, pendingParticipateOpen])
+
+  useEffect(() => {
+    if (!isMyPosition || walletConnected || panelPhase !== 'idle') return
+    setView('crowdfund')
+    setGraphMode('crowdfund')
+    syncUrl('crowdfund')
+  }, [isMyPosition, walletConnected, panelPhase])
+
   const crowdfundPanelVisible = panelVisible(view, 'crowdfund', panelPhase)
   const myPositionPanelVisible = panelVisible(view, 'myposition', panelPhase)
   const crowdfundPanelAnimates = panelAnimates(view, 'crowdfund', panelPhase, motionReady)
   const myPositionPanelAnimates = panelAnimates(view, 'myposition', panelPhase, motionReady)
-
-  const handleGenerateLink = async (slotId: number) => {
-    setLoadingId(slotId)
-    await new Promise((r) => setTimeout(r, 800))
-    setLoadingId(null)
-  }
 
   const handleCopy = (slotId: number, link: string) => {
     navigator.clipboard.writeText(link)
@@ -269,34 +328,44 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const handleRevoke = async () => {}
-  const handleInviteOnchain = async (slotId: number) => {
-    setLoadingId(slotId)
-    await new Promise((r) => setTimeout(r, 800))
-    setLoadingId(null)
-  }
+  const graphPinnedNodes = useMemo(() => {
+    const pins: PinnedNode[] = displayParticipants.map((p) => ({
+      kind:
+        p.hop === 'SEED'
+          ? ('Hop 0' as const)
+          : p.hop === 'HOP-1'
+            ? ('Hop 1' as const)
+            : p.hop === 'HOP-2'
+              ? ('Hop 2' as const)
+              : ('Multi-hop' as const),
+      address: p.address,
+      committed: `$${p.amountUsd.toLocaleString()} committed`,
+    }))
 
-  const crowdfundPinnedNodes = useMemo(
-    () =>
-      participants.map((p) => ({
-        kind:
-          p.hop === 'SEED'
-            ? ('Hop 0' as const)
-            : p.hop === 'HOP-1'
-              ? ('Hop 1' as const)
-              : p.hop === 'HOP-2'
-                ? ('Hop 2' as const)
-                : ('Multi-hop' as const),
-        address: p.address,
-        committed: `$${p.amountUsd.toLocaleString()} committed`,
-      })),
-    [participants],
-  )
+    if (wallet) {
+      pins.push({
+        kind: 'Your wallet',
+        address: wallet.displayAddress,
+        committed: `$${committedUsdc.toLocaleString()} committed`,
+      })
+
+      for (const pin of buildInvitePinnedNodes(slots, wallet.displayAddress, committedUsdc)) {
+        if (pin.kind !== 'Your wallet') pins.push(pin)
+      }
+    }
+
+    return pins
+  }, [displayParticipants, wallet, committedUsdc, slots])
+
+  const graphLayoutKey = `${scenario.current!.seed}-${walletConnected ? 'connected' : 'guest'}-${hasParticipated ? committedUsdc : 0}-${slots.map((s) => s.status).join('-')}`
 
   return (
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
       <NodeSphere
-        highlightAddress={isGraphMyPosition ? selectedAddress ?? DEMO_WALLET : selectedAddress}
+        key={graphLayoutKey}
+        highlightAddress={
+          isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
+        }
         onSelectAddress={setSelectedAddress}
         filterKind={
           isGraphCrowdfund
@@ -311,22 +380,25 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
                     : undefined
             : undefined
         }
-        walletAddress={DEMO_WALLET}
+        walletAddress={wallet?.displayAddress}
         lockOnWallet={isGraphMyPosition}
         inviteGraph={isGraphMyPosition}
         interactionDisabled={isGraphCrowdfund && participantsListOpen}
         scenarioParticipants={graphParticipants}
         scenarioSeed={scenario.current!.seed}
-        pinnedNodes={crowdfundPinnedNodes}
+        pinnedNodes={graphPinnedNodes}
       />
 
       <Header
         activeNav={isMyPosition ? 'myposition' : 'crowdfund'}
-        walletAddress={DEMO_WALLET_DISPLAY}
+        walletConnected={walletConnected}
+        walletAddress={wallet?.displayAddress ?? ''}
         autoHideOnScroll={false}
         className={[heroStyles.headerOverride, heroStyles.enter, heroStyles.enterHeader].join(' ')}
         onMyPosition={goToMyPosition}
         onCrowdfund={goToCrowdfund}
+        onParticipate={openParticipateFlow}
+        onConnectWallet={() => setConnectOpen(true)}
       />
 
       <div
@@ -352,7 +424,7 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
             />
             <div ref={participantsPanelRef} className={heroStyles.participantsWrap}>
               <HeroParticipantsPanel
-                participants={participants}
+                participants={displayParticipants}
                 selectedAddress={selectedAddress}
                 onSelectAddress={setSelectedAddress}
                 collapsedMaxRows={3}
@@ -374,8 +446,8 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
             <div className={mpStyles.cardHeader}>
               <h1 className={mpStyles.pageTitle}>My Position</h1>
               <div className={mpStyles.metaTags}>
-                <Tag label={DEMO_WALLET_DISPLAY} dot="lavender" />
-                <Tag label="HOP-1" dot="lavender" />
+                {wallet && <Tag label={wallet.displayAddress} dot="lavender" />}
+                <Tag label={hopLabel} dot="lavender" />
               </div>
             </div>
 
@@ -383,7 +455,7 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
               <div className={mpStyles.statsRow}>
                 <div className={mpStyles.statBlock}>
                   <p className={mpStyles.statLabel}>USDC committed</p>
-                  <p className={mpStyles.statAmount}>{formatUsdcCommitted()}</p>
+                  <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
                 </div>
 
                 <div className={mpStyles.statBlock}>
@@ -399,17 +471,17 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
                       </button>
                     </Tooltip>
                   </div>
-                  <p className={mpStyles.statAmountAccent}>{formatArmAllocation()}</p>
+                  <p className={mpStyles.statAmountAccent}>{formatArmAllocation(committedUsdc)}</p>
                 </div>
               </div>
 
               <div className={mpStyles.barSection}>
                 <div className={mpStyles.barTrack}>
-                  <div className={mpStyles.barFill} style={{ width: `${FILL_PCT}%` }} />
+                  <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
                 </div>
                 <div className={mpStyles.barLabels}>
-                  <span className={mpStyles.barCaption}>{FILL_PCT}% of cap</span>
-                  <span className={mpStyles.barCaption}>Cap $10,000</span>
+                  <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of cap</span>
+                  <span className={mpStyles.barCaption}>Cap ${CAP.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -431,6 +503,7 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
             className={[heroStyles.enter, heroStyles.enterParticipate].join(' ')}
             imageSrc="/fleet.png"
             videoSrc="/fleet.mp4"
+            onCtaClick={openParticipateFlow}
           />
         </div>
 
@@ -441,22 +514,52 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
           <section className={mpStyles.inviteCard} aria-label="Your invites">
             <h2 className={mpStyles.inviteTitle}>Your Invites</h2>
             <div className={mpStyles.slotList}>
-              {DEMO_SLOTS.map((slot) => (
+              {slots.map((slot) => (
                 <SlotCard
                   key={slot.id}
                   slot={slot}
-                  onGenerateLink={handleGenerateLink}
+                  onGenerateLink={generateSlotLink}
                   onCopy={handleCopy}
-                  onRevoke={handleRevoke}
-                  onInviteOnchain={handleInviteOnchain}
+                  onRevoke={revokeSlot}
+                  onInviteOnchain={inviteSlotOnchain}
                   copied={copiedId === slot.id}
-                  loading={loadingId === slot.id}
+                  loading={loadingSlotId === slot.id}
                 />
               ))}
             </div>
           </section>
         </div>
       </div>
+
+      <ParticipateFlowCrowdfund
+        open={participateOpen && isCrowdfund}
+        onClose={closeParticipateFlow}
+        walletConnected={walletConnected}
+        onConnectWallet={connectWallet}
+        onCompleteParticipation={completeParticipation}
+        slots={slots}
+        onGenerateSlotLink={generateSlotLink}
+        onRevokeSlot={revokeSlot}
+        onInviteSlotOnchain={inviteSlotOnchain}
+        onCopySlotLink={handleCopy}
+        loadingSlotId={loadingSlotId}
+        copiedSlotId={copiedId}
+      />
+
+      <ParticipateFlowModal
+        open={connectOpen}
+        onClose={closeConnectModal}
+        ariaLabel="Select your wallet"
+      >
+        <Step1Wallet
+          showSteps={false}
+          compact
+          onNext={(provider) => {
+            connectWallet(provider)
+            setConnectOpen(false)
+          }}
+        />
+      </ParticipateFlowModal>
     </div>
   )
 }

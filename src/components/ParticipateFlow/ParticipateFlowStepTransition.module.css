@@ -1,0 +1,33 @@
+.frame {
+  width: 100%;
+}
+
+.frameEnter {
+  animation: stepEnter 320ms ease;
+}
+
+.frameExit {
+  animation: stepExit 240ms ease forwards;
+}
+
+@keyframes stepEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stepExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

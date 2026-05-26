@@ -39,26 +39,37 @@ export const DEMO_SLOTS: SlotData[] = [
   { id: 3, status: 'empty' },
 ]
 
-export function buildInvitePinnedNodes(slots: SlotData[]): PinnedNode[] {
+export function buildInvitePinnedNodes(
+  slots: SlotData[],
+  walletAddress: string,
+  committedUsdc: number,
+): PinnedNode[] {
   const nodes: PinnedNode[] = [
     {
       kind: 'Your wallet',
-      address: DEMO_WALLET,
-      committed: '$4,000 committed',
+      address: walletAddress,
+      committed:
+        committedUsdc > 0
+          ? `$${committedUsdc.toLocaleString()} committed`
+          : '$0 committed',
     },
   ]
-  const redeemed = slots.find((s) => s.status === 'redeemed' && s.redeemedBy)
-  if (redeemed?.redeemedBy) {
-    nodes.push({
-      kind: 'Hop 1',
-      address: redeemed.redeemedBy,
-      committed: 'Joined',
-    })
+
+  for (const slot of slots) {
+    if (slot.status === 'redeemed' && slot.redeemedBy) {
+      nodes.push({
+        kind: 'Hop 1',
+        address: slot.redeemedBy,
+        committed: 'Joined',
+      })
+    } else if (slot.status === 'onchain-pending' && slot.invitedAddress) {
+      nodes.push({
+        kind: 'Hop 1',
+        address: slot.invitedAddress,
+        committed: 'Pending invite',
+      })
+    }
   }
-  nodes.push({
-    kind: 'Hop 1',
-    address: '0xabcdef1234567890abcdef1234567890abcdef12',
-    committed: 'Pending invite',
-  })
+
   return nodes
 }

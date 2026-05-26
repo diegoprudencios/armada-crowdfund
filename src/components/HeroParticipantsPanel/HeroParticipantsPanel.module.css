@@ -276,6 +276,10 @@
   background: color-mix(in srgb, var(--semantic-color-surface-raised) 34%, transparent);
 }
 
+.rowSelf:hover {
+  background: color-mix(in srgb, var(--semantic-color-brand-lavender) 24%, transparent);
+}
+
 .rowSelected {
   background: color-mix(in srgb, var(--semantic-color-brand-lavender) 18%, transparent);
 }

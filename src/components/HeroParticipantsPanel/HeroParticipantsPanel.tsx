@@ -10,6 +10,7 @@ export type HeroParticipant = {
   address: string
   hop: 'SEED' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
   amountUsd: number
+  isSelf?: boolean
 }
 
 const FILTERS: Array<{ id: HeroHopFilter; label: string }> = [
@@ -136,7 +137,13 @@ export function HeroParticipantsPanel({
                     <button
                       key={p.address}
                       type="button"
-                      className={[styles.row, selected && styles.rowSelected].filter(Boolean).join(' ')}
+                      className={[
+                        styles.row,
+                        selected && styles.rowSelected,
+                        p.isSelf && styles.rowSelf,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                       onClick={() => onSelectAddress?.(selected ? undefined : p.address)}
                       aria-pressed={selected}
                       tabIndex={showList ? 0 : -1}
