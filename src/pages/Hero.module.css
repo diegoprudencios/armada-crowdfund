@@ -65,9 +65,7 @@
   bottom: var(--primitives-spacing-6);
   z-index: 10;
   width: 582px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  max-width: calc(100vw - var(--primitives-spacing-6) * 2);
   max-height: var(--hero-stack-expanded-max);
 }
 

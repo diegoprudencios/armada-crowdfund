@@ -9,6 +9,7 @@ export interface HeaderProps {
   claimAvailable?: boolean
   onInvite?: () => void
   onMyPosition?: () => void
+  onCrowdfund?: () => void
   onClaim?: () => void
   onParticipate?: () => void
   className?: string
@@ -64,8 +65,8 @@ const ArmadaLogo = () => (
 
 const SCROLL_DELTA = 6
 
-const MY_POSITION_PATH = `${import.meta.env.BASE_URL}myposition.html`
-const CROWDFUND_PATH = `${import.meta.env.BASE_URL}index.html`
+const MY_POSITION_PATH = `${import.meta.env.BASE_URL}?view=myposition`
+const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
 
 export function Header({
   activeNav = 'crowdfund',
@@ -73,6 +74,7 @@ export function Header({
   claimAvailable = false,
   onInvite,
   onMyPosition,
+  onCrowdfund,
   onClaim,
   onParticipate,
   className,
@@ -81,18 +83,15 @@ export function Header({
   const [concealed, setConcealed] = useState(false)
   const lastY = useRef(0)
 
-  const navItems = useMemo<NavBarItem[]>(
-    () => [
-      { label: 'The project', active: activeNav === 'project' },
-      {
-        label: 'Crowdfund',
-        active: activeNav === 'crowdfund',
-        onClick:
-          activeNav !== 'crowdfund' ? () => window.location.assign(CROWDFUND_PATH) : undefined,
-      },
-    ],
-    [activeNav],
-  )
+  const handleCrowdfund = () => {
+    if (onCrowdfund) {
+      onCrowdfund()
+      return
+    }
+    if (activeNav !== 'crowdfund') {
+      window.location.assign(CROWDFUND_PATH)
+    }
+  }
 
   const handleMyPosition = () => {
     if (onMyPosition) {
@@ -103,6 +102,18 @@ export function Header({
       window.location.assign(MY_POSITION_PATH)
     }
   }
+
+  const navItems = useMemo<NavBarItem[]>(
+    () => [
+      { label: 'The project', active: activeNav === 'project' },
+      {
+        label: 'Crowdfund',
+        active: activeNav === 'crowdfund',
+        onClick: activeNav !== 'crowdfund' ? handleCrowdfund : undefined,
+      },
+    ],
+    [activeNav, onCrowdfund],
+  )
 
   useEffect(() => {
     if (!autoHideOnScroll) {

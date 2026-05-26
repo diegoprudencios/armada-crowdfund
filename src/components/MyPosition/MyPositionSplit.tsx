@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import styles from './MyPosition.module.css'
+import styles from './MyPositionSplit.module.css'
 import { Header } from '../Header'
 import { Tag } from '../Tag/Tag'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
@@ -18,7 +18,7 @@ import {
   GRAPH_SEED,
 } from './myPositionDemo'
 
-export function MyPosition() {
+export function MyPositionSplit() {
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [loadingId, setLoadingId] = useState<number | null>(null)
 
@@ -51,9 +51,24 @@ export function MyPosition() {
         autoHideOnScroll={false}
       />
 
-      <div className={styles.shell}>
-        <main className={styles.main}>
-          <div className={styles.topRow}>
+      <main className={styles.layout}>
+        <section className={styles.graphColumn} aria-label="Invite graph">
+          <div className={styles.sphereFrame}>
+            <NodeSphere
+              walletAddress={DEMO_WALLET}
+              lockOnWallet
+              inviteGraph
+              highlightAddress={DEMO_WALLET}
+              interactionDisabled={false}
+              scenarioParticipants={GRAPH_PARTICIPANTS}
+              scenarioSeed={GRAPH_SEED}
+              pinnedNodes={invitePinnedNodes}
+            />
+          </div>
+        </section>
+
+        <aside className={styles.sidebarColumn} aria-label="Your position and invites">
+          <div className={styles.sidebarStack}>
             <section className={styles.positionCard} aria-label="Your position">
               <div className={styles.cardHeader}>
                 <h1 className={styles.pageTitle}>My Position</h1>
@@ -123,23 +138,8 @@ export function MyPosition() {
               </div>
             </section>
           </div>
-
-          <section className={styles.graphSection} aria-label="Invite graph">
-            <div className={styles.sphereFrame}>
-              <NodeSphere
-                walletAddress={DEMO_WALLET}
-                lockOnWallet
-                inviteGraph
-                highlightAddress={DEMO_WALLET}
-                interactionDisabled={false}
-                scenarioParticipants={GRAPH_PARTICIPANTS}
-                scenarioSeed={GRAPH_SEED}
-                pinnedNodes={invitePinnedNodes}
-              />
-            </div>
-          </section>
-        </main>
-      </div>
+        </aside>
+      </main>
     </div>
   )
 }

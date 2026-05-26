@@ -15,6 +15,8 @@ export default defineConfig({
         hero: resolve(__dirname, 'hero.html'),
         showcase: resolve(__dirname, 'showcase.html'),
         myposition: resolve(__dirname, 'myposition.html'),
+        mypositionSplit: resolve(__dirname, 'myposition-split.html'),
+        mypositionHero: resolve(__dirname, 'myposition-hero.html'),
       },
     },
   },

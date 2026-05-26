@@ -23,7 +23,7 @@ export default function Step2Commit({
   const [amount, setAmount] = useState<number>(0)
 
   const allocationRatio = Math.min(amount / maxAmount, 1)
-  const estimatedArm = Math.round(allocationRatio * maxArm)
+  const estimatedArm = Math.round(amount)
   const hasAmount = amount > 0
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {

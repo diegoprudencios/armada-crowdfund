@@ -2,29 +2,55 @@
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 var(--primitives-spacing-6) var(--primitives-spacing-16);
+  display: flex;
+  flex-direction: column;
   background: var(--semantic-color-surface-bg);
   color: var(--semantic-color-text-primary);
 }
 
-.shell {
-  max-width: 1440px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-6);
-  padding-top: calc(56px + var(--primitives-spacing-8));
-}
-
-.topRow {
+.layout {
+  flex: 1;
   display: grid;
   grid-template-columns: 3fr 2fr;
   gap: var(--primitives-spacing-6);
-  align-items: stretch;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: calc(56px + var(--primitives-spacing-8)) var(--primitives-spacing-6) var(--primitives-spacing-6);
+}
+
+.graphColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sphereFrame {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: calc(100vh - 56px - var(--primitives-spacing-8) - var(--primitives-spacing-6));
+  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
+  border: 1px solid var(--semantic-color-border-default);
+  background: var(--semantic-color-surface-raised);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sidebarColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sidebarStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-6);
+  height: 100%;
+  min-height: 0;
 }
 
 /* ── Position card ── */
@@ -32,7 +58,7 @@
 .positionCard {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 0 0 auto;
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
@@ -178,6 +204,8 @@
 /* ── Invites container ── */
 
 .inviteCard {
+  flex: 1 1 0;
+  min-height: 0;
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
@@ -190,6 +218,7 @@
 
 .inviteTitle {
   margin: 0;
+  flex-shrink: 0;
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-xl) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
@@ -201,36 +230,37 @@
   display: flex;
   flex-direction: column;
   gap: var(--primitives-spacing-3);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .slotList > * {
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-}
-
-/* ── Invite graph (NodeSphere) ── */
-
-.graphSection {
-  width: 100%;
-  min-width: 0;
-}
-
-.sphereFrame {
-  position: relative;
-  width: 100%;
-  min-height: 480px;
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-  border: 1px solid var(--semantic-color-border-default);
-  background: var(--semantic-color-surface-raised);
-  overflow: hidden;
-  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 @media (max-width: 900px) {
-  .topRow {
+  .layout {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(360px, 45vh) auto;
   }
 
   .sphereFrame {
     min-height: 360px;
+  }
+
+  .sidebarStack {
+    height: auto;
+  }
+
+  .inviteCard {
+    flex: 0 0 auto;
+    max-height: none;
+  }
+
+  .slotList {
+    overflow: visible;
   }
 }

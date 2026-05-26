@@ -54,7 +54,7 @@ export default function Step3Review({
                 title="EST. ARM Allocation"
                 description="Your estimated allocation based on the amount committed."
                 bullets={[
-                  'Proportional to your USDC committed',
+                  '1 ARM per 1 USDC committed',
                   'Final allocation confirmed at close',
                   'Subject to pool cap',
                 ]}

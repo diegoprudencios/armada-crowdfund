@@ -1,30 +1,44 @@
 .page {
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 var(--primitives-spacing-6) var(--primitives-spacing-16);
   background: var(--semantic-color-surface-bg);
-  color: var(--semantic-color-text-primary);
+  position: relative;
+  overflow: hidden;
 }
 
-.shell {
-  max-width: 1440px;
-  margin: 0 auto;
-  width: 100%;
+.headerOverride {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
+  position: fixed !important;
+  top: var(--primitives-spacing-6);
+  left: var(--primitives-spacing-6);
+  right: var(--primitives-spacing-6);
+  width: auto !important;
+  z-index: 100 !important;
+  --header-concealed-extra: var(--primitives-spacing-6);
 }
 
-.main {
+.rightCorner {
+  position: absolute;
+  right: var(--primitives-spacing-6);
+  bottom: var(--primitives-spacing-6);
+  z-index: 11;
   display: flex;
   flex-direction: column;
-  gap: var(--primitives-spacing-6);
-  padding-top: calc(56px + var(--primitives-spacing-8));
+  justify-content: flex-end;
+  align-items: stretch;
+  width: 480px;
+  max-width: calc(100vw - var(--primitives-spacing-6) * 2);
+  max-height: var(--hero-corner-max-height);
+  min-height: 0;
+  pointer-events: none;
 }
 
-.topRow {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: var(--primitives-spacing-6);
-  align-items: stretch;
+.rightCorner > * {
+  pointer-events: auto;
 }
 
 /* ── Position card ── */
@@ -32,12 +46,15 @@
 .positionCard {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  width: 582px;
+  max-width: 100%;
+  min-height: var(--hero-progress-card-height, 520px);
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   padding: var(--semantic-spacing-card-padding);
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .cardHeader {
@@ -175,21 +192,25 @@
   color: var(--semantic-color-text-secondary);
 }
 
-/* ── Invites container ── */
+/* ── Invites card ── */
 
 .inviteCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-4);
+  width: 100%;
+  max-height: var(--hero-corner-max-height, calc(100vh - 120px));
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   padding: var(--semantic-spacing-card-padding);
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-4);
-  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .inviteTitle {
   margin: 0;
+  flex-shrink: 0;
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-xl) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
@@ -201,36 +222,24 @@
   display: flex;
   flex-direction: column;
   gap: var(--primitives-spacing-3);
+  max-height: calc(var(--hero-corner-max-height, calc(100vh - 120px)) - 72px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .slotList > * {
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
+  flex-shrink: 0;
 }
 
-/* ── Invite graph (NodeSphere) ── */
-
-.graphSection {
-  width: 100%;
-  min-width: 0;
-}
-
-.sphereFrame {
-  position: relative;
-  width: 100%;
-  min-height: 480px;
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-  border: 1px solid var(--semantic-color-border-default);
-  background: var(--semantic-color-surface-raised);
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-@media (max-width: 900px) {
-  .topRow {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .leftCorner {
+    width: min(582px, calc(56vw - var(--primitives-spacing-6)));
   }
 
-  .sphereFrame {
-    min-height: 360px;
+  .rightCorner {
+    width: min(480px, calc(40vw - var(--primitives-spacing-6)));
   }
 }

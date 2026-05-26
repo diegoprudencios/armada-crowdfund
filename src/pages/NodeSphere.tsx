@@ -167,29 +167,31 @@ export function NodeSphere({
   const selectedTipRef = useRef<HoverState | null>(null)
   const rendererElRef = useRef<HTMLCanvasElement | null>(null)
 
-  const scenario = useMemo(() => {
+  // Graph layout is fixed for the lifetime of this mount (view switches must not rebuild).
+  const graphLayoutRef = useRef<{
+    scenario: { id: 'empty' | 'small' | 'mid' | 'large'; participants: number }
+    seed: number
+    pinnedNodes: PinnedNode[] | undefined
+  } | null>(null)
+  if (!graphLayoutRef.current) {
     const participants = scenarioParticipants ?? 30
     const id =
       participants === 0 ? ('empty' as const) : participants <= 5 ? ('small' as const) : participants === 30 ? ('mid' as const) : ('large' as const)
-    return { id, participants }
-  }, [scenarioParticipants])
-
-  const seed = useMemo(() => {
-    // Stable per mount, changes on reload unless caller provides a seed.
-    return scenarioSeed ?? Math.floor(Math.random() * 1_000_000_000)
-  }, [scenarioSeed])
-
-  // Avoid tearing down/recreating Three.js scene due to new array references.
-  const pinnedNodesKey = useMemo(() => {
-    if (!pinnedNodes?.length) return ''
-    return pinnedNodes
-      .map((p) => `${p.kind}:${p.address}:${p.committed ?? ''}`)
-      .join('|')
-  }, [pinnedNodes])
+    graphLayoutRef.current = {
+      scenario: { id, participants },
+      seed: scenarioSeed ?? Math.floor(Math.random() * 1_000_000_000),
+      pinnedNodes,
+    }
+  }
+  const { scenario, seed, pinnedNodes: layoutPinnedNodes } = graphLayoutRef.current
 
   useEffect(() => {
+    if (lockOnWallet && walletAddress) {
+      highlightRef.current = walletAddress
+      return
+    }
     highlightRef.current = highlightAddress
-  }, [highlightAddress])
+  }, [highlightAddress, lockOnWallet, walletAddress])
 
   useEffect(() => {
     filterRef.current = filterKind
@@ -210,12 +212,6 @@ export function NodeSphere({
   useEffect(() => {
     inviteGraphRef.current = inviteGraph
   }, [inviteGraph])
-
-  useEffect(() => {
-    if (lockOnWallet && walletAddress) {
-      highlightRef.current = walletAddress
-    }
-  }, [lockOnWallet, walletAddress])
 
   useEffect(() => {
     const el = rendererElRef.current
@@ -317,8 +313,8 @@ export function NodeSphere({
     })()
 
     const pinnedByKind = new Map<NodeKind, PinnedNode[]>()
-    if (pinnedNodes?.length) {
-      for (const p of pinnedNodes) {
+    if (layoutPinnedNodes?.length) {
+      for (const p of layoutPinnedNodes) {
         const list = pinnedByKind.get(p.kind) ?? []
         list.push(p)
         pinnedByKind.set(p.kind, list)
@@ -469,12 +465,10 @@ export function NodeSphere({
 
     const walletIdx = indicesByKind.get('Your wallet')?.[0]
 
-    if (inviteGraphRef.current) {
-      if (walletIdx != null && hop1.length) {
-        connectNearest([walletIdx], hop1, Math.min(hop1.length, 8))
-      }
-    } else if (hop0.length && walletIdx != null) {
-      connectNearest([walletIdx], hop0, 1)
+    // Both wirings so invite / crowdfund view switches never require a scene rebuild.
+    if (walletIdx != null) {
+      if (hop0.length) connectNearest([walletIdx], hop0, 1)
+      if (hop1.length) connectNearest([walletIdx], hop1, Math.min(hop1.length, 8))
     }
 
     const edgeGeometry = new THREE.BufferGeometry()
@@ -786,7 +780,7 @@ export function NodeSphere({
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [instanceId, pinnedNodesKey, seed, walletAddress, lockOnWallet, inviteGraph])
+  }, [instanceId])
 
   return (
     <div
