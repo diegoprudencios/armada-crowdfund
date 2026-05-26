@@ -7,7 +7,6 @@ export interface HeaderProps {
   activeNav?: 'project' | 'crowdfund' | 'myposition'
   walletAddress?: string
   claimAvailable?: boolean
-  onInvite?: () => void
   onMyPosition?: () => void
   onCrowdfund?: () => void
   onClaim?: () => void
@@ -72,7 +71,6 @@ export function Header({
   activeNav = 'crowdfund',
   walletAddress = '0x6545...54534',
   claimAvailable = false,
-  onInvite,
   onMyPosition,
   onCrowdfund,
   onClaim,
@@ -151,9 +149,6 @@ export function Header({
       </div>
 
       <div className={styles.actions}>
-        {!claimAvailable && (
-          <Button variant="ghost" size="md" label="Invite" showIcon={false} onClick={onInvite} />
-        )}
         <Button
           variant="ghost"
           size="md"

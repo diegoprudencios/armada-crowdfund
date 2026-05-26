@@ -203,10 +203,6 @@
   gap: var(--primitives-spacing-3);
 }
 
-.slotList > * {
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-}
-
 /* ── Invite graph (NodeSphere) ── */
 
 .graphSection {

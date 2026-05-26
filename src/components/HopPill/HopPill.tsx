@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { hopPillDotColor } from '../../constants/graphHopColors'
 import styles from './HopPill.module.css'
 
 export type HopVariant = 'seed' | 'hop-1' | 'hop-2' | 'multi-hop'
@@ -11,10 +12,10 @@ const VARIANT_LABEL: Record<HopVariant, string> = {
 }
 
 const DOT_COLOR: Record<HopVariant, string> = {
-  seed: 'var(--semantic-color-brand-amber)',
-  'hop-1': 'var(--semantic-color-brand-lavender)',
-  'hop-2': 'var(--primitives-color-purple-300)',
-  'multi-hop': 'var(--semantic-color-text-muted)',
+  seed: hopPillDotColor('seed'),
+  'hop-1': hopPillDotColor('hop-1'),
+  'hop-2': hopPillDotColor('hop-2'),
+  'multi-hop': hopPillDotColor('multi-hop'),
 }
 
 interface HopPillProps {

@@ -237,7 +237,6 @@
 }
 
 .slotList > * {
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   flex-shrink: 0;
 }
 

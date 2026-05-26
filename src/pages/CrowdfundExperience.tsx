@@ -360,10 +360,7 @@ export function CrowdfundExperience({ initialView }: CrowdfundExperienceProps) {
                 onFilterChange={setFilter}
                 layoutExpanded={columnExpanded}
                 showList={participantsListOpen}
-                onShowListChange={(open) => {
-                  setParticipantsListOpen(open)
-                  if (!open) setSelectedAddress(undefined)
-                }}
+                onShowListChange={setParticipantsListOpen}
               />
             </div>
           </div>

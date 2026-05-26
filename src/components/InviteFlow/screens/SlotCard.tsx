@@ -135,20 +135,19 @@ export default function SlotCard({
     ensState === 'resolved' && (resolvedAddress !== '' || isValidAddress(addressInput))
 
   const isExpanded = expandedAction !== null
-  const isRedeemed = slot.status === 'redeemed'
+  const isAvailable = slot.status === 'empty'
 
   return (
     <div
       className={[
         styles.card,
-        isRedeemed ? styles.dimmed : '',
         isExpanded ? styles.expanded : '',
       ].join(' ')}
     >
       {/* ── Main row ── */}
       <div className={styles.row}>
         {/* Badge */}
-        <div className={styles.badge}>
+        <div className={[styles.badge, isAvailable && styles.badgeAvailable].filter(Boolean).join(' ')}>
           <span className={styles.badgeNumber}>{slot.id}</span>
         </div>
 

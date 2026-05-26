@@ -1,5 +1,6 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useMemo, useState } from 'react'
+import { heroListHopColor } from '../../constants/graphHopColors'
 import { Button } from '../Button'
 import styles from './HeroParticipantsPanel.module.css'
 
@@ -24,10 +25,7 @@ function formatUsd(n: number) {
 }
 
 function hopColor(hop: HeroParticipant['hop']) {
-  if (hop === 'SEED') return 'var(--semantic-color-brand-amber)'
-  if (hop === 'HOP-1') return 'var(--semantic-color-brand-lavender)'
-  if (hop === 'MULTI-HOP') return 'var(--semantic-color-status-success)'
-  return 'var(--semantic-color-brand-amber-dark)'
+  return heroListHopColor(hop)
 }
 
 export interface HeroParticipantsPanelProps {

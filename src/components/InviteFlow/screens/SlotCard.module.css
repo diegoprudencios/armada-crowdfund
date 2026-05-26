@@ -14,10 +14,6 @@
   border-color: var(--semantic-color-border-lavender);
 }
 
-.dimmed {
-  opacity: 0.45;
-}
-
 /* ── Main row ── */
 .row {
   display: flex;
@@ -44,6 +40,15 @@
   font-size: calc(var(--primitives-fontSize-md) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
   color: var(--semantic-color-text-muted);
+}
+
+.badgeAvailable {
+  background: color-mix(in srgb, var(--semantic-color-brand-lavender) 24%, var(--semantic-color-surface-default));
+  border-color: var(--semantic-color-border-lavender);
+}
+
+.badgeAvailable .badgeNumber {
+  color: var(--semantic-color-text-primary);
 }
 
 /* ── Available label ── */

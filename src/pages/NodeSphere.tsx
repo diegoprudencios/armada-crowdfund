@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import { GRAPH_HOP_NODE_COLORS } from '../constants/graphHopColors'
 
 type NodeKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop' | 'Your wallet'
 
@@ -17,13 +18,7 @@ type NodeMeta = { kind: NodeKind; address: string; committed: string; ghost?: bo
 
 export type PinnedNode = { kind: NodeKind; address: string; committed?: string }
 
-const COLORS: Record<NodeKind, number> = {
-  'Hop 0': 0x8b5cf6,
-  'Hop 1': 0xfb923c,
-  'Hop 2': 0xe879f9,
-  'Multi-hop': 0x22c55e,
-  'Your wallet': 0xfacc15,
-}
+const COLORS: Record<NodeKind, number> = GRAPH_HOP_NODE_COLORS
 
 function mulberry32(seed: number) {
   return () => {
