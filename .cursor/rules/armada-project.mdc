@@ -24,22 +24,47 @@ Exceptions: rare cases called out in the design system (e.g. gradient overlays o
 
 - Production build: `npm run build` → `tsc && vite build`.
 - `npm run dev` does not run `tsc`.
+- New HTML entries: `*.html`, `main-*.tsx`, `vite.config.ts`, and `vercel.json` route if needed.
 - Do not commit unless the user asks.
 
 ## Styling
 
 - CSS Modules per component (`Component.module.css`).
 - Prefer semantic tokens (`--semantic-*`); use primitives (`--primitives-*`) when semantic aliases do not exist.
+- Flow shell zone gaps: `--primitives-spacing-11` (44px).
 - Prefer minimal, focused diffs; match existing naming and patterns.
+
+## Participate flows
+
+- **Path 1** — `ParticipateFlowInviteLink` on `InviteLanding` (`/invite`): inline 480×500, progress **Connect → Commit → Review → Confirm** (`INVITE_LINK_STEPS`).
+- **Path 2** — `ParticipateFlowCrowdfund` in `CrowdfundExperience`: modal, progress **Commit → Review → Confirm** (`CROWDFUND_MODAL_STEPS`).
+- Step screens live in `ParticipateFlow/screens/`; Step 0 in `ParticipateFlow/steps/Step0Invite/`.
+- Do not bundle steps into one file; extend the correct orchestrator.
+
+## Step 0 invite card
+
+- Grid stack (`grid-area: stack`) for video, overlay, content.
+- Overlay gradient: black 20% top → 80% bottom (see design system).
+- `variant="landing"` on Path 1; `hideConnectEyebrow` when wallet already connected in modal.
+
+## Confirmation (Step 5)
+
+- **View your position** when `onViewPosition` is set and (`showViewPositionButton` or `isAdditionalCommit`).
+- Path 1: use `showViewPositionButton` for first commit.
+- Path 2: additional commit only for secondary button; first commit uses modal X → My Position.
+
+## Header & session
+
+- **Header** — `activeNav="project" | "crowdfund" | "myposition"`, not `navItems`. Showcase demos use `<NavBar items={...} />`.
+- Connected wallet: `WalletPillMenu` (copy, disconnect).
+- **Demo session** — `DemoSessionProvider` + `sessionStorage`; separate Vite entries do not share in-memory React state.
 
 ## Components (patterns)
 
-**Header** — `activeNav="project" | "crowdfund"`, not `navItems`. Custom nav demos use `<NavBar items={...} />` in Showcase.
+**Steps** — `status`: `default` | `error` | `confirmed`. Errors at connect and confirmation as appropriate per flow.
 
-**ParticipateFlow** — one component per step under `src/components/ParticipateFlow/steps/` (e.g. `Step0Invite`). Wire into a flow later; do not bundle steps in one file yet.
+**JoinButton** — `expanded` for parent hover; `size="lg"` on invite landing Step 0.
 
-**Step 0 invite card** — grid stack (`grid-area: stack`) for video, overlay, content. Overlay gradient: black 20% top → 80% bottom (Figma).
+**Hop colors** — import from `src/constants/graphHopColors.ts`, do not duplicate hex.
 
-**Steps** — `status`: `default` | `error` | `confirmed`. Errors at connect (step 1) and confirmation (step 4).
-
-**JoinButton** — `expanded` prop for parent hover (e.g. fleet card).
+**Allowlist** — address-based (`participateFlowWallets.ts`); use `Step1WalletNotWhitelisted` for blocked addresses.

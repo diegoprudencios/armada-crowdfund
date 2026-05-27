@@ -27,10 +27,10 @@ Generic crypto aesthetics. Anything that reads as underground or dangerous.
 | Product | Description | Status |
 |---|---|---|
 | Project page | One-pager explaining Armada | Existing, redesign later |
-| Crowdfund | Public participation dashboard | Active build |
-| Participate flow | Multi-step modal to join crowdfund | Active build |
-| Invite flow | Entry for users arriving via invite link | Active build |
-| My Position | Post-participation dashboard per user | Planned |
+| Crowdfund | Public participation dashboard + 3D graph | Active — `CrowdfundExperience` |
+| Participate flow | Multi-step join (modal or inline) | Active — Path 1 & Path 2 (see §8) |
+| Invite flow | Entry via invite link | Active — `/invite`, Path 1 inline flow |
+| My Position | Post-participation view (invites, position) | Active — panel in `CrowdfundExperience` |
 | Armada App | Consumer payments app (was Borderless) | Planned |
 
 ---
@@ -43,8 +43,12 @@ Generic crypto aesthetics. Anything that reads as underground or dangerous.
   `src/styles/tokens.css`. Never import tokens in TypeScript — only CSS sees them.
 - **Build:** `tsc && vite build`. Always run `npm run build` locally before
   pushing. `npm run dev` skips TypeScript, so type errors only surface on build.
-- **Deploy:** Vercel. Entry points: `hero.html`, `dashboard.html`,
-  `showcase.html`.
+- **Deploy:** Vercel. Entry points include `hero.html`, `invite.html`,
+  `dashboard.html`, `showcase.html`, `myposition.html`, `myposition-hero.html`.
+  Add matching routes in `vercel.json` when introducing a new HTML entry.
+- **Demo session:** `DemoSessionProvider` persists wallet, commit amount, and
+  slots to `sessionStorage` (`demoSessionStorage.ts`) so state survives full
+  page loads between separate Vite entries (e.g. `invite.html` ↔ `hero.html`).
 - **Icons:** Heroicons (`@heroicons/react/24/solid` and `/24/outline`)
 - **Wallet icons:** `@web3icons/react` v4.1.17
 
@@ -207,14 +211,19 @@ Spacing tokens are multiples of 4px. Common values:
 | `--primitives-spacing-6` | 24px | Section gaps within content |
 | `--primitives-spacing-8` | 32px | Card padding (standard) |
 | `--primitives-spacing-10` | 40px | Section gaps |
+| `--primitives-spacing-11` | 44px | Major zones in participate flow shells |
 | `--primitives-spacing-12` | 48px | Large section gaps |
+| `--primitives-spacing-16` | 64px | Large control height (e.g. landing JoinButton) |
 
 ### Spacing rhythm in modals and cards
 
 Three gap values cover almost everything:
-- **44px** — between major zones (Steps → content, content → button row)
-- **20px** — between items within a section
-- **8–14px** — within a single element (eyebrow → headline, input → hint)
+- **`--primitives-spacing-11` (44px)** — between major zones (Steps → content,
+  content → button row)
+- **`--primitives-spacing-5` (20px)** — between items within a section; invite
+  landing footer gap between prompt and buttons
+- **8–14px** — within a single element (eyebrow → headline, input → hint); use
+  `--primitives-spacing-2` / `--primitives-spacing-3` where possible
 
 ---
 
@@ -239,17 +248,90 @@ md size. Icons are 16px (sm/md) or 16px (lg). Gap between label and icon is 6px.
 Primary CTA in a flow is always on the right. Destructive or back actions are
 always on the left. Never use more than two buttons in a single row.
 
-### Modal flows (multi-step)
+### JoinButton
 
-Every step follows this structure — top to bottom:
+Gradient pill CTA on invite/fleet cards. Props:
+- `expanded` — parent hover expands label (fleet card, Step 0 invite card).
+- `size` — `'md'` (default) or `'lg'` (Path 1 invite landing; height aligns with
+  `--primitives-spacing-16`).
+
+### Flow shells (shared)
+
+Participate steps share this vertical structure:
 1. `Steps` component (progress indicator)
 2. Step content (variable)
-3. Button row (two buttons, 50/50 split, 48px height)
+3. Button row (up to two buttons, 50/50 split, `Button` size `lg` = 48px height)
 
-The shell is 480×500px, 32px padding, `border-lavender` border, `surface-default`
-background.
+Content area target: **480×500px**, `--primitives-spacing-8` (32px) padding,
+`border-lavender` border, `surface-default` background when the shell is a
+focal card.
 
-Gaps between zones: 44px.
+Zone gaps: `--primitives-spacing-11` (44px). Button row uses
+`flex-shrink: 0`; scroll overflow on middle content if needed.
+
+Step labels and bar indices live in `participateFlowSteps.ts` — do not
+duplicate step names in orchestrators.
+
+### Participate flows — Path 1 & Path 2
+
+Two orchestrators. Never mix their step bars or entry behavior.
+
+| | **Path 1 — Invite link** | **Path 2 — Crowdfund modal** |
+|---|---|---|
+| Component | `ParticipateFlowInviteLink` | `ParticipateFlowCrowdfund` |
+| Page | `InviteLanding` (`/invite`) | `CrowdfundExperience` |
+| Presentation | Inline in page (no modal overlay) | `ParticipateFlowModal` |
+| Progress labels | Connect → Commit → Review → Confirm | Commit → Review → Confirm |
+| Step 0 | Invite card on page; user joins then flow runs | Invite card only on **first** participation |
+| Wallet gate | Step 1 in flow when disconnected | Same; modal opens to wallet or commit |
+
+**Path 1 layout notes**
+- Fixed inline slot: 480×500 (`ParticipateFlowInviteInline.module.css`).
+- Page footer (Crowdfund / My Position links) hidden while flow is active.
+- `Step0Invite` uses `variant="landing"` on the page card (lavender border,
+  `JoinButton` `size="lg"`, `HopPill` with `.landing` class).
+
+**Path 2 layout notes**
+- Modal close (X) from **confirmation** navigates to My Position.
+- Returning participants skip Step 0 and start at commit when reopening.
+
+### Step 0 invite card (`Step0Invite`)
+
+Grid stack (`grid-area: stack`) for video, overlay, content. Z-index: media 0,
+overlay 1, content 2.
+
+Overlay gradient (Figma): black **20%** top → **80%** bottom:
+```css
+background: linear-gradient(
+  to bottom,
+  rgba(0, 0, 0, 0.2) 0%,
+  rgba(0, 0, 0, 0.8) 100%
+);
+```
+
+Variants:
+- **`default`** — modal Path 2; fixed 480×500 shell.
+- **`landing`** — Path 1 page card; `max-width: 480px`, lavender border,
+  larger join control (see JoinButton `lg`).
+
+Optional `hideConnectEyebrow` when wallet is already connected (modal).
+
+### Confirmation step (`Step5Confirmation`)
+
+Charis SIL headline — emotional moment. Copy splits on **first vs additional**
+commit (`isAdditionalCommit`):
+- First: “You're in.” + amount committed + ARM reserved.
+- Additional: “Commitment updated.” + amount added + total committed.
+
+**View your position** (secondary, left) shows when `onViewPosition` is passed
+**and** (`showViewPositionButton` **or** `isAdditionalCommit`):
+- Path 1: always pass `showViewPositionButton` on first commit; additional
+  commits also match via `isAdditionalCommit`.
+- Path 2 first commit: no secondary button; modal X still routes to My Position.
+- Path 2 additional commit: show secondary button; wire `onViewPosition` from
+  parent (closes modal + My Position panel).
+
+Primary (right): **Invite participants** → in-flow invite slots step.
 
 ### Steps component
 
@@ -265,10 +347,19 @@ Segment colors:
 ### HopPill
 
 Shows invite level. Variants: `seed`, `hop-1`, `hop-2`, `multi-hop`.
-Dot colors: seed = amber, hop-1 = lavender, hop-2 = purple-300,
-multi-hop = text-muted.
+Dot colors are defined in `src/constants/graphHopColors.ts` — use that module
+for graph nodes, list UI, and HopPill (do not hardcode hop hex in components).
 
 Only shown when we know the user's invite level. Hidden for anonymous users.
+
+**Landing variant:** apply `HopPill.module.css` `.landing` on Path 1 invite
+card so pill height aligns with `JoinButton` `lg`.
+
+### Progress (crowdfund card)
+
+Fill to the min-raise threshold uses solid brand color. Amount **above** min
+raise uses a looping darker lavender sweep on the committed portion (see
+`Progress` component). Keep wheel zoom on the graph when no node is selected.
 
 ### Warning/notice blocks
 
@@ -323,6 +414,15 @@ Use `@web3icons/react`. Import names differ from display names:
 
 Always render at 24px. Pass as `iconComponent` prop to `WalletItem`.
 
+### Demo wallet gate
+
+Allowlist is **by wallet address** (`participateFlowWallets.ts`), not provider
+brand. Disconnected users pick a provider in `Step1Wallet`; non-whitelisted
+addresses see `Step1WalletNotWhitelisted`.
+
+When connected, the header wallet pill uses `WalletPillMenu` (copy address,
+disconnect). Disconnect clears `sessionStorage` demo session.
+
 ---
 
 ## 11. Existing components
@@ -334,16 +434,25 @@ Before building anything, check if it already exists:
 | `Button` | `src/components/Button/` | 4 variants × 3 sizes |
 | `Tag` | `src/components/Tag/` | Status dot variants |
 | `NavBar` / `NavItem` | `src/components/NavBar/` | |
-| `Header` | `src/components/Header/` | Desktop + mobile variants |
-| `Progress` | `src/components/Progress/` | Hop progress bars |
+| `Header` | `src/components/Header/` | `activeNav`, `WalletPillMenu` when connected |
+| `ArmadaLogo` | `src/components/ArmadaLogo/` | Shared logo mark |
+| `Progress` | `src/components/Progress/` | Crowdfund raise bar + min-raise animation |
 | `Participate` | `src/components/Participate/` | Fleet card (image/video) |
-| `Steps` | `src/components/Steps/` | Modal step indicator |
+| `Steps` | `src/components/Steps/` | Flow step indicator |
 | `WalletItem` | `src/components/WalletItem/` | Wallet selection row |
-| `HopPill` | `src/components/HopPill/` | Invite level indicator |
-| `JoinButton` | `src/components/JoinButton/` | Gradient pill CTA |
-| `ParticipateFlow` | `src/components/ParticipateFlow/` | Full modal flow |
+| `HopPill` | `src/components/HopPill/` | Invite level; `.landing` on invite page |
+| `JoinButton` | `src/components/JoinButton/` | `expanded`, `size` md \| lg |
+| `ParticipateFlowModal` | `src/components/ParticipateFlow/` | Modal shell (Path 2) |
+| `ParticipateFlowCrowdfund` | `src/components/ParticipateFlow/` | Path 2 orchestrator |
+| `ParticipateFlowInviteLink` | `src/components/ParticipateFlow/` | Path 1 orchestrator |
+| `Step0Invite` | `.../steps/Step0Invite/` | Invite card; `variant` default \| landing |
+| Step screens | `.../ParticipateFlow/screens/` | Step1Wallet … Step5Confirmation |
+| `CrowdfundExperience` | `src/pages/` | Hero shell: graph, panels, Path 2 modal |
+| `InviteLanding` | `src/pages/` | Path 1 page at `/invite` |
+| `DemoSessionProvider` | `src/context/` | Wallet, commit, slots + sessionStorage |
 
-Never rebuild a component that exists. Extend it if needed.
+Never rebuild a component that exists. Extend it if needed. Add new variants to
+Showcase when introducing a new public prop or flow branch.
 
 ---
 
@@ -356,9 +465,14 @@ src/
       ComponentName.tsx
       ComponentName.module.css
   pages/
+    CrowdfundExperience.tsx
+    InviteLanding.tsx
     Hero.tsx
     Dashboard.tsx
     Showcase.tsx
+  context/
+    DemoSessionContext.tsx
+    demoSessionStorage.ts
   styles/
     tokens.css          ← auto-generated, do not edit manually
   tokens/
@@ -400,7 +514,8 @@ Token name mapping (Figma value → CSS var):
 - Run `npm run build` locally before every push to main.
 - `npm run dev` skips TypeScript — type errors only surface on build.
 - Vercel runs `tsc && vite build` — it will catch what dev misses.
-- New pages need a corresponding `.html` entry file and a `main-*.tsx` entry
-  point, and must be added to `vite.config.ts` rollupOptions.input.
+- New pages need a corresponding `.html` entry file, a `main-*.tsx` entry
+  point, `vite.config.ts` `rollupOptions.input`, and a Vercel route in
+  `vercel.json` when the URL should be clean (e.g. `/invite` → `invite.html`).
 - Showcase (`/showcase.html`) is the component gallery. Every new component
-  gets added there immediately after being built.
+  or flow variant gets added there after being built.
