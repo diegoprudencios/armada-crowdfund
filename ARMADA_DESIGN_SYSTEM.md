@@ -46,9 +46,9 @@ Generic crypto aesthetics. Anything that reads as underground or dangerous.
 - **Deploy:** Vercel. Entry points include `hero.html`, `invite.html`,
   `dashboard.html`, `showcase.html`, `myposition.html`, `myposition-hero.html`.
   Add matching routes in `vercel.json` when introducing a new HTML entry.
-- **Demo session:** `DemoSessionProvider` persists wallet, commit amount, and
-  slots to `sessionStorage` (`demoSessionStorage.ts`) so state survives full
-  page loads between separate Vite entries (e.g. `invite.html` ↔ `hero.html`).
+- **Demo session:** `DemoSessionProvider` holds wallet, commit amount, and slots
+  in memory only. Each page load and wallet disconnect reset to a fresh demo
+  (`demoSessionStorage.ts` clears any legacy `sessionStorage` key on mount).
 - **Icons:** Heroicons (`@heroicons/react/24/solid` and `/24/outline`)
 - **Wallet icons:** `@web3icons/react` v4.1.17
 
@@ -421,7 +421,8 @@ brand. Disconnected users pick a provider in `Step1Wallet`; non-whitelisted
 addresses see `Step1WalletNotWhitelisted`.
 
 When connected, the header wallet pill uses `WalletPillMenu` (copy address,
-disconnect). Disconnect clears `sessionStorage` demo session.
+disconnect). Disconnect resets wallet, commit amount, participation flag, and
+invite slots to their initial demo values.
 
 ---
 
@@ -449,7 +450,7 @@ Before building anything, check if it already exists:
 | Step screens | `.../ParticipateFlow/screens/` | Step1Wallet … Step5Confirmation |
 | `CrowdfundExperience` | `src/pages/` | Hero shell: graph, panels, Path 2 modal |
 | `InviteLanding` | `src/pages/` | Path 1 page at `/invite` |
-| `DemoSessionProvider` | `src/context/` | Wallet, commit, slots + sessionStorage |
+| `DemoSessionProvider` | `src/context/` | In-memory wallet, commit, slots (resets on refresh/disconnect) |
 
 Never rebuild a component that exists. Extend it if needed. Add new variants to
 Showcase when introducing a new public prop or flow branch.

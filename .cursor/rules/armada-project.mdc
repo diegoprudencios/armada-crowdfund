@@ -57,7 +57,7 @@ Exceptions: rare cases called out in the design system (e.g. gradient overlays o
 
 - **Header** — `activeNav="project" | "crowdfund" | "myposition"`, not `navItems`. Showcase demos use `<NavBar items={...} />`.
 - Connected wallet: `WalletPillMenu` (copy, disconnect).
-- **Demo session** — `DemoSessionProvider` + `sessionStorage`; separate Vite entries do not share in-memory React state.
+- **Demo session** — in-memory only; page refresh and `disconnectWallet` reset wallet, commit, slots to initial demo state.
 
 ## Components (patterns)
 
