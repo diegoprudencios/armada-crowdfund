@@ -1,0 +1,19 @@
+/* Fixed viewport matching Step 0 (480×500). Each step renders its own designed shell. */
+.slot {
+  width: 480px;
+  height: 500px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.step {
+  width: 480px;
+  height: 500px;
+}
+
+.invitesWrap {
+  width: 480px;
+  height: 500px;
+  flex-shrink: 0;
+  overflow: hidden;
+}

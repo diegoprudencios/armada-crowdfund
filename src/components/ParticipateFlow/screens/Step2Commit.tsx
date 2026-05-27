@@ -5,7 +5,6 @@ import { Button } from '../../Button'
 import Tooltip from '../../Tooltip/Tooltip'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
-
 interface Step2CommitProps extends ParticipateStepBarProps {
   onNext: (amount: number) => void
   onBack: () => void

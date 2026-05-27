@@ -4,7 +4,6 @@ import { Button } from '../../Button'
 import Tooltip from '../../Tooltip/Tooltip'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
-
 interface Step3ReviewProps extends ParticipateStepBarProps {
   onNext: () => void
   onBack: () => void

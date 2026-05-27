@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { HopVariant } from '../HopPill/HopPill'
 import type { SlotData } from '../InviteFlow/screens/SlotCard'
-import Step0Invite from './steps/Step0Invite/Step0Invite'
 import Step1Wallet from './screens/Step1Wallet'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review from './screens/Step3Review'
@@ -9,20 +8,34 @@ import Step4Approve from './screens/Step4Approve'
 import Step5Confirmation from './screens/Step5Confirmation'
 import { ParticipateFlowModal } from './ParticipateFlowModal'
 import { ParticipateFlowInviteSlots } from './ParticipateFlowInviteSlots'
-import { CROWDFUND_MODAL_STEPS } from './participateFlowSteps'
+import { INVITE_LINK_STEPS } from './participateFlowSteps'
+import inlineStyles from './ParticipateFlowInviteInline.module.css'
 import stepStyles from './ParticipateFlowStepTransition.module.css'
 
-export interface ParticipateFlowCrowdfundProps {
+export type InviteLinkFlowStep =
+  | 'wallet'
+  | 'commit'
+  | 'review'
+  | 'approve'
+  | 'confirmation'
+  | 'invites'
+
+export interface ParticipateFlowInviteLinkCloseContext {
+  step: InviteLinkFlowStep
+}
+
+export interface ParticipateFlowInviteLinkProps {
   open: boolean
-  onClose: (context: ParticipateFlowCloseContext) => void
-  onViewPosition?: () => void
+  /** `inline` swaps content in the invite landing shell; `modal` overlays a dialog. */
+  presentation?: 'modal' | 'inline'
+  onClose: (context: ParticipateFlowInviteLinkCloseContext) => void
   walletConnected?: boolean
   onConnectWallet?: (provider: string) => void
   onCompleteParticipation?: (amountUsdc: number) => void
+  onViewPosition?: () => void
   hasParticipated?: boolean
   committedUsdc?: number
   hopVariant?: HopVariant
-  daysLeft?: number
   slots?: SlotData[]
   onGenerateSlotLink?: (slotId: number) => Promise<void>
   onRevokeSlot?: (slotId: number) => void
@@ -32,19 +45,6 @@ export interface ParticipateFlowCrowdfundProps {
   copiedSlotId?: number | null
 }
 
-export type CrowdfundFlowStep =
-  | 'wallet'
-  | 'invite'
-  | 'commit'
-  | 'review'
-  | 'approve'
-  | 'confirmation'
-  | 'invites'
-
-export interface ParticipateFlowCloseContext {
-  step: CrowdfundFlowStep
-}
-
 const HOP_LEVEL_LABEL: Record<HopVariant, string> = {
   seed: 'Seed',
   'hop-1': 'Hop 1',
@@ -52,12 +52,13 @@ const HOP_LEVEL_LABEL: Record<HopVariant, string> = {
   'multi-hop': 'Multi-hop',
 }
 
-const MODAL_STEPS = [...CROWDFUND_MODAL_STEPS]
+const MODAL_STEPS = [...INVITE_LINK_STEPS]
 const STEP_TRANSITION_MS = 240
 
-const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
+const MY_POSITION_URL = `${import.meta.env.BASE_URL}?view=myposition`
+
+const DIALOG_LABEL: Record<InviteLinkFlowStep, string> = {
   wallet: 'Select your wallet',
-  invite: 'You are invited to join the fleet',
   commit: 'How much USDC?',
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
@@ -65,10 +66,8 @@ const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
   invites: 'Invite participants',
 }
 
-function initialStep(walletConnected: boolean, hasParticipated: boolean): CrowdfundFlowStep {
-  if (!walletConnected) return 'wallet'
-  if (hasParticipated) return 'commit'
-  return 'invite'
+function initialStep(walletConnected: boolean): InviteLinkFlowStep {
+  return walletConnected ? 'commit' : 'wallet'
 }
 
 function StepTransition({
@@ -91,21 +90,20 @@ function StepTransition({
 }
 
 /**
- * Path 2 — crowdfund modal entry.
- * Wallet gate first when disconnected; Step 0 has no connect eyebrow.
- * Progress bar: Commit → Review → Confirm (from commit onward).
+ * Path 1 — invite link entry.
+ * Landing page shows Step 0; this flow runs Connect → Commit → Review → Confirm.
  */
-export function ParticipateFlowCrowdfund({
+export function ParticipateFlowInviteLink({
   open,
+  presentation = 'modal',
   onClose,
-  onViewPosition,
   walletConnected = false,
   onConnectWallet,
   onCompleteParticipation,
+  onViewPosition,
   hasParticipated = false,
   committedUsdc = 0,
   hopVariant = 'hop-1',
-  daysLeft = 3,
   slots = [],
   onGenerateSlotLink,
   onRevokeSlot,
@@ -113,13 +111,9 @@ export function ParticipateFlowCrowdfund({
   onCopySlotLink,
   loadingSlotId = null,
   copiedSlotId = null,
-}: ParticipateFlowCrowdfundProps) {
-  const [step, setStep] = useState<CrowdfundFlowStep>(() =>
-    initialStep(walletConnected, hasParticipated),
-  )
-  const [renderStep, setRenderStep] = useState<CrowdfundFlowStep>(() =>
-    initialStep(walletConnected, hasParticipated),
-  )
+}: ParticipateFlowInviteLinkProps) {
+  const [step, setStep] = useState<InviteLinkFlowStep>(() => initialStep(walletConnected))
+  const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>(() => initialStep(walletConnected))
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -133,7 +127,7 @@ export function ParticipateFlowCrowdfund({
     }
   }
 
-  const transitionTo = useCallback((next: CrowdfundFlowStep) => {
+  const transitionTo = useCallback((next: InviteLinkFlowStep) => {
     clearTransitionTimer()
     setFading(true)
     transitionTimer.current = setTimeout(() => {
@@ -154,13 +148,16 @@ export function ParticipateFlowCrowdfund({
 
     if (justOpened) {
       wasReturningParticipantRef.current = hasParticipated
+      const start = initialStep(walletConnected)
+      setStep(start)
+      setRenderStep(start)
       return
     }
 
     if (open) return
 
     clearTransitionTimer()
-    const start = initialStep(walletConnected, hasParticipated)
+    const start = initialStep(walletConnected)
     setStep(start)
     setRenderStep(start)
     setFading(false)
@@ -179,27 +176,24 @@ export function ParticipateFlowCrowdfund({
     onClose({ step })
   }, [onClose, step])
 
+  const handleViewPosition = useCallback(() => {
+    if (onViewPosition) {
+      onViewPosition()
+      return
+    }
+    window.location.assign(MY_POSITION_URL)
+  }, [onViewPosition])
+
   const renderCurrentStep = () => {
     switch (renderStep) {
       case 'wallet':
         return (
           <Step1Wallet
-            showSteps={false}
-            compact
+            showSteps
             onNext={(provider) => {
               onConnectWallet?.(provider)
-              transitionTo(hasParticipated ? 'commit' : 'invite')
+              transitionTo('commit')
             }}
-          />
-        )
-
-      case 'invite':
-        return (
-          <Step0Invite
-            hopVariant={hopVariant}
-            daysLeft={daysLeft}
-            hideConnectEyebrow
-            onJoin={() => transitionTo('commit')}
           />
         )
 
@@ -207,10 +201,10 @@ export function ParticipateFlowCrowdfund({
         return (
           <Step2Commit
             {...stepBar}
-            stepIndex={1}
+            stepIndex={2}
             existingCommittedUsdc={committedUsdc}
             showBack={!hasParticipated}
-            onBack={() => transitionTo('invite')}
+            onBack={() => transitionTo('wallet')}
             onNext={(nextAmount) => {
               setAmount(nextAmount)
               transitionTo('review')
@@ -222,7 +216,7 @@ export function ParticipateFlowCrowdfund({
         return (
           <Step3Review
             {...stepBar}
-            stepIndex={2}
+            stepIndex={3}
             hopLevel={hopLevel}
             amount={amount}
             estimatedArm={estimatedArm}
@@ -235,7 +229,7 @@ export function ParticipateFlowCrowdfund({
         return (
           <Step4Approve
             {...stepBar}
-            stepIndex={3}
+            stepIndex={4}
             amount={amount}
             onDone={() => {
               onCompleteParticipation?.(amount)
@@ -248,7 +242,7 @@ export function ParticipateFlowCrowdfund({
         return (
           <Step5Confirmation
             {...stepBar}
-            stepIndex={3}
+            stepIndex={4}
             stepsStatus="confirmed"
             amount={amount}
             estimatedArm={
@@ -256,13 +250,14 @@ export function ParticipateFlowCrowdfund({
             }
             isAdditionalCommit={wasReturningParticipantRef.current}
             totalCommittedUsdc={committedUsdc}
-            onViewPosition={onViewPosition}
+            showViewPositionButton
+            onViewPosition={handleViewPosition}
             onInvite={() => transitionTo('invites')}
           />
         )
 
-      case 'invites':
-        return (
+      case 'invites': {
+        const invites = (
           <ParticipateFlowInviteSlots
             slots={slots}
             onGenerateLink={onGenerateSlotLink ?? (async () => {})}
@@ -274,17 +269,37 @@ export function ParticipateFlowCrowdfund({
             loadingId={loadingSlotId}
           />
         )
+        return presentation === 'inline' ? (
+          <div className={inlineStyles.invitesWrap}>{invites}</div>
+        ) : (
+          invites
+        )
+      }
 
       default:
         return null
     }
   }
 
+  const stepContent = (
+    <StepTransition stepKey={renderStep} fading={fading}>
+      {renderCurrentStep()}
+    </StepTransition>
+  )
+
+  if (presentation === 'inline') {
+    if (!open) return null
+
+    return (
+      <div className={inlineStyles.slot}>
+        <div className={inlineStyles.step}>{stepContent}</div>
+      </div>
+    )
+  }
+
   return (
     <ParticipateFlowModal open={open} onClose={handleClose} ariaLabel={DIALOG_LABEL[step]}>
-      <StepTransition stepKey={renderStep} fading={fading}>
-        {renderCurrentStep()}
-      </StepTransition>
+      {stepContent}
     </ParticipateFlowModal>
   )
 }

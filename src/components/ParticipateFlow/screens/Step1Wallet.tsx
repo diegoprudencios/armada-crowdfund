@@ -12,7 +12,6 @@ import {
   WalletPhantom,
   WalletWalletConnect,
 } from '@web3icons/react'
-
 interface Step1WalletProps {
   onNext: (wallet: string) => void
   showSteps?: boolean

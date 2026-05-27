@@ -281,6 +281,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     startPanelTransition('crowdfund')
   }
 
+  const viewPositionFromParticipateFlow = () => {
+    setParticipateOpen(false)
+    setPendingParticipateOpen(false)
+    goToMyPosition()
+  }
+
   const closeParticipateFlow = ({ step }: ParticipateFlowCloseContext) => {
     setParticipateOpen(false)
     setPendingParticipateOpen(false)
@@ -560,6 +566,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
       <ParticipateFlowCrowdfund
         open={participateOpen && isCrowdfund}
         onClose={closeParticipateFlow}
+        onViewPosition={viewPositionFromParticipateFlow}
         walletConnected={walletConnected}
         onConnectWallet={connectWallet}
         onCompleteParticipation={completeParticipation}

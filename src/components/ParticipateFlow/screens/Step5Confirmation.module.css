@@ -17,7 +17,9 @@
   flex-direction: column;
   gap: var(--primitives-spacing-6);
   flex: 1;
+  min-height: 0;
   justify-content: center;
+  overflow-y: auto;
 }
 
 /* ── Hero block ── */
@@ -85,6 +87,7 @@
   display: flex;
   gap: var(--primitives-spacing-3);
   width: 100%;
+  flex-shrink: 0;
 }
 
 .buttonRow > * {

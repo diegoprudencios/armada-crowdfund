@@ -48,3 +48,22 @@
   height: 24px;
   flex-shrink: 0;
 }
+
+.lg {
+  height: var(--primitives-spacing-16);
+  width: var(--primitives-spacing-16);
+  padding: var(--primitives-spacing-5);
+  flex-shrink: 0;
+}
+
+.lg .icon {
+  width: calc(var(--primitives-fontSize-xl) * 1px);
+  height: calc(var(--primitives-fontSize-xl) * 1px);
+}
+
+.lg:hover,
+.lg.expanded {
+  width: 135px;
+  padding: var(--primitives-spacing-5) var(--primitives-spacing-5) var(--primitives-spacing-5)
+    var(--primitives-spacing-6);
+}

@@ -93,3 +93,29 @@
   align-items: center;
   gap: var(--primitives-spacing-6);
 }
+
+/* Path 1 invite landing — matches design system 480×500 shell */
+.cardLanding {
+  width: 100%;
+  min-width: 0;
+  max-width: 480px;
+  border: 1px solid var(--semantic-color-border-lavender);
+}
+
+.contentLanding {
+  justify-content: flex-start;
+}
+
+.contentLanding .bottom {
+  margin-top: auto;
+  gap: var(--primitives-spacing-11);
+}
+
+.contentLanding .copy {
+  gap: var(--primitives-spacing-3);
+}
+
+.footerLanding {
+  align-items: center;
+  gap: var(--primitives-spacing-6);
+}

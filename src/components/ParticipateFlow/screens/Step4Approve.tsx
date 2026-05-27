@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react'
 import styles from './Step4Approve.module.css'
 import Steps from '../../Steps/Steps'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
-
 interface Transaction {
   label: string
   status: 'pending' | 'loading' | 'done'

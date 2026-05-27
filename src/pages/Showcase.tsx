@@ -279,6 +279,7 @@ export function Showcase() {
           <div style={{ flexShrink: 0 }}>
             <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 5 (CONFIRMATION)</div>
             <Step5Confirmation
+              showViewPositionButton
               onViewPosition={() => console.log('view position')}
               onInvite={() => console.log('invite')}
               amount={1000}

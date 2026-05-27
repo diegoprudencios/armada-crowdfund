@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -10,6 +11,11 @@ import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
 import { isProviderWhitelisted } from '../components/ParticipateFlow/participateFlowWallets'
 import { CAP, DEMO_WALLET, DEMO_WALLET_DISPLAY } from '../components/MyPosition/myPositionDemo'
+import {
+  clearDemoSession,
+  readDemoSession,
+  writeDemoSession,
+} from './demoSessionStorage'
 
 const INITIAL_SLOTS: SlotData[] = [
   { id: 1, status: 'empty' },
@@ -44,14 +50,39 @@ type DemoSessionContextValue = {
 
 const DemoSessionContext = createContext<DemoSessionContextValue | null>(null)
 
+function loadInitialSession() {
+  const stored = readDemoSession()
+  if (!stored) {
+    return {
+      wallet: null as DemoWallet | null,
+      committedUsdc: 0,
+      hasParticipated: false,
+      slots: INITIAL_SLOTS.map((slot) => ({ ...slot })),
+    }
+  }
+
+  return {
+    wallet: stored.wallet,
+    committedUsdc: stored.committedUsdc,
+    hasParticipated: stored.hasParticipated,
+    slots:
+      stored.slots.length > 0
+        ? stored.slots
+        : INITIAL_SLOTS.map((slot) => ({ ...slot })),
+  }
+}
+
 export function DemoSessionProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWallet] = useState<DemoWallet | null>(null)
-  const [committedUsdc, setCommittedUsdc] = useState(0)
-  const [hasParticipated, setHasParticipated] = useState(false)
-  const [slots, setSlots] = useState<SlotData[]>(() =>
-    INITIAL_SLOTS.map((slot) => ({ ...slot })),
-  )
+  const [initial] = useState(loadInitialSession)
+  const [wallet, setWallet] = useState<DemoWallet | null>(initial.wallet)
+  const [committedUsdc, setCommittedUsdc] = useState(initial.committedUsdc)
+  const [hasParticipated, setHasParticipated] = useState(initial.hasParticipated)
+  const [slots, setSlots] = useState<SlotData[]>(initial.slots)
   const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
+
+  useEffect(() => {
+    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
+  }, [wallet, committedUsdc, hasParticipated, slots])
 
   const hopVariant: HopVariant = 'hop-1'
   const hopLabel = 'HOP-1'
@@ -67,6 +98,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
 
   const disconnectWallet = useCallback(() => {
     setWallet(null)
+    clearDemoSession()
   }, [])
 
   const completeParticipation = useCallback((amountUsdc: number) => {

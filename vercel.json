@@ -2,6 +2,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "routes": [
+    { "src": "^/invite/?$", "dest": "/invite.html" },
     { "src": "^/hero/?$", "dest": "/hero.html" },
     { "src": "^/dashboard/?$", "dest": "/dashboard.html" },
     { "src": "^/$", "dest": "/hero.html" }

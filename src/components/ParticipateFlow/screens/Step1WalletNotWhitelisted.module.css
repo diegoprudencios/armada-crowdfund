@@ -1,8 +1,7 @@
 .shell {
   width: 480px;
   min-width: 480px;
-  height: auto;
-  min-height: 0;
+  height: 500px;
   flex-shrink: 0;
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-lavender);
@@ -10,6 +9,7 @@
   padding: var(--primitives-spacing-8);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--primitives-spacing-8);
   box-sizing: border-box;
   animation: feedbackIn 200ms ease;

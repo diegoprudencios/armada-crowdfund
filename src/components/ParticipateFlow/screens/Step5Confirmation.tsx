@@ -2,10 +2,11 @@ import styles from './Step5Confirmation.module.css'
 import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
-
 interface Step5ConfirmationProps extends ParticipateStepBarProps {
   onInvite: () => void
   onViewPosition?: () => void
+  /** Path 1 invite link — always show View your position beside Invite. */
+  showViewPositionButton?: boolean
   amount?: number
   estimatedArm?: number
   /** User committed more USDC in a follow-up visit (not first participation). */
@@ -27,6 +28,7 @@ function formatUsd(value: number) {
 export default function Step5Confirmation({
   onInvite,
   onViewPosition,
+  showViewPositionButton = false,
   amount = 1000,
   estimatedArm = 1000,
   isAdditionalCommit = false,
@@ -38,6 +40,8 @@ export default function Step5Confirmation({
   const formattedAmount = formatUsd(amount)
   const totalCommitted = totalCommittedUsdc ?? estimatedArm
   const formattedTotal = formatUsd(totalCommitted)
+  const shouldShowViewPosition =
+    Boolean(onViewPosition) && (showViewPositionButton || isAdditionalCommit)
 
   const headline = isAdditionalCommit ? 'Commitment updated.' : "You're in."
   const subline = isAdditionalCommit ? (
@@ -75,7 +79,7 @@ export default function Step5Confirmation({
       </div>
 
       <div className={styles.buttonRow}>
-        {onViewPosition && (
+        {shouldShowViewPosition && onViewPosition && (
           <Button
             variant="secondary"
             size="lg"

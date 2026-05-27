@@ -44,3 +44,15 @@
   color: var(--semantic-color-text-primary);
   white-space: nowrap;
 }
+
+/* Invite landing card — match JoinButton height */
+.landing {
+  gap: var(--primitives-spacing-3);
+  padding: var(--primitives-spacing-4) var(--primitives-spacing-5);
+  min-height: var(--primitives-spacing-16);
+  box-sizing: border-box;
+}
+
+.landing .tag {
+  padding: var(--primitives-spacing-2) var(--primitives-spacing-4);
+}

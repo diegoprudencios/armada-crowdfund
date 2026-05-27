@@ -21,9 +21,10 @@ const DOT_COLOR: Record<HopVariant, string> = {
 interface HopPillProps {
   variant: HopVariant
   label?: string
+  className?: string
 }
 
-export default function HopPill({ variant, label = 'Invited as' }: HopPillProps) {
+export default function HopPill({ variant, label = 'Invited as', className }: HopPillProps) {
   const dotStyle: CSSProperties = {
     width: 8,
     height: 8,
@@ -31,7 +32,7 @@ export default function HopPill({ variant, label = 'Invited as' }: HopPillProps)
   }
 
   return (
-    <div className={styles.pill}>
+    <div className={[styles.pill, className].filter(Boolean).join(' ')}>
       <span className={styles.label}>{label}</span>
       <span className={styles.tag}>
         <span className={styles.dot} style={dotStyle} aria-hidden />
