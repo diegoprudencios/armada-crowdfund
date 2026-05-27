@@ -11,6 +11,7 @@ export interface HeaderProps {
   /** Full address for clipboard copy in the wallet menu. */
   walletCopyAddress?: string
   walletProvider?: string
+  usdcBalance?: number
   onDisconnect?: () => void
   /** When false, show Connect wallet pill and hide My position. Defaults to true. */
   walletConnected?: boolean
@@ -35,6 +36,7 @@ export function Header({
   walletAddress = '0x6545...54534',
   walletCopyAddress,
   walletProvider = 'metamask',
+  usdcBalance = 0,
   onDisconnect,
   walletConnected = true,
   claimAvailable = false,
@@ -135,6 +137,7 @@ export function Header({
             displayAddress={walletAddress}
             copyAddress={walletCopyAddress ?? walletAddress}
             walletProvider={walletProvider}
+            usdcBalance={usdcBalance}
             onDisconnect={onDisconnect}
           />
         ) : (

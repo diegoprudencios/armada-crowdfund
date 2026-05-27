@@ -424,6 +424,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         walletAddress={wallet?.displayAddress ?? ''}
         walletCopyAddress={wallet?.address}
         walletProvider={wallet?.provider}
+        usdcBalance={0}
         onDisconnect={handleDisconnectWallet}
         autoHideOnScroll={false}
         className={[heroStyles.headerOverride, heroStyles.enter, heroStyles.enterHeader].join(' ')}

@@ -20,10 +20,13 @@ export interface WalletPillMenuProps {
   /** Full address copied to clipboard. */
   copyAddress: string
   walletProvider?: string
+  /** Optional wallet balance label (demo uses 0). */
+  usdcBalance?: number
   onDisconnect?: () => void
 }
 
 const PROVIDER_ICON_PX = 20
+const CARD_ICON_PX = 48
 
 function WalletProviderIcon({ provider, size = PROVIDER_ICON_PX }: { provider?: string; size?: number }) {
   switch (provider) {
@@ -42,6 +45,7 @@ export function WalletPillMenu({
   displayAddress,
   copyAddress,
   walletProvider,
+  usdcBalance = 0,
   onDisconnect,
 }: WalletPillMenuProps) {
   const [open, setOpen] = useState(false)
@@ -91,6 +95,8 @@ export function WalletPillMenu({
     onDisconnect?.()
   }
 
+  const balanceLabel = `${usdcBalance.toLocaleString('en-US')} USDC`
+
   return (
     <div className={styles.root} ref={rootRef}>
       <button
@@ -119,43 +125,57 @@ export function WalletPillMenu({
 
       {open && (
         <div id={menuId} className={styles.menu} role="menu">
-          <div className={styles.identity} role="none">
-            <span className={styles.identityIcon}>
-              <WalletProviderIcon provider={walletProvider} />
-            </span>
-            <p className={styles.address}>{displayAddress}</p>
-          </div>
+          <div className={styles.card} role="none">
+            <div className={styles.cardIdentity}>
+              <span className={styles.cardIcon}>
+                <WalletProviderIcon provider={walletProvider} size={CARD_ICON_PX} />
+              </span>
+              <p className={styles.cardAddress}>{displayAddress}</p>
+              <p className={styles.cardBalance}>{balanceLabel}</p>
+            </div>
 
-          <div className={styles.divider} role="separator" />
-
-          <button
-            type="button"
-            role="menuitem"
-            className={[styles.menuItem, copied && styles.menuItemCopied].filter(Boolean).join(' ')}
-            onClick={() => void handleCopy()}
-          >
-            {copied ? (
-              <CheckIcon className={styles.menuItemIcon} aria-hidden />
-            ) : (
-              <ClipboardDocumentIcon className={styles.menuItemIcon} aria-hidden />
-            )}
-            {copied ? 'Copied' : 'Copy address'}
-          </button>
-
-          {onDisconnect && (
-            <>
-              <div className={styles.divider} role="separator" />
+            <div className={styles.cardActions}>
               <button
                 type="button"
                 role="menuitem"
-                className={[styles.menuItem, styles.disconnect].join(' ')}
-                onClick={handleDisconnect}
+                className={[
+                  buttonStyles.btn,
+                  buttonStyles.secondary,
+                  buttonStyles.lg,
+                  styles.actionBtn,
+                  copied && styles.actionBtnCopied,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => void handleCopy()}
               >
-                <ArrowRightOnRectangleIcon className={styles.menuItemIcon} aria-hidden />
-                Disconnect
+                {copied ? (
+                  <CheckIcon className={styles.actionIcon} aria-hidden />
+                ) : (
+                  <ClipboardDocumentIcon className={styles.actionIcon} aria-hidden />
+                )}
+                <span className={styles.actionLabel}>{copied ? 'Copied' : 'Copy address'}</span>
               </button>
-            </>
-          )}
+
+              {onDisconnect && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={[
+                    buttonStyles.btn,
+                    buttonStyles.secondary,
+                    buttonStyles.lg,
+                    styles.actionBtn,
+                    styles.disconnect,
+                  ].join(' ')}
+                  onClick={handleDisconnect}
+                >
+                  <ArrowRightOnRectangleIcon className={styles.actionIcon} aria-hidden />
+                  <span className={styles.actionLabel}>Disconnect</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
