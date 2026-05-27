@@ -46,9 +46,10 @@ Generic crypto aesthetics. Anything that reads as underground or dangerous.
 - **Deploy:** Vercel. Entry points include `hero.html`, `invite.html`,
   `dashboard.html`, `showcase.html`, `myposition.html`, `myposition-hero.html`.
   Add matching routes in `vercel.json` when introducing a new HTML entry.
-- **Demo session:** `DemoSessionProvider` holds wallet, commit amount, and slots
-  in memory only. Each page load and wallet disconnect reset to a fresh demo
-  (`demoSessionStorage.ts` clears any legacy `sessionStorage` key on mount).
+- **Demo session:** `DemoSessionProvider` persists wallet, commit amount, and slots
+  to `sessionStorage` so state survives navigation between Vite entries (e.g.
+  `/invite` → hero `?view=myposition`). Page **refresh** and **disconnect** reset
+  to a fresh demo.
 - **Icons:** Heroicons (`@heroicons/react/24/solid` and `/24/outline`)
 - **Wallet icons:** `@web3icons/react` v4.1.17
 

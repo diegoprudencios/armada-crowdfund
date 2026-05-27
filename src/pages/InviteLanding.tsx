@@ -8,6 +8,7 @@ import {
 } from '../components/ParticipateFlow/ParticipateFlowInviteLink'
 import Step0Invite from '../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
 import { DemoSessionProvider, useDemoSession } from '../context/DemoSessionContext'
+import { writeDemoSession } from '../context/demoSessionStorage'
 import styles from './InviteLanding.module.css'
 
 const CROWDFUND_URL = import.meta.env.BASE_URL
@@ -30,6 +31,7 @@ function parseHopVariant(raw: string | null): HopVariant {
 
 function InviteLandingInner() {
   const {
+    wallet,
     walletConnected,
     hasParticipated,
     committedUsdc,
@@ -67,9 +69,14 @@ function InviteLandingInner() {
 
   const openFlow = () => setFlowActive(true)
 
+  const goToMyPosition = () => {
+    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
+    window.location.assign(MY_POSITION_URL)
+  }
+
   const closeFlow = ({ step }: ParticipateFlowInviteLinkCloseContext) => {
     if (step === 'invites') {
-      window.location.assign(MY_POSITION_URL)
+      goToMyPosition()
       return
     }
     setFlowActive(false)
@@ -90,7 +97,7 @@ function InviteLandingInner() {
             walletConnected={walletConnected}
             onConnectWallet={connectWallet}
             onCompleteParticipation={completeParticipation}
-            onViewPosition={() => window.location.assign(MY_POSITION_URL)}
+            onViewPosition={goToMyPosition}
             hasParticipated={hasParticipated}
             committedUsdc={committedUsdc}
             hopVariant={hopVariant}

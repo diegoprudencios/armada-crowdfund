@@ -11,7 +11,12 @@ import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
 import { isProviderWhitelisted } from '../components/ParticipateFlow/participateFlowWallets'
 import { CAP, DEMO_WALLET, DEMO_WALLET_DISPLAY } from '../components/MyPosition/myPositionDemo'
-import { clearDemoSession } from './demoSessionStorage'
+import {
+  clearDemoSession,
+  isPageReload,
+  readDemoSession,
+  writeDemoSession,
+} from './demoSessionStorage'
 
 const INITIAL_SLOTS: SlotData[] = [
   { id: 1, status: 'empty' },
@@ -59,16 +64,36 @@ type DemoSessionContextValue = {
 
 const DemoSessionContext = createContext<DemoSessionContextValue | null>(null)
 
+function loadInitialSession() {
+  if (isPageReload()) {
+    clearDemoSession()
+    return createFreshSession()
+  }
+
+  const stored = readDemoSession()
+  if (!stored) {
+    return createFreshSession()
+  }
+
+  return {
+    wallet: stored.wallet,
+    committedUsdc: stored.committedUsdc,
+    hasParticipated: stored.hasParticipated,
+    slots: stored.slots.length > 0 ? stored.slots : freshSlots(),
+  }
+}
+
 export function DemoSessionProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWallet] = useState<DemoWallet | null>(null)
-  const [committedUsdc, setCommittedUsdc] = useState(0)
-  const [hasParticipated, setHasParticipated] = useState(false)
-  const [slots, setSlots] = useState<SlotData[]>(freshSlots)
+  const [initial] = useState(loadInitialSession)
+  const [wallet, setWallet] = useState<DemoWallet | null>(initial.wallet)
+  const [committedUsdc, setCommittedUsdc] = useState(initial.committedUsdc)
+  const [hasParticipated, setHasParticipated] = useState(initial.hasParticipated)
+  const [slots, setSlots] = useState<SlotData[]>(initial.slots)
   const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
 
   useEffect(() => {
-    clearDemoSession()
-  }, [])
+    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
+  }, [wallet, committedUsdc, hasParticipated, slots])
 
   const hopVariant: HopVariant = 'hop-1'
   const hopLabel = 'HOP-1'
