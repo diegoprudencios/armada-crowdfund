@@ -1,0 +1,38 @@
+---
+description: Typography file workflow — JSON definitions, sync with armada-poc generated CSS
+alwaysApply: true
+---
+
+# Typography file workflow
+
+Composite typography is **defined** in Token Studio JSON. In this repo, primitives/semantic colors in CSS are still hand-maintained; composite **definitions** live in JSON and are **generated to CSS** in the sibling **armada-poc** package.
+
+## Source of truth (definitions)
+
+| File | Role |
+|------|------|
+| `src/tokens/armada-tokens.json` | **Edit composite definitions here** — `semantic.typography.*` |
+| `src/styles/tokens.css` | Hand-maintained primitives/semantic colors (not auto-generated today) |
+| `ARMADA_DESIGN_SYSTEM.md` | Human-readable composite table (keep in sync with JSON) |
+
+## Generated CSS (armada-poc only)
+
+Regeneration runs in **armada-poc**, not in this repo:
+
+```bash
+# From armada-poc repo root
+npm run tokens:typography --workspace=@armada/ui
+```
+
+| Generated file (armada-poc) | Contents |
+|-----------------------------|----------|
+| `packages/ui/src/styles/typography.css` | `--semantic-typography-*` vars, `.armada-text-*` classes |
+| `packages/ui/src/typography/variants.ts` | `TypographyVariant` type |
+
+**Never hand-edit** those generated files in armada-poc. After changing `semantic.typography` in **this** repo’s `armada-tokens.json`, mirror the same change in armada-poc’s copy and run the command above.
+
+## Reference
+
+- `ARMADA_DESIGN_SYSTEM.md` — § Typography composites
+- `../armada-poc/packages/ui/TYPOGRAPHY.md` — regeneration and file layout
+- `../armada-poc/docs/DECISION_LOG.md` — rationale (2026-05-30)

@@ -144,6 +144,31 @@ form fields, data, navigation.
 | Button | Geist Medium | 14px (button token) | Only place 14px appears |
 | Data hero | Geist | `fontSize-6xl` (64px) | Large numeric displays |
 
+### Typography composites (ui/*, display/*)
+
+Primitives (`fontSize-lg`, `fontWeight-medium`, etc.) are building blocks. **Composites** bundle family, size, weight, line-height, and letter-spacing for a named role. Source of truth: `armada-tokens.json` → `semantic.typography` (in `@armada/ui` for the interface app).
+
+**Do not hand-pick size/weight/line-height for a named role.** Use the composite via `@armada/ui` (`HeadingSm`, `Text`) or generated CSS (`.armada-text-ui-heading-sm`, `--semantic-typography-ui-heading-sm-*`).
+
+Regenerate CSS after JSON edits:
+
+```bash
+npm run tokens:typography --workspace=@armada/ui
+```
+
+| Composite | Size | Line height | Weight | Use |
+|-----------|------|-------------|--------|-----|
+| `ui/heading-lg` | 20px | 120% (snug) | Medium | Card titles |
+| `ui/heading-sm` | 17px | 24px | Medium | Flow step titles, subheadings |
+| `ui/body-lg` | 15px | 140% (normal) | Regular | Primary body |
+| `ui/body-sm` | 13px | 140% | Regular | Captions, secondary |
+| `ui/label-md` | 12px | 100% | Medium | Field labels |
+| `ui/label-sm` | 11px | 100% | Medium | Pills, tags |
+| `ui/label-xs` | 10px | 100% | Medium | Table headers, eyebrows |
+| `ui/button` | 14px | 100% | Medium | Button label typography |
+
+Display composites (`display/hero-lg`, etc.) use **Charis SIL** — see `semantic.typography.display` in the token JSON. Full reference: `packages/ui/TYPOGRAPHY.md` in armada-poc.
+
 ### When to use Charis SIL
 
 Only at emotional high points: the moment a user decides to join, the moment
@@ -333,6 +358,80 @@ commit (`isAdditionalCommit`):
   parent (closes modal + My Position panel).
 
 Primary (right): **Invite participants** → in-flow invite slots step.
+
+### Onboarding modal flow (Armada Interface)
+
+Implementation: `armada-poc` → `apps/armada-interface/src/components/onboarding/`
+(`OnboardingShell`, step modules, `UnlockFlow`). Shell is non-dismissible modal +
+optional `FlowHeader` step indicator; step content lives in each step’s CSS module.
+
+#### Onboarding step layout
+
+Two layout modes. Applied **per step in its own CSS module** — not via props on the
+shell.
+
+**Centered** — icon + title + body + buttons only, no form fields.
+`align-items: center` and `text-align: center` on the step root.
+
+Steps: Welcome, AntiPhishChecksumStep, CompleteStep (and SignEnrollment, which
+reuses Welcome styles).
+
+**Left-aligned** — any step with form fields or interactive input.
+`align-items: flex-start` and `text-align: left` on the step root.
+
+Steps: PassphraseStep (shared by BackupPassphraseStep and ConfirmBackupStep),
+UnlockFlow.
+
+Do not center-align form labels or inputs on left-aligned steps.
+
+#### Onboarding spacing rhythm
+
+Root flex container gap: `--primitives-spacing-4` (16px).
+
+When a pair needs more than 16px, add compensating margin on the lower sibling
+(e.g. `margin-bottom: calc(var(--primitives-spacing-6) - var(--primitives-spacing-4))`
+on the icon for 24px icon→title). Do not stack margin and gap without accounting
+for the root gap.
+
+| Element pair | Token | Value |
+|---|---|---|
+| Icon → title | `--primitives-spacing-6` | 24px |
+| Title → body | `--primitives-spacing-4` | 16px |
+| Body → first field (form steps) | `--primitives-spacing-8` | 32px |
+| Field label → input | `--primitives-spacing-2` | 8px |
+| Field group → field group | `--primitives-spacing-5` | 20px |
+| Content → footer | `--primitives-spacing-8` | 32px |
+
+Form steps: `.body + .field` (or first control) uses body→field spacing; adjacent
+`.field + .field` uses field-group spacing.
+
+#### Onboarding typography
+
+Use composites from `@armada/ui` (`HeadingSm`, `Text`) or generated
+`.armada-text-*` classes — see §5 typography composites. Do not hand-pick size,
+weight, or line-height for these roles.
+
+| Role | Composite | Notes |
+|---|---|---|
+| Step title | `ui/heading-lg` | 20px, medium weight |
+| Body copy | `ui/body-lg` | 15px, regular weight |
+| Eyebrow | `ui/label-md` | 12px, medium; `text-transform: uppercase` + wide tracking |
+| Form labels | `ui/body-sm` | 13px, regular weight |
+| Code / hash display | Geist Mono | `--primitives-fontFamily-mono`; not a text composite |
+
+#### Reusable sub-components
+
+The icon circle and footer button row appear on every step. **Do not rebuild them
+per step** — extract and reuse shared components when touching this flow.
+
+**Footer:** always two buttons, 50/50 split, `lg` size (48px height). Primary CTA
+on the right. Back / cancel on the left. Gap between buttons:
+`--primitives-spacing-3` (12px). Use `FlowFooter` + shared footer styles; footers
+use `align-self: stretch` so the row spans the step width while buttons stay
+centered within each half.
+
+**Icon chip:** fixed-size circle with tinted brand (or success) background and
+centered Lucide icon — one shared module, not duplicated per step.
 
 ### Steps component
 
