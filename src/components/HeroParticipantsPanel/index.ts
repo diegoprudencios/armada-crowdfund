@@ -1,3 +1,10 @@
-export { HeroParticipantsPanel } from './HeroParticipantsPanel'
-export type { HeroParticipant } from './HeroParticipantsPanel'
-
+export {
+  HeroParticipantControls,
+  HeroParticipantList,
+} from './HeroParticipantsPanel'
+export type {
+  HeroHopFilter,
+  HeroParticipant,
+  HeroParticipantControlsProps,
+  HeroParticipantListProps,
+} from './HeroParticipantsPanel'

@@ -3,7 +3,12 @@ import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import { Header } from '../components/Header'
 import { Progress } from '../components/Progress'
 import { Participate } from '../components/Participate'
-import { HeroParticipantsPanel, type HeroParticipant } from '../components/HeroParticipantsPanel'
+import { CrowdfundLeftColumn } from '../components/CrowdfundLeftColumn'
+import {
+  HeroParticipantControls,
+  HeroParticipantList,
+  type HeroParticipant,
+} from '../components/HeroParticipantsPanel'
 import { Tag } from '../components/Tag/Tag'
 import Tooltip from '../components/Tooltip/Tooltip'
 import { InvitesCard } from '../components/MyPosition/InvitesCard'
@@ -137,14 +142,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [pendingParticipateOpen, setPendingParticipateOpen] = useState(false)
 
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
-  const leftStackRef = useRef<HTMLDivElement | null>(null)
-  const HERO_EXPAND_MS = 380
+  const leftColumnRef = useRef<HTMLDivElement | null>(null)
   const isCrowdfund = view === 'crowdfund'
   const isMyPosition = view === 'myposition'
   const isGraphCrowdfund = graphMode === 'crowdfund'
   const isGraphMyPosition = graphMode === 'myposition'
   const graphParticipants = scenario.current!.participants
-  const columnExpanded = participantsListOpen || holdColumnExpanded
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMotionReady(true))
@@ -191,14 +194,14 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   }
 
   useLayoutEffect(() => {
-    const stack = leftStackRef.current
-    const progressCard = stack?.firstElementChild as HTMLElement | null
+    const column = leftColumnRef.current
+    const progressCard = column?.querySelector<HTMLElement>('[data-crowdfund-progress] > *')
     if (!progressCard) return
 
     const applyProgressCardHeight = () => {
       const h = Math.ceil(progressCard.getBoundingClientRect().height)
       if (h < 1) return false
-      stack
+      column
         ?.closest<HTMLElement>('[class*="leftCorner"]')
         ?.style.setProperty('--hero-progress-card-height', `${h}px`)
       return true
@@ -211,44 +214,6 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     })
     return () => cancelAnimationFrame(raf)
   }, [])
-
-  useLayoutEffect(() => {
-    const el = leftStackRef.current
-    if (!el || !isCrowdfund) return
-
-    const applyCollapsedHeight = () => {
-      el.style.minHeight = '0'
-      el.style.maxHeight = 'none'
-      const h = Math.ceil(el.getBoundingClientRect().height)
-      el.style.minHeight = ''
-      el.style.maxHeight = ''
-      if (h < 1) return false
-      const px = `${h}px`
-      el.style.setProperty('--hero-stack-collapsed-height', px)
-      el.closest<HTMLElement>('[class*="leftCorner"]')?.style.setProperty('--hero-stack-collapsed-height', px)
-      return true
-    }
-
-    if (applyCollapsedHeight()) return
-
-    const raf = requestAnimationFrame(() => {
-      if (!applyCollapsedHeight()) requestAnimationFrame(applyCollapsedHeight)
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [isCrowdfund])
-
-  useLayoutEffect(() => {
-    if (!isCrowdfund) {
-      setHoldColumnExpanded(false)
-      return
-    }
-    if (participantsListOpen) {
-      setHoldColumnExpanded(true)
-      return
-    }
-    const id = window.setTimeout(() => setHoldColumnExpanded(false), HERO_EXPAND_MS)
-    return () => window.clearTimeout(id)
-  }, [participantsListOpen, isCrowdfund])
 
   useEffect(() => {
     if (!isCrowdfund || !selectedAddress) return
@@ -446,27 +411,31 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           className={layerClass(crowdfundPanelVisible, motionReady, crowdfundPanelAnimates)}
           aria-hidden={!crowdfundPanelVisible}
         >
-          <div
-            ref={leftStackRef}
-            className={[heroStyles.leftStack, heroStyles.enter, heroStyles.enterProgress].join(' ')}
-          >
-            <Progress
-              participants={`${scenario.current!.participants} PARTICIPANTS`}
-              committedAmount={committedAmount}
+          <div ref={leftColumnRef}>
+            <CrowdfundLeftColumn
+              className={[heroStyles.enter, heroStyles.enterProgress].join(' ')}
+              listOpen={participantsListOpen}
+              onListOpenChange={setParticipantsListOpen}
+              progress={
+                <Progress
+                  participants={`${scenario.current!.participants} PARTICIPANTS`}
+                  committedAmount={committedAmount}
+                />
+              }
+              list={
+                <HeroParticipantList
+                  participants={displayParticipants}
+                  selectedAddress={selectedAddress}
+                  onSelectAddress={setSelectedAddress}
+                  filter={filter}
+                />
+              }
+              controls={
+                <div ref={participantsPanelRef}>
+                  <HeroParticipantControls filter={filter} onFilterChange={setFilter} />
+                </div>
+              }
             />
-            <div ref={participantsPanelRef} className={heroStyles.participantsWrap}>
-              <HeroParticipantsPanel
-                participants={displayParticipants}
-                selectedAddress={selectedAddress}
-                onSelectAddress={setSelectedAddress}
-                collapsedMaxRows={3}
-                filter={filter}
-                onFilterChange={setFilter}
-                layoutExpanded={columnExpanded}
-                showList={participantsListOpen}
-                onShowListChange={setParticipantsListOpen}
-              />
-            </div>
           </div>
         </div>
 

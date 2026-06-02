@@ -1,6 +1,6 @@
 // ABOUTME: My Position invites panel — collapsible list with available/total count in the header.
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import SlotCard, { type SlotData } from '../InviteFlow/screens/SlotCard'
 import { LAPTOP_LAYOUT_MAX_WIDTH_PX } from '../../constants/viewportBreakpoints'
@@ -10,9 +10,10 @@ import styles from './InvitesCard.module.css'
 /** @deprecated Use LAPTOP_LAYOUT_MAX_WIDTH_PX */
 export const INVITES_COLLAPSED_BY_DEFAULT_MAX_WIDTH_PX = LAPTOP_LAYOUT_MAX_WIDTH_PX
 
+/** Open by default at ≥1440px; collapsed below (matches laptop layout breakpoint). */
 function invitesExpandedByDefault(): boolean {
   if (typeof window === 'undefined') return true
-  return !window.matchMedia(`(max-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`).matches
+  return window.matchMedia(`(min-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`).matches
 }
 
 export type InvitesCardVariant = 'default' | 'hero' | 'split'
@@ -39,6 +40,15 @@ export function InvitesCard({
   loadingSlotId = null,
 }: InvitesCardProps) {
   const [expanded, setExpanded] = useState(invitesExpandedByDefault)
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`)
+    const sync = () => setExpanded(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
   const listId = useId()
   const available = countAvailableInviteSlots(slots)
   const total = slots.length

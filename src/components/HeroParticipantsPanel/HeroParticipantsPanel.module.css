@@ -1,45 +1,31 @@
-/* Match Progress glass/backdrop feel */
-.panel {
-  width: 582px;
-  border-radius: 15px;
-  border: none;
-  background: transparent;
-  overflow: visible;
-  box-sizing: border-box;
-  padding: 0;
+/* List + controls for CrowdfundLeftColumn shell (controls pinned in shell grid). */
+
+.listHost {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  position: relative;
+  flex: 1 1 0;
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.panel.expanded {
-  gap: var(--hero-stack-gap, var(--primitives-spacing-5));
-}
-
-.panel::before {
+.listHost::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
+  border-radius: 12px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-.panel > * {
+.listHost > * {
   position: relative;
   z-index: 1;
-}
-
-.expanded {
-  flex: 1 1 0;
-  min-height: 0;
-  height: 100%;
-}
-
-.expanded .controlsRow {
-  flex-shrink: 0;
 }
 
 .controlsRow {
@@ -119,26 +105,6 @@
   color: var(--semantic-component-navitem-active-text);
 }
 
-.listShell {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 0;
-  overflow: hidden;
-  flex: 0 0 0;
-}
-
-.listShellClosed {
-  flex: 0 0 0;
-  pointer-events: none;
-}
-
-.listShellOpen {
-  flex: 1 1 0;
-  min-height: 0;
-  pointer-events: auto;
-}
-
 .listBackdrop {
   display: flex;
   flex-direction: column;
@@ -151,32 +117,20 @@
   background: var(--primitives-color-neutral-50);
 }
 
-.listAnimOpen .listBackdrop {
-}
-
-.listAnimClosed .listBackdrop {
-}
-
 .listInner {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
   min-height: 0;
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
-
-.listInnerHidden {
+  height: 100%;
   opacity: 0;
   pointer-events: none;
-  transition-duration: 120ms;
-  transition-delay: 0ms;
+  transition: opacity 200ms ease;
 }
 
-.listInnerVisible {
+.listInnerReady {
   opacity: 1;
-  transition-duration: 220ms;
-  transition-delay: 200ms;
+  pointer-events: auto;
 }
 
 .listSearch {
@@ -338,19 +292,8 @@
   background: color-mix(in srgb, var(--semantic-color-surface-raised) 26%, transparent);
 }
 
-/* ≤1440px — panel, address list, and controls align to 480px (Progress card width) */
+/* ≤1440px — controls row width (shell handles outer 480px) */
 @media (max-width: 1440px) {
-  .panel,
-  .panel.expanded {
-    width: 100%;
-    max-width: 480px;
-  }
-
-  .listShell,
-  .listBackdrop {
-    max-width: 480px;
-  }
-
   .controlsRow {
     width: 100%;
     max-width: 480px;
@@ -366,14 +309,5 @@
     flex: 1 1 0;
     min-width: 0;
   }
-}
-
-@media (max-width: 900px) {
-  .panel,
-  .expanded {
-    width: calc(100vw - (var(--primitives-spacing-6) * 2));
-    left: var(--primitives-spacing-6);
-  }
-
 }
 

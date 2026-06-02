@@ -4,11 +4,21 @@ interface StepsProps {
   steps: string[]
   currentStep: number
   status?: 'default' | 'error' | 'confirmed'
+  /** Fixed flow title (e.g. "Deposit") — when set, shown left instead of the active step name. */
+  flowLabel?: string
 }
 
-export default function Steps({ steps, currentStep, status = 'default' }: StepsProps) {
-  const stepName =
-    status === 'confirmed' ? 'CONFIRMATION' : (steps[currentStep - 1]?.toUpperCase() ?? '')
+export default function Steps({
+  steps,
+  currentStep,
+  status = 'default',
+  flowLabel,
+}: StepsProps) {
+  const stepName = flowLabel
+    ? flowLabel.toUpperCase()
+    : status === 'confirmed'
+      ? 'CONFIRMATION'
+      : (steps[currentStep - 1]?.toUpperCase() ?? '')
   const stepCount =
     status === 'confirmed'
       ? `STEP ${steps.length} OF ${steps.length}`

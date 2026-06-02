@@ -1,6 +1,6 @@
 /* ABOUTME: My Position invites panel — title row, available/total count, collapsible slot list. */
 
-/* Collapse invites by default at ≤1440px — see constants/viewportBreakpoints.ts */
+/* Collapse invites by default below 1440px; open at ≥1440px — viewportBreakpoints.ts */
 
 .root {
   display: flex;

@@ -2,9 +2,14 @@ import { useState } from 'react'
 import styles from './Step2Commit.module.css'
 import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
-import Tooltip from '../../Tooltip/Tooltip'
-import { InformationCircleIcon } from '@heroicons/react/24/solid'
+import { ArmAllocationBlock } from '../../ArmAllocationBlock/ArmAllocationBlock'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
+import {
+  hasActiveAmount,
+  parseActiveAmount,
+  sanitizeAmountInput,
+} from '../../../utils/amountInput'
+
 interface Step2CommitProps extends ParticipateStepBarProps {
   onNext: (amount: number) => void
   onBack: () => void
@@ -29,23 +34,36 @@ export default function Step2Commit({
   steps = DEFAULT_STEPS,
   stepIndex = 2,
 }: Step2CommitProps) {
-  const [amount, setAmount] = useState<number>(0)
+  const [amountInput, setAmountInput] = useState('')
 
   const remainingCap = Math.max(0, maxAmount - existingCommittedUsdc)
-  const existingRatio = Math.min(existingCommittedUsdc / maxAmount, 1)
-  const newRatio = Math.min(amount / maxAmount, 1)
-  const totalCommitted = existingCommittedUsdc + amount
-  const totalArm = Math.round(totalCommitted)
+  const showActiveAmount = hasActiveAmount(amountInput)
+  const amount = parseActiveAmount(amountInput, remainingCap)
   const hasNewAmount = amount > 0
   const hasExisting = existingCommittedUsdc > 0
 
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''))
-    if (isNaN(val)) {
-      setAmount(0)
-    } else {
-      setAmount(Math.min(val, remainingCap))
+  function handleInput(raw: string) {
+    const next = sanitizeAmountInput(raw)
+    if (!hasActiveAmount(next)) {
+      setAmountInput('')
+      return
     }
+    if (next.endsWith('.')) {
+      const val = parseFloat(next)
+      if (!Number.isNaN(val) && val > remainingCap) {
+        setAmountInput(String(remainingCap))
+      } else {
+        setAmountInput(next)
+      }
+      return
+    }
+    const val = parseFloat(next)
+    if (Number.isNaN(val)) {
+      setAmountInput('')
+      return
+    }
+    const capped = Math.min(val, remainingCap)
+    setAmountInput(hasActiveAmount(String(capped)) ? String(capped) : '')
   }
 
   const formatBalance = (n: number) =>
@@ -68,25 +86,25 @@ export default function Step2Commit({
 
           <label className={styles.amountWrapper} htmlFor="commit-amount">
             <span className={styles.visuallyHidden}>Amount in USDC</span>
-            <span className={styles.amountField}>
+            <span
+              className={[styles.amountField, showActiveAmount && styles.amountFieldHasValue]
+                .filter(Boolean)
+                .join(' ')}
+            >
               <span
-                className={[
-                  styles.amountDisplay,
-                  hasNewAmount ? styles.amountDisplayActive : '',
-                ]
+                className={[styles.amountDisplay, showActiveAmount && styles.amountDisplayActive]
                   .filter(Boolean)
                   .join(' ')}
                 aria-hidden="true"
               >
-                {hasNewAmount ? amount.toLocaleString() : '0'}
+                {showActiveAmount ? amountInput : '0'}
               </span>
               <input
                 id="commit-amount"
-                type="number"
-                min={0}
-                max={remainingCap}
-                value={amount === 0 ? '' : amount}
-                onChange={handleInput}
+                type="text"
+                inputMode="decimal"
+                value={amountInput}
+                onChange={(e) => handleInput(e.target.value)}
                 className={styles.amountInput}
                 aria-labelledby="commit-title"
                 aria-describedby="commit-max commit-available"
@@ -99,62 +117,18 @@ export default function Step2Commit({
           </p>
         </div>
 
-        <div className={styles.allocationBlock}>
-          <div
-            className={styles.barTrack}
-            role="progressbar"
-            aria-valuenow={Math.round((existingRatio + newRatio) * 100)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Committed amount progress"
-          >
-            {hasExisting && (
-              <div
-                className={styles.barFillExisting}
-                style={{ width: `${existingRatio * 100}%` }}
-              />
-            )}
-            {hasNewAmount && (
-              <div className={styles.barFillNew} style={{ width: `${newRatio * 100}%` }} />
-            )}
-          </div>
-          <div className={styles.allocationRow}>
-            <div className={styles.allocationLeft}>
-              <span className={styles.allocationLabel}>EST. ARM ALLOCATION</span>
-              <Tooltip
-                variant="rich"
-                title="EST. ARM Allocation"
-                description="Your estimated allocation based on the amount committed."
-                bullets={[
-                  '1 ARM per 1 USDC committed',
-                  'Final allocation confirmed at close',
-                  'Subject to pool cap',
-                ]}
-              >
-                <button
-                  type="button"
-                  className={styles.infoTrigger}
-                  aria-label="Estimated ARM allocation details"
-                >
-                  <InformationCircleIcon className={styles.infoIcon} aria-hidden />
-                </button>
-              </Tooltip>
-            </div>
-            <div className={styles.allocationRight}>
-              <span
-                className={
-                  hasNewAmount || hasExisting ? styles.allocationValueActive : styles.allocationValue
-                }
-              >
-                {totalArm.toLocaleString()}
-              </span>
-              <span className={styles.allocationDivider} aria-hidden="true">
-                /
-              </span>
-              <span className={styles.allocationMax}>{maxArm.toLocaleString()} ARM</span>
-            </div>
-          </div>
-        </div>
+        <ArmAllocationBlock
+          maxArm={maxArm}
+          newAmount={amount}
+          existingCommittedUsdc={existingCommittedUsdc}
+          progressAriaLabel="Committed amount progress"
+          tooltipDescription="Your estimated allocation based on the amount committed."
+          tooltipBullets={[
+            '1 ARM per 1 USDC committed',
+            'Final allocation confirmed at close',
+            'Subject to pool cap',
+          ]}
+        />
       </div>
 
       <div className={styles.buttonRow}>

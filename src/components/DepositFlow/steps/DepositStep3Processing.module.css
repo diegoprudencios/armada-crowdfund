@@ -1,0 +1,185 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-8);
+  width: 100%;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitives-spacing-2);
+  border: 1px solid var(--semantic-color-border-amber);
+  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
+  padding: var(--primitives-spacing-1) var(--primitives-spacing-3);
+}
+
+.statusDot {
+  width: var(--primitives-spacing-2);
+  height: var(--primitives-spacing-2);
+  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
+  background: var(--semantic-color-brand-amber);
+  flex-shrink: 0;
+}
+
+.statusLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-weight: var(--primitives-fontWeight-medium);
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  color: var(--semantic-color-brand-amber);
+}
+
+.eta {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-weight: var(--primitives-fontWeight-regular);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  color: var(--semantic-color-text-muted);
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+}
+
+.iconComplete,
+.iconInactive {
+  width: var(--primitives-spacing-5);
+  height: var(--primitives-spacing-5);
+  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconComplete {
+  background: var(--semantic-color-status-success);
+  color: var(--semantic-color-text-primary);
+}
+
+.iconInactive {
+  border: 1.5px solid var(--semantic-color-border-default);
+  box-sizing: border-box;
+}
+
+.iconActive {
+  width: var(--primitives-spacing-5);
+  height: var(--primitives-spacing-5);
+  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
+  border: 2px solid var(--semantic-color-border-default);
+  border-top-color: var(--semantic-color-brand-lavender);
+  flex-shrink: 0;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconActive {
+    animation: none;
+  }
+}
+
+.itemLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-weight: var(--primitives-fontWeight-regular);
+  font-size: calc(var(--primitives-fontSize-md) * 1px);
+}
+
+.itemLabelActive {
+  color: var(--semantic-color-text-primary);
+}
+
+.itemLabelInactive {
+  color: var(--semantic-color-text-muted);
+}
+
+.accordionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitives-spacing-2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-weight: var(--primitives-fontWeight-regular);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  color: var(--semantic-color-text-muted);
+}
+
+.accordionToggle:hover {
+  color: var(--semantic-color-text-secondary);
+}
+
+.chevron {
+  width: var(--primitives-spacing-4);
+  height: var(--primitives-spacing-4);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.details {
+  background: var(--semantic-color-surface-raised);
+  border: 1px solid var(--semantic-color-border-default);
+  border-radius: calc(var(--semantic-borderRadius-item) * 1px);
+  padding: var(--primitives-spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-1);
+}
+
+.detailLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-weight: var(--primitives-fontWeight-medium);
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  color: var(--semantic-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--primitives-letterSpacing-widest);
+}
+
+.detailValue {
+  font-family: var(--primitives-fontFamily-mono), monospace;
+  font-weight: var(--primitives-fontWeight-regular);
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  color: var(--semantic-color-text-secondary);
+  word-break: break-all;
+}
+
+.cancelRow {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}

@@ -1,4 +1,10 @@
+import { useState } from 'react'
 import { Button } from '../components/Button'
+import {
+  DepositAmountCard,
+  type DepositChainId,
+} from '../components/DepositAmountCard/DepositAmountCard'
+import { DepositFlow } from '../components/DepositFlow/DepositFlow'
 import { Tag } from '../components/Tag'
 import { NavBar } from '../components/NavBar'
 import { Header } from '../components/Header'
@@ -48,6 +54,41 @@ const NAV_ITEMS = [
   { label: 'Claim' },
 ]
 
+function DepositAmountCardShowcase() {
+  const [amount, setAmount] = useState('')
+  const [chain, setChain] = useState<DepositChainId>('sepolia')
+
+  return (
+    <DepositAmountCard
+      chain={chain}
+      onChainChange={setChain}
+      amount={amount}
+      onAmountChange={setAmount}
+      balance="1,240.50"
+      fee="0.12"
+      onMax={() => setAmount('1240.50')}
+      maxArm={4000}
+    />
+  )
+}
+
+function DepositFlowShowcase() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <Button
+        variant="primary"
+        size="md"
+        label={open ? 'Close deposit flow' : 'Open deposit flow'}
+        showIcon={false}
+        onClick={() => setOpen((value) => !value)}
+      />
+      {open ? <DepositFlow onClose={() => setOpen(false)} /> : null}
+    </>
+  )
+}
+
 export function Showcase() {
   return (
     <div style={{ minHeight: '100vh', background: '#0e0d0f', paddingTop: 56 }}>
@@ -58,6 +99,20 @@ export function Showcase() {
         walletCopyAddress="0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c"
         walletProvider="metamask"
       />
+
+      {/* DepositAmountCard */}
+      <section style={sectionStyle}>
+        <div style={eyebrow}>DEPOSIT AMOUNT CARD (WITH ARM ALLOCATION)</div>
+        <div style={{ maxWidth: 480, width: '100%' }}>
+          <DepositAmountCardShowcase />
+        </div>
+      </section>
+
+      {/* DepositFlow */}
+      <section style={sectionStyle}>
+        <div style={eyebrow}>DEPOSIT FLOW</div>
+        <DepositFlowShowcase />
+      </section>
 
       {/* Button */}
       <section style={sectionStyle}>
