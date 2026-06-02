@@ -4,7 +4,7 @@ import { Header } from '../Header'
 import { Tag } from '../Tag/Tag'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import Tooltip from '../Tooltip/Tooltip'
-import SlotCard from '../InviteFlow/screens/SlotCard'
+import { InvitesCard } from './InvitesCard'
 import { NodeSphere } from '../../pages/NodeSphere'
 import {
   buildInvitePinnedNodes,
@@ -126,23 +126,16 @@ export function MyPositionSplit() {
               </div>
             </section>
 
-            <section className={styles.inviteCard} aria-label="Your invites">
-              <h2 className={styles.inviteTitle}>Your Invites</h2>
-              <div className={styles.slotList}>
-                {DEMO_SLOTS.map((slot) => (
-                  <SlotCard
-                    key={slot.id}
-                    slot={slot}
-                    onGenerateLink={handleGenerateLink}
-                    onCopy={handleCopy}
-                    onRevoke={handleRevoke}
-                    onInviteOnchain={handleInviteOnchain}
-                    copied={copiedId === slot.id}
-                    loading={loadingId === slot.id}
-                  />
-                ))}
-              </div>
-            </section>
+            <InvitesCard
+              variant="split"
+              slots={DEMO_SLOTS}
+              onGenerateLink={handleGenerateLink}
+              onCopy={handleCopy}
+              onRevoke={handleRevoke}
+              onInviteOnchain={handleInviteOnchain}
+              copiedSlotId={copiedId}
+              loadingSlotId={loadingId}
+            />
           </div>
         </aside>
       </main>

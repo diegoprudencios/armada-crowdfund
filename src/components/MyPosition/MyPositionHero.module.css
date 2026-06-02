@@ -48,7 +48,8 @@
   flex-direction: column;
   width: 582px;
   max-width: 100%;
-  min-height: var(--hero-progress-card-height, 520px);
+  height: 312px;
+  min-height: 312px;
   background: var(--semantic-color-surface-default);
   border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
@@ -190,47 +191,6 @@
   font-weight: var(--primitives-fontWeight-medium);
   line-height: var(--primitives-lineHeight-normal);
   color: var(--semantic-color-text-secondary);
-}
-
-/* ── Invites card ── */
-
-.inviteCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-4);
-  width: 100%;
-  max-height: var(--hero-corner-max-height, calc(100vh - 120px));
-  background: var(--semantic-color-surface-default);
-  border: 1px solid var(--semantic-color-border-default);
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-  padding: var(--semantic-spacing-card-padding);
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.inviteTitle {
-  margin: 0;
-  flex-shrink: 0;
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-xl) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  line-height: var(--primitives-lineHeight-snug);
-  color: var(--semantic-color-text-primary);
-}
-
-.slotList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-3);
-  max-height: calc(var(--hero-corner-max-height, calc(100vh - 120px)) - 72px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-.slotList > * {
-  flex-shrink: 0;
 }
 
 @media (max-width: 1100px) {

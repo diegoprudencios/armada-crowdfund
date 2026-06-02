@@ -127,3 +127,22 @@
   height: 100%;
 }
 
+/* ≤1440px — same breakpoint as InvitesCard (constants/viewportBreakpoints.ts) */
+@media (max-width: 1440px) {
+  .leftStack > :first-child {
+    width: 100%;
+    max-width: 480px;
+  }
+}
+
+/* <800px tall + list open — hide Progress so the address list fills the left column */
+@media (max-height: 799px) {
+  .leftCornerExpanded .leftStack {
+    gap: 0;
+  }
+
+  .leftCornerExpanded .leftStack > :first-child {
+    display: none;
+  }
+}
+

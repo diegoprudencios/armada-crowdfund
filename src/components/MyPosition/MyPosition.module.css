@@ -175,34 +175,6 @@
   color: var(--semantic-color-text-secondary);
 }
 
-/* ── Invites container ── */
-
-.inviteCard {
-  background: var(--semantic-color-surface-default);
-  border: 1px solid var(--semantic-color-border-default);
-  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
-  padding: var(--semantic-spacing-card-padding);
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-4);
-  min-width: 0;
-}
-
-.inviteTitle {
-  margin: 0;
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-xl) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  line-height: var(--primitives-lineHeight-snug);
-  color: var(--semantic-color-text-primary);
-}
-
-.slotList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-3);
-}
-
 /* ── Invite graph (NodeSphere) ── */
 
 .graphSection {

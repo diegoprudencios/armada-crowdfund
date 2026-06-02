@@ -24,6 +24,11 @@ export const GRAPH_PARTICIPANTS = 5 as const
 export const DEMO_WALLET = '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c'
 export const DEMO_WALLET_DISPLAY = '0x1a2b...9a3c'
 
+/** Empty invite slots still available — for “X of Y” header count on My Position. */
+export function countAvailableInviteSlots(slots: SlotData[]): number {
+  return slots.filter((slot) => slot.status === 'empty').length
+}
+
 export const DEMO_SLOTS: SlotData[] = [
   {
     id: 1,

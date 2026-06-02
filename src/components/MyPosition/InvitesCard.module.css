@@ -1,0 +1,127 @@
+/* ABOUTME: My Position invites panel — title row, available/total count, collapsible slot list. */
+
+/* Collapse invites by default at ≤1440px — see constants/viewportBreakpoints.ts */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-4);
+  width: 100%;
+  background: var(--semantic-color-surface-default);
+  border: 1px solid var(--semantic-color-border-default);
+  border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
+  padding: var(--semantic-spacing-card-padding);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.rootHero {
+  max-height: var(--hero-corner-max-height, calc(100vh - 120px));
+  overflow: hidden;
+}
+
+.rootSplit {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: calc(var(--semantic-borderRadius-button) * 1px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--semantic-color-brand-lavender);
+  outline-offset: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xl) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  line-height: var(--primitives-lineHeight-snug);
+  color: var(--semantic-color-text-primary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--primitives-spacing-2);
+  flex-shrink: 0;
+}
+
+.count {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  line-height: var(--primitives-lineHeight-normal);
+  font-variant-numeric: tabular-nums;
+  color: var(--semantic-color-text-secondary);
+  white-space: nowrap;
+}
+
+.chevron {
+  width: calc(var(--primitives-fontSize-md) * 1px);
+  height: calc(var(--primitives-fontSize-md) * 1px);
+  flex-shrink: 0;
+  color: var(--semantic-color-text-muted);
+  transition: transform 0.15s ease;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.slotList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+}
+
+.slotList > * {
+  flex-shrink: 0;
+}
+
+.rootHero .slotList {
+  max-height: calc(var(--hero-corner-max-height, calc(100vh - 120px)) - 72px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rootSplit .slotList {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.slotListCollapsed {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .rootSplit {
+    flex: 0 0 auto;
+    max-height: none;
+  }
+
+  .rootSplit .slotList {
+    overflow: visible;
+  }
+}

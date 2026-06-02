@@ -6,7 +6,7 @@ import { Participate } from '../components/Participate'
 import { HeroParticipantsPanel, type HeroParticipant } from '../components/HeroParticipantsPanel'
 import { Tag } from '../components/Tag/Tag'
 import Tooltip from '../components/Tooltip/Tooltip'
-import SlotCard from '../components/InviteFlow/screens/SlotCard'
+import { InvitesCard } from '../components/MyPosition/InvitesCard'
 import {
   ParticipateFlowCrowdfund,
   type ParticipateFlowCloseContext,
@@ -138,7 +138,6 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
 
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
   const leftStackRef = useRef<HTMLDivElement | null>(null)
-
   const HERO_EXPAND_MS = 380
   const isCrowdfund = view === 'crowdfund'
   const isMyPosition = view === 'myposition'
@@ -544,23 +543,16 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
           aria-hidden={!myPositionPanelVisible}
         >
-          <section className={mpStyles.inviteCard} aria-label="Your invites">
-            <h2 className={mpStyles.inviteTitle}>Your Invites</h2>
-            <div className={mpStyles.slotList}>
-              {slots.map((slot) => (
-                <SlotCard
-                  key={slot.id}
-                  slot={slot}
-                  onGenerateLink={generateSlotLink}
-                  onCopy={handleCopy}
-                  onRevoke={revokeSlot}
-                  onInviteOnchain={inviteSlotOnchain}
-                  copied={copiedId === slot.id}
-                  loading={loadingSlotId === slot.id}
-                />
-              ))}
-            </div>
-          </section>
+          <InvitesCard
+            variant="hero"
+            slots={slots}
+            onGenerateLink={generateSlotLink}
+            onCopy={handleCopy}
+            onRevoke={revokeSlot}
+            onInviteOnchain={inviteSlotOnchain}
+            copiedSlotId={copiedId}
+            loadingSlotId={loadingSlotId}
+          />
         </div>
       </div>
 
