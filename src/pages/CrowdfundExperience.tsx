@@ -28,9 +28,10 @@ import {
 } from '../components/MyPosition/myPositionDemo'
 import { NodeSphere, type PinnedNode } from './NodeSphere'
 import { generateDashboardParticipants, toHeroParticipants } from '../utils/mockParticipants'
-import heroStyles from './Hero.module.css'
+import { MOBILE_LAYOUT_MAX_WIDTH_PX } from '../constants/viewportBreakpoints'
 import mpStyles from '../components/MyPosition/MyPositionHero.module.css'
 import shellStyles from './CrowdfundExperience.module.css'
+import heroStyles from './Hero.module.css'
 
 export type CrowdfundView = 'crowdfund' | 'myposition'
 
@@ -50,6 +51,11 @@ function readInitialView(prop?: CrowdfundView): CrowdfundView {
 const PANEL_EXIT_MS = 480
 const PANEL_GAP_MS = 180
 const PANEL_ENTER_MS = 480
+
+function isMobileLayout() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(`(max-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX}px)`).matches
+}
 
 type PanelPhase = 'idle' | 'exit' | 'enter'
 
@@ -112,7 +118,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [view, setView] = useState<CrowdfundView>(() => readInitialView(initialView))
   const [graphMode, setGraphMode] = useState<CrowdfundView>(() => readInitialView(initialView))
   const [panelPhase, setPanelPhase] = useState<PanelPhase>('idle')
-  const [motionReady, setMotionReady] = useState(false)
+  const [motionReady, setMotionReady] = useState(() => isMobileLayout())
+  const [mountGraph, setMountGraph] = useState(() => !isMobileLayout())
   const panelTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const committedAmount = 1_700_000
@@ -152,8 +159,41 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const graphParticipants = scenario.current!.participants
 
   useEffect(() => {
+    if (isMobileLayout()) {
+      setMotionReady(true)
+      return
+    }
     const id = requestAnimationFrame(() => setMotionReady(true))
     return () => cancelAnimationFrame(id)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileLayout()) {
+      setMountGraph(true)
+      return
+    }
+
+    let cancelled = false
+    const mount = () => {
+      if (!cancelled) setMountGraph(true)
+    }
+
+    let cleanup: () => void
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(mount, { timeout: 400 })
+      cleanup = () => {
+        cancelled = true
+        window.cancelIdleCallback(id)
+      }
+    } else {
+      const timer = window.setTimeout(mount, 32)
+      cleanup = () => {
+        cancelled = true
+        window.clearTimeout(timer)
+      }
+    }
+
+    return cleanup
   }, [])
 
   useEffect(() => {
@@ -183,6 +223,11 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     setPanelPhase('exit')
     clearPanelTransition()
 
+    const mobile = isMobileLayout()
+    const exitMs = mobile ? 0 : PANEL_EXIT_MS
+    const gapMs = mobile ? 0 : PANEL_GAP_MS
+    const enterMs = mobile ? 0 : PANEL_ENTER_MS
+
     panelTransitionTimer.current = setTimeout(() => {
       setView(next)
       syncUrl(next)
@@ -191,8 +236,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
       panelTransitionTimer.current = setTimeout(() => {
         setPanelPhase('idle')
         panelTransitionTimer.current = null
-      }, PANEL_ENTER_MS)
-    }, PANEL_EXIT_MS + PANEL_GAP_MS)
+      }, enterMs)
+    }, exitMs + gapMs)
   }
 
   useLayoutEffect(() => {
@@ -377,33 +422,35 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
 
       <div className={shellStyles.experienceLayout}>
         <div className={shellStyles.graphHost}>
-          <NodeSphere
-            key={graphLayoutKey}
-            highlightAddress={
-              isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
-            }
-            onSelectAddress={setSelectedAddress}
-            filterKind={
-              isGraphCrowdfund
-                ? filter === 'seed'
-                  ? 'Hop 0'
-                  : filter === 'hop1'
-                    ? 'Hop 1'
-                    : filter === 'hop2'
-                      ? 'Hop 2'
-                      : filter === 'multihop'
-                        ? 'Multi-hop'
-                        : undefined
-                : undefined
-            }
-            walletAddress={wallet?.displayAddress}
-            lockOnWallet={isGraphMyPosition}
-            inviteGraph={isGraphMyPosition}
-            interactionDisabled={isGraphCrowdfund && participantsListOpen}
-            scenarioParticipants={graphParticipants}
-            scenarioSeed={scenario.current!.seed}
-            pinnedNodes={graphPinnedNodes}
-          />
+          {mountGraph ? (
+            <NodeSphere
+              key={graphLayoutKey}
+              highlightAddress={
+                isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
+              }
+              onSelectAddress={setSelectedAddress}
+              filterKind={
+                isGraphCrowdfund
+                  ? filter === 'seed'
+                    ? 'Hop 0'
+                    : filter === 'hop1'
+                      ? 'Hop 1'
+                      : filter === 'hop2'
+                        ? 'Hop 2'
+                        : filter === 'multihop'
+                          ? 'Multi-hop'
+                          : undefined
+                  : undefined
+              }
+              walletAddress={wallet?.displayAddress}
+              lockOnWallet={isGraphMyPosition}
+              inviteGraph={isGraphMyPosition}
+              interactionDisabled={isGraphCrowdfund && participantsListOpen}
+              scenarioParticipants={graphParticipants}
+              scenarioSeed={scenario.current!.seed}
+              pinnedNodes={graphPinnedNodes}
+            />
+          ) : null}
         </div>
 
         {isCrowdfund && crowdfundPanelVisible ? (
