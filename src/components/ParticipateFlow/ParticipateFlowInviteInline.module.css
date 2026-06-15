@@ -17,3 +17,13 @@
   flex-shrink: 0;
   overflow: hidden;
 }
+
+@media (max-width: 767px) {
+  .slot,
+  .step,
+  .invitesWrap {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+  }
+}

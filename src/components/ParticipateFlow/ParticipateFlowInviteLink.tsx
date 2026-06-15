@@ -270,7 +270,9 @@ export function ParticipateFlowInviteLink({
           />
         )
         return presentation === 'inline' ? (
-          <div className={inlineStyles.invitesWrap}>{invites}</div>
+          <div className={inlineStyles.invitesWrap} data-flow-shell>
+            {invites}
+          </div>
         ) : (
           invites
         )
@@ -291,8 +293,10 @@ export function ParticipateFlowInviteLink({
     if (!open) return null
 
     return (
-      <div className={inlineStyles.slot}>
-        <div className={inlineStyles.step}>{stepContent}</div>
+      <div className={inlineStyles.slot} data-flow-shell>
+        <div className={inlineStyles.step} data-flow-shell>
+          {stepContent}
+        </div>
       </div>
     )
   }

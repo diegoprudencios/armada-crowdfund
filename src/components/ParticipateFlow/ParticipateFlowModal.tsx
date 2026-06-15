@@ -4,6 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import styles from './ParticipateFlowModal.module.css'
 
 const EXIT_MS = 280
+const CLOSE_ICON_PX = 20
+const ARMADA_SYMBOL_SRC = `${import.meta.env.BASE_URL}armada-symbol-color.png`
 
 export interface ParticipateFlowModalProps {
   open: boolean
@@ -63,6 +65,14 @@ export function ParticipateFlowModal({
       className={[styles.backdrop, exiting && styles.backdropExit].join(' ')}
       role="presentation"
     >
+      <img
+        src={ARMADA_SYMBOL_SRC}
+        alt=""
+        width={40}
+        height={40}
+        className={styles.mobileLogo}
+        aria-hidden
+      />
       <div
         className={[styles.panel, exiting && styles.panelExit].join(' ')}
         role="dialog"
@@ -76,7 +86,7 @@ export function ParticipateFlowModal({
           onClick={onClose}
           aria-label="Close participate flow"
         >
-          <XMarkIcon width={16} height={16} aria-hidden />
+          <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
         </button>
         <div className={[styles.step, exiting && styles.stepExit].join(' ')}>{children}</div>
       </div>

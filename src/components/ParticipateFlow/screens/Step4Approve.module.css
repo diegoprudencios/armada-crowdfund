@@ -116,6 +116,16 @@
   margin: 0;
 }
 
+@media (max-width: 767px) {
+  .content {
+    gap: var(--primitives-spacing-6);
+  }
+
+  .footer {
+    margin-top: var(--primitives-spacing-2);
+  }
+}
+
 /* Visually hidden — accessible but not visible */
 .visuallyHidden {
   position: absolute;

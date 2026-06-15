@@ -36,3 +36,17 @@
 .buttonRow > * {
   flex: 1;
 }
+
+@media (max-width: 767px) {
+  .overlay {
+    padding:
+      calc(56px + var(--primitives-spacing-5))
+      var(--primitives-spacing-5)
+      var(--primitives-spacing-6);
+  }
+
+  .column {
+    max-width: none;
+    padding: 0;
+  }
+}

@@ -1,6 +1,7 @@
 .card {
-  width: 480px;
-  min-width: 480px;
+  width: 100%;
+  max-width: 480px;
+  min-width: 0;
   height: 500px;
   flex-shrink: 0;
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
@@ -9,6 +10,7 @@
   grid-template-areas: 'stack';
   position: relative;
   isolation: isolate;
+  box-sizing: border-box;
 }
 
 .media,
@@ -47,6 +49,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--primitives-spacing-3);
+  min-width: 0;
 }
 
 .metaLabel {
@@ -56,6 +60,7 @@
   letter-spacing: var(--primitives-letterSpacing-widest);
   text-transform: uppercase;
   color: var(--semantic-color-text-primary);
+  flex-shrink: 0;
 }
 
 .bottom {
@@ -92,6 +97,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--primitives-spacing-6);
+  min-width: 0;
 }
 
 /* Path 1 invite landing — matches design system 480×500 shell */
@@ -118,4 +124,15 @@
 .footerLanding {
   align-items: center;
   gap: var(--primitives-spacing-6);
+}
+
+@media (max-width: 767px) {
+  .card {
+    height: auto;
+    min-height: min(500px, 70dvh);
+  }
+
+  .cardLanding {
+    max-width: none;
+  }
 }

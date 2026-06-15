@@ -1,0 +1,17 @@
+/* Mobile layout — ≤767px. Horizontal inset and flow shells use --primitives-spacing-5 (20px). */
+
+@media (max-width: 767px) {
+  [data-flow-shell] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0;
+    max-height: calc(100dvh - 56px - var(--primitives-spacing-5) * 3);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start !important;
+    gap: var(--primitives-spacing-8);
+  }
+}

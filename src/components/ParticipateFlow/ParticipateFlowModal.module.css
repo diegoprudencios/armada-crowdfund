@@ -42,28 +42,32 @@
 
 .close {
   flex-shrink: 0;
-  width: var(--primitives-spacing-8);
-  height: var(--primitives-spacing-8);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: var(--primitives-spacing-12);
+  height: var(--primitives-spacing-12);
   padding: 0;
-  border: 1px solid var(--semantic-component-button-secondary-border);
-  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
-  background: transparent;
-  color: var(--semantic-color-text-primary);
+  margin: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primitives-color-white-full) 20%, transparent);
+  color: var(--primitives-color-white-full);
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
+  transition: background 150ms ease;
 }
 
 .close:hover {
-  border-color: var(--semantic-component-button-secondary-border-hover);
-  background: color-mix(in srgb, var(--semantic-color-surface-raised) 40%, transparent);
+  background: color-mix(in srgb, var(--primitives-color-white-full) 28%, transparent);
 }
 
 .close:focus-visible {
-  outline: 2px solid var(--semantic-color-border-focus);
+  outline: 2px solid var(--primitives-color-white-full);
   outline-offset: 2px;
+}
+
+.mobileLogo {
+  display: none;
 }
 
 @keyframes modalBackdropIn {
@@ -121,5 +125,46 @@
   }
   to {
     opacity: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .backdrop {
+    align-items: flex-start;
+    padding:
+      calc(var(--primitives-spacing-5) + 40px + var(--primitives-spacing-5))
+      var(--primitives-spacing-5)
+      var(--primitives-spacing-5);
+  }
+
+  .mobileLogo {
+    display: block;
+    position: fixed;
+    top: var(--primitives-spacing-5);
+    left: var(--primitives-spacing-5);
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    z-index: 201;
+    pointer-events: none;
+  }
+
+  .close {
+    position: fixed;
+    top: var(--primitives-spacing-5);
+    right: var(--primitives-spacing-5);
+    z-index: 201;
+  }
+
+  .panel {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .step {
+    min-width: 0;
   }
 }

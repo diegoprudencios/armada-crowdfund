@@ -26,7 +26,7 @@ export function ParticipateFlowInviteSlots({
 }: ParticipateFlowInviteSlotsProps) {
   return (
     <div className={styles.layout}>
-      <div className={[inviteStyles.shell, styles.shell].join(' ')}>
+      <div className={[inviteStyles.shell, styles.shell].join(' ')} data-flow-shell>
         <div className={inviteStyles.header}>
           <h2 className={inviteStyles.title}>Your invites</h2>
           <p className={inviteStyles.subtitle}>

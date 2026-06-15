@@ -7,6 +7,7 @@ import { CrowdfundLeftColumn } from '../components/CrowdfundLeftColumn'
 import {
   HeroParticipantControls,
   HeroParticipantList,
+  HeroParticipantsMobileStack,
   type HeroParticipant,
 } from '../components/HeroParticipantsPanel'
 import { Tag } from '../components/Tag/Tag'
@@ -142,6 +143,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [pendingParticipateOpen, setPendingParticipateOpen] = useState(false)
 
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
+  const mobileParticipantsRef = useRef<HTMLDivElement | null>(null)
   const leftColumnRef = useRef<HTMLDivElement | null>(null)
   const isCrowdfund = view === 'crowdfund'
   const isMyPosition = view === 'myposition'
@@ -219,8 +221,10 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     if (!isCrowdfund || !selectedAddress) return
 
     const onPointerDown = (e: PointerEvent) => {
-      const el = participantsPanelRef.current
-      if (el && el.contains(e.target as Node)) return
+      const desktop = participantsPanelRef.current
+      const mobile = mobileParticipantsRef.current
+      if (desktop?.contains(e.target as Node)) return
+      if (mobile?.contains(e.target as Node)) return
       setSelectedAddress(undefined)
     }
 
@@ -354,35 +358,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
 
   return (
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
-      <NodeSphere
-        key={graphLayoutKey}
-        highlightAddress={
-          isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
-        }
-        onSelectAddress={setSelectedAddress}
-        filterKind={
-          isGraphCrowdfund
-            ? filter === 'seed'
-              ? 'Hop 0'
-              : filter === 'hop1'
-                ? 'Hop 1'
-                : filter === 'hop2'
-                  ? 'Hop 2'
-                  : filter === 'multihop'
-                    ? 'Multi-hop'
-                    : undefined
-            : undefined
-        }
-        walletAddress={wallet?.displayAddress}
-        lockOnWallet={isGraphMyPosition}
-        inviteGraph={isGraphMyPosition}
-        interactionDisabled={isGraphCrowdfund && participantsListOpen}
-        scenarioParticipants={graphParticipants}
-        scenarioSeed={scenario.current!.seed}
-        pinnedNodes={graphPinnedNodes}
-      />
-
       <Header
+        layout="hero"
         activeNav={isMyPosition ? 'myposition' : 'crowdfund'}
         walletConnected={walletConnected}
         walletAddress={wallet?.displayAddress ?? ''}
@@ -398,130 +375,178 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         onConnectWallet={() => setConnectOpen(true)}
       />
 
-      <div
-        className={[
-          heroStyles.leftCorner,
-          shellStyles.leftCorner,
-          isCrowdfund && participantsListOpen && heroStyles.leftCornerExpanded,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <div
-          className={layerClass(crowdfundPanelVisible, motionReady, crowdfundPanelAnimates)}
-          aria-hidden={!crowdfundPanelVisible}
-        >
-          <div ref={leftColumnRef}>
-            <CrowdfundLeftColumn
-              className={[heroStyles.enter, heroStyles.enterProgress].join(' ')}
-              listOpen={participantsListOpen}
-              onListOpenChange={setParticipantsListOpen}
-              progress={
-                <Progress
-                  participants={`${scenario.current!.participants} PARTICIPANTS`}
-                  committedAmount={committedAmount}
-                />
-              }
-              list={
-                <HeroParticipantList
-                  participants={displayParticipants}
-                  selectedAddress={selectedAddress}
-                  onSelectAddress={setSelectedAddress}
-                  filter={filter}
-                />
-              }
-              controls={
-                <div ref={participantsPanelRef}>
-                  <HeroParticipantControls filter={filter} onFilterChange={setFilter} />
-                </div>
-              }
+      <div className={shellStyles.experienceLayout}>
+        <div className={shellStyles.graphHost}>
+          <NodeSphere
+            key={graphLayoutKey}
+            highlightAddress={
+              isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
+            }
+            onSelectAddress={setSelectedAddress}
+            filterKind={
+              isGraphCrowdfund
+                ? filter === 'seed'
+                  ? 'Hop 0'
+                  : filter === 'hop1'
+                    ? 'Hop 1'
+                    : filter === 'hop2'
+                      ? 'Hop 2'
+                      : filter === 'multihop'
+                        ? 'Multi-hop'
+                        : undefined
+                : undefined
+            }
+            walletAddress={wallet?.displayAddress}
+            lockOnWallet={isGraphMyPosition}
+            inviteGraph={isGraphMyPosition}
+            interactionDisabled={isGraphCrowdfund && participantsListOpen}
+            scenarioParticipants={graphParticipants}
+            scenarioSeed={scenario.current!.seed}
+            pinnedNodes={graphPinnedNodes}
+          />
+        </div>
+
+        {isCrowdfund && crowdfundPanelVisible ? (
+          <div ref={mobileParticipantsRef} className={shellStyles.mobileParticipantsStack}>
+            <HeroParticipantsMobileStack
+              participants={displayParticipants}
+              selectedAddress={selectedAddress}
+              onSelectAddress={setSelectedAddress}
+              filter={filter}
+              onFilterChange={setFilter}
             />
           </div>
-        </div>
+        ) : null}
 
-        <div
-          className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
-          aria-hidden={!myPositionPanelVisible}
-        >
-          <section className={mpStyles.positionCard} aria-label="Your position">
-            <div className={mpStyles.cardHeader}>
-              <h1 className={mpStyles.pageTitle}>My Position</h1>
-              <div className={mpStyles.metaTags}>
-                {wallet && <Tag label={wallet.displayAddress} dot="lavender" />}
-                <Tag label={hopLabel} dot="lavender" />
-              </div>
-            </div>
-
-            <div className={mpStyles.positionFooter}>
-              <div className={mpStyles.statsRow}>
-                <div className={mpStyles.statBlock}>
-                  <p className={mpStyles.statLabel}>USDC committed</p>
-                  <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
-                </div>
-
-                <div className={mpStyles.statBlock}>
-                  <div className={mpStyles.statLabelRow}>
-                    <p className={mpStyles.statLabel}>ARM allocation</p>
-                    <Tooltip variant="centered" content="Estimated · pending finalization">
-                      <button
-                        type="button"
-                        className={mpStyles.infoTrigger}
-                        aria-label="ARM allocation info"
-                      >
-                        <InformationCircleIcon className={mpStyles.infoIcon} aria-hidden />
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <p className={mpStyles.statAmountAccent}>{formatArmAllocation(committedUsdc)}</p>
-                </div>
-              </div>
-
-              <div className={mpStyles.barSection}>
-                <div className={mpStyles.barTrack}>
-                  <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
-                </div>
-                <div className={mpStyles.barLabels}>
-                  <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of cap</span>
-                  <span className={mpStyles.barCaption}>Cap ${CAP.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <div className={[heroStyles.rightCorner, shellStyles.rightCorner].join(' ')}>
         <div
           className={[
-            layerClass(crowdfundPanelVisible, motionReady, crowdfundPanelAnimates),
-            shellStyles.rightParticipateLayer,
+            heroStyles.leftCorner,
+            shellStyles.leftCorner,
+            isCrowdfund && participantsListOpen && heroStyles.leftCornerExpanded,
           ]
             .filter(Boolean)
             .join(' ')}
-          aria-hidden={!crowdfundPanelVisible}
         >
-          <Participate
-            className={[heroStyles.enter, heroStyles.enterParticipate].join(' ')}
-            imageSrc="/fleet.png"
-            videoSrc="/fleet.mp4"
-            onCtaClick={openParticipateFlow}
-          />
+          <div
+            className={layerClass(crowdfundPanelVisible, motionReady, crowdfundPanelAnimates)}
+            aria-hidden={!crowdfundPanelVisible}
+          >
+            <div ref={leftColumnRef}>
+              <CrowdfundLeftColumn
+                className={[heroStyles.enter, heroStyles.enterProgress, shellStyles.mobileCrowdfundColumn]
+                  .filter(Boolean)
+                  .join(' ')}
+                listOpen={participantsListOpen}
+                onListOpenChange={setParticipantsListOpen}
+                progress={
+                  <Progress
+                    participants={`${scenario.current!.participants} PARTICIPANTS`}
+                    committedAmount={committedAmount}
+                  />
+                }
+                list={
+                  <HeroParticipantList
+                    participants={displayParticipants}
+                    selectedAddress={selectedAddress}
+                    onSelectAddress={setSelectedAddress}
+                    filter={filter}
+                  />
+                }
+                controls={
+                  <div ref={participantsPanelRef}>
+                    <HeroParticipantControls filter={filter} onFilterChange={setFilter} />
+                  </div>
+                }
+              />
+            </div>
+          </div>
+
+          <div
+            className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
+            aria-hidden={!myPositionPanelVisible}
+          >
+            <section className={mpStyles.positionCard} aria-label="Your position">
+              <div className={mpStyles.cardHeader}>
+                <h1 className={mpStyles.pageTitle}>My Position</h1>
+                <div className={mpStyles.metaTags}>
+                  {wallet && <Tag label={wallet.displayAddress} dot="lavender" />}
+                  <Tag label={hopLabel} dot="lavender" />
+                </div>
+              </div>
+
+              <div className={mpStyles.positionFooter}>
+                <div className={mpStyles.statsRow}>
+                  <div className={mpStyles.statBlock}>
+                    <p className={mpStyles.statLabel}>USDC committed</p>
+                    <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
+                  </div>
+
+                  <div className={mpStyles.statBlock}>
+                    <div className={mpStyles.statLabelRow}>
+                      <p className={mpStyles.statLabel}>ARM allocation</p>
+                      <Tooltip variant="centered" content="Estimated · pending finalization">
+                        <button
+                          type="button"
+                          className={mpStyles.infoTrigger}
+                          aria-label="ARM allocation info"
+                        >
+                          <InformationCircleIcon className={mpStyles.infoIcon} aria-hidden />
+                        </button>
+                      </Tooltip>
+                    </div>
+                    <p className={mpStyles.statAmountAccent}>{formatArmAllocation(committedUsdc)}</p>
+                  </div>
+                </div>
+
+                <div className={mpStyles.barSection}>
+                  <div className={mpStyles.barTrack}>
+                    <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
+                  </div>
+                  <div className={mpStyles.barLabels}>
+                    <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of cap</span>
+                    <span className={mpStyles.barCaption}>Cap ${CAP.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
 
-        <div
-          className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
-          aria-hidden={!myPositionPanelVisible}
-        >
-          <InvitesCard
-            variant="hero"
-            slots={slots}
-            onGenerateLink={generateSlotLink}
-            onCopy={handleCopy}
-            onRevoke={revokeSlot}
-            onInviteOnchain={inviteSlotOnchain}
-            copiedSlotId={copiedId}
-            loadingSlotId={loadingSlotId}
-          />
+        <div className={[heroStyles.rightCorner, shellStyles.rightCorner].join(' ')}>
+          <div
+            className={[
+              layerClass(crowdfundPanelVisible, motionReady, crowdfundPanelAnimates),
+              shellStyles.rightParticipateLayer,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            aria-hidden={!crowdfundPanelVisible}
+          >
+            <Participate
+              className={[heroStyles.enter, heroStyles.enterParticipate, shellStyles.mobileParticipateCard]
+                .filter(Boolean)
+                .join(' ')}
+              imageSrc="/fleet.png"
+              videoSrc="/fleet.mp4"
+              onCtaClick={openParticipateFlow}
+            />
+          </div>
+
+          <div
+            className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
+            aria-hidden={!myPositionPanelVisible}
+          >
+            <InvitesCard
+              variant="hero"
+              slots={slots}
+              onGenerateLink={generateSlotLink}
+              onCopy={handleCopy}
+              onRevoke={revokeSlot}
+              onInviteOnchain={inviteSlotOnchain}
+              copiedSlotId={copiedId}
+              loadingSlotId={loadingSlotId}
+            />
+          </div>
         </div>
       </div>
 

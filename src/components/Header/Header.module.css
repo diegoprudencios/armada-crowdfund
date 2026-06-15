@@ -35,6 +35,14 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  min-width: 0;
+}
+
+.logoFull {
+  display: block;
+  height: 32px;
+  width: auto;
+  max-width: 100%;
 }
 
 .actions {
@@ -42,6 +50,27 @@
   align-items: center;
   gap: var(--primitives-spacing-3);
   flex-shrink: 0;
+}
+
+.burgerBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--primitives-spacing-12);
+  height: var(--primitives-spacing-12);
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primitives-color-white-full) 20%, transparent);
+  color: var(--primitives-color-white-full);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.burgerBtn:focus-visible {
+  outline: 2px solid var(--primitives-color-white-full);
+  outline-offset: 2px;
 }
 
 .myPositionActive {
@@ -52,4 +81,36 @@
 .myPositionActive:hover:not(:disabled) {
   background: var(--semantic-component-navitem-active-bg) !important;
   color: var(--semantic-component-navitem-active-text) !important;
+}
+
+/* Crowdfund hero — mobile: full logo + burger; header scrolls with page */
+@media (max-width: 767px) {
+  .headerHero {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    height: auto;
+    min-height: calc(32px + var(--primitives-spacing-5));
+    padding: var(--primitives-spacing-5) var(--primitives-spacing-5) 0;
+    box-sizing: border-box;
+    background: rgba(14, 13, 15, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    --header-concealed-extra: 0px;
+  }
+
+  .headerHero .desktopNav,
+  .headerHero .actions {
+    display: none !important;
+  }
+
+  .headerHero .burgerBtn {
+    display: inline-flex;
+  }
+
+  .headerHeroMenuOpen {
+    display: none !important;
+  }
 }

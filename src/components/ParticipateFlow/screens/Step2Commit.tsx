@@ -70,7 +70,7 @@ export default function Step2Commit({
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-flow-shell>
       <Steps steps={[...steps]} currentStep={stepIndex} />
 
       <div className={styles.content}>
@@ -111,24 +111,25 @@ export default function Step2Commit({
               />
             </span>
           </label>
+        </div>
 
+        <div className={styles.allocationSection}>
           <p className={styles.availableLabel} id="commit-available">
             Available {formatBalance(availableBalance)}
           </p>
+          <ArmAllocationBlock
+            maxArm={maxArm}
+            newAmount={amount}
+            existingCommittedUsdc={existingCommittedUsdc}
+            progressAriaLabel="Committed amount progress"
+            tooltipDescription="Your estimated allocation based on the amount committed."
+            tooltipBullets={[
+              '1 ARM per 1 USDC committed',
+              'Final allocation confirmed at close',
+              'Subject to pool cap',
+            ]}
+          />
         </div>
-
-        <ArmAllocationBlock
-          maxArm={maxArm}
-          newAmount={amount}
-          existingCommittedUsdc={existingCommittedUsdc}
-          progressAriaLabel="Committed amount progress"
-          tooltipDescription="Your estimated allocation based on the amount committed."
-          tooltipBullets={[
-            '1 ARM per 1 USDC committed',
-            'Final allocation confirmed at close',
-            'Subject to pool cap',
-          ]}
-        />
       </div>
 
       <div className={styles.buttonRow}>

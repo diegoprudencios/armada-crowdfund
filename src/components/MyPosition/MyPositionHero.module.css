@@ -7,6 +7,15 @@
   overflow: hidden;
 }
 
+@media (max-width: 767px) {
+  .page {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
 .headerOverride {
   background: transparent !important;
   backdrop-filter: none !important;
@@ -200,5 +209,13 @@
 
   .rightCorner {
     width: min(480px, calc(40vw - var(--primitives-spacing-6)));
+  }
+}
+
+@media (max-width: 767px) {
+  .positionCard {
+    width: 100%;
+    height: auto;
+    min-height: 0;
   }
 }

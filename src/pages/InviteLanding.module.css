@@ -51,3 +51,21 @@
 .footerBtn {
   width: 100%;
 }
+
+@media (max-width: 767px) {
+  .page {
+    justify-content: flex-start;
+    padding:
+      calc(56px + var(--primitives-spacing-5))
+      var(--primitives-spacing-5)
+      var(--primitives-spacing-6);
+  }
+
+  .logo {
+    margin-bottom: var(--primitives-spacing-8);
+  }
+
+  .stack {
+    max-width: none;
+  }
+}

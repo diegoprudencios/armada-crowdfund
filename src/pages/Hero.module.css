@@ -79,6 +79,22 @@
   }
 }
 
+@media (max-width: 767px) {
+  .headerOverride {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    --header-concealed-extra: 0px;
+  }
+
+  .leftCorner {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 .rightCorner {
   position: absolute;
   right: var(--primitives-spacing-6);

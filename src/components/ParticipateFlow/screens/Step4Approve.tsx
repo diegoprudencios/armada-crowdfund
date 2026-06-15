@@ -50,7 +50,7 @@ export default function Step4Approve({
   }, [amount, onDone])
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-flow-shell>
       <Steps steps={[...steps]} currentStep={stepIndex} />
 
       <div className={styles.content}>

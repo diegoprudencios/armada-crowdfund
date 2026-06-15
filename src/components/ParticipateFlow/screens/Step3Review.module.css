@@ -146,3 +146,23 @@
 .buttonRow > * {
   flex: 1;
 }
+
+@media (max-width: 767px) {
+  .shell {
+    gap: var(--primitives-spacing-8);
+  }
+
+  .content {
+    padding-top: 0;
+  }
+
+  .buttonRow {
+    flex-direction: column-reverse;
+    gap: var(--primitives-spacing-3);
+  }
+
+  .buttonRow > * {
+    flex: none;
+    width: 100%;
+  }
+}

@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { ArmadaLogo } from '../ArmadaLogo'
 import { NavBar, NavBarItem } from '../NavBar'
 import { Button } from '../Button'
 import { WalletPillMenu } from './WalletPillMenu'
+import { HeaderMobileMenu } from './HeaderMobileMenu'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
@@ -24,9 +26,15 @@ export interface HeaderProps {
   className?: string
   /** Hide header when scrolling down; show when scrolling up (near top always visible). */
   autoHideOnScroll?: boolean
+  /**
+   * `hero` — crowdfund full-screen experience: floating header on desktop;
+   * on mobile, full logo + burger menu with nav/actions in a panel.
+   */
+  layout?: 'default' | 'hero'
 }
 
 const SCROLL_DELTA = 6
+const BURGER_ICON_PX = 20
 
 const MY_POSITION_PATH = `${import.meta.env.BASE_URL}?view=myposition`
 const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
@@ -47,9 +55,12 @@ export function Header({
   onConnectWallet,
   className,
   autoHideOnScroll = true,
+  layout = 'default',
 }: HeaderProps) {
   const [concealed, setConcealed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const lastY = useRef(0)
+  const mobileMenuId = useId()
 
   const handleCrowdfund = () => {
     if (onCrowdfund) {
@@ -70,6 +81,8 @@ export function Header({
       window.location.assign(MY_POSITION_PATH)
     }
   }
+
+  const closeMobileMenu = () => setMobileMenuOpen(false)
 
   const navItems = useMemo<NavBarItem[]>(
     () => [
@@ -107,59 +120,128 @@ export function Header({
     return () => window.removeEventListener('scroll', onScroll)
   }, [autoHideOnScroll])
 
-  return (
-    <header
-      className={[styles.header, concealed && styles.concealed, className].filter(Boolean).join(' ')}
-    >
-      <div className={styles.left}>
-        <div className={styles.logo}>
-          <ArmadaLogo />
-        </div>
-        <NavBar items={navItems} />
-      </div>
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMobileMenu()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mobileMenuOpen])
 
-      <div className={styles.actions}>
-        {walletConnected && (
-          <Button
-            variant="ghost"
-            size="md"
-            label="My position"
-            showIcon={false}
-            onClick={handleMyPosition}
-            className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
-          />
-        )}
-        {claimAvailable && (
-          <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
-        )}
-        {walletConnected ? (
-          <WalletPillMenu
-            displayAddress={walletAddress}
-            copyAddress={walletCopyAddress ?? walletAddress}
-            walletProvider={walletProvider}
-            usdcBalance={usdcBalance}
-            onDisconnect={onDisconnect}
-          />
-        ) : (
-          <Button
-            variant="secondary"
-            size="md"
-            label="Connect wallet"
-            showIcon={false}
-            onClick={onConnectWallet}
-          />
-        )}
-        {!claimAvailable && (
-          <Button
-            variant="gradient"
-            size="md"
-            label="Participate"
-            showIcon
-            icon="arrow-right-micro"
-            onClick={onParticipate}
-          />
-        )}
-      </div>
-    </header>
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileMenuOpen])
+
+  const headerClass = [
+    styles.header,
+    layout === 'hero' && styles.headerHero,
+    layout === 'hero' && mobileMenuOpen && styles.headerHeroMenuOpen,
+    concealed && styles.concealed,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <>
+      <header className={headerClass}>
+        <div className={styles.left}>
+          <div className={styles.logo}>
+            <ArmadaLogo variant="full" className={styles.logoFull} />
+          </div>
+          <NavBar items={navItems} className={styles.desktopNav} />
+        </div>
+
+        <div className={styles.actions}>
+          {walletConnected && (
+            <Button
+              variant="ghost"
+              size="md"
+              label="My position"
+              showIcon={false}
+              onClick={handleMyPosition}
+              className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
+            />
+          )}
+          {claimAvailable && (
+            <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
+          )}
+          {walletConnected ? (
+            <WalletPillMenu
+              displayAddress={walletAddress}
+              copyAddress={walletCopyAddress ?? walletAddress}
+              walletProvider={walletProvider}
+              usdcBalance={usdcBalance}
+              onDisconnect={onDisconnect}
+            />
+          ) : (
+            <Button
+              variant="secondary"
+              size="md"
+              label="Connect wallet"
+              showIcon={false}
+              onClick={onConnectWallet}
+            />
+          )}
+          {!claimAvailable && (
+            <Button
+              variant="gradient"
+              size="md"
+              label="Participate"
+              showIcon
+              icon="arrow-right-micro"
+              onClick={onParticipate}
+            />
+          )}
+        </div>
+
+        <button
+          type="button"
+          className={styles.burgerBtn}
+          aria-expanded={mobileMenuOpen}
+          aria-controls={mobileMenuId}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          {mobileMenuOpen ? (
+            <XMarkIcon width={BURGER_ICON_PX} height={BURGER_ICON_PX} aria-hidden />
+          ) : (
+            <Bars3Icon width={BURGER_ICON_PX} height={BURGER_ICON_PX} aria-hidden />
+          )}
+        </button>
+      </header>
+
+      {layout === 'hero' ? (
+        <HeaderMobileMenu
+          id={mobileMenuId}
+          open={mobileMenuOpen}
+          onClose={closeMobileMenu}
+          navItems={navItems}
+          myPositionItem={
+            walletConnected
+              ? {
+                  label: 'My Position',
+                  active: activeNav === 'myposition',
+                  onClick: handleMyPosition,
+                }
+              : undefined
+          }
+          walletConnected={walletConnected}
+          walletAddress={walletAddress}
+          walletCopyAddress={walletCopyAddress}
+          walletProvider={walletProvider}
+          usdcBalance={usdcBalance}
+          onDisconnect={onDisconnect}
+          onConnectWallet={onConnectWallet}
+          onParticipate={onParticipate}
+          claimAvailable={claimAvailable}
+          onClaim={onClaim}
+        />
+      ) : null}
+    </>
   )
 }

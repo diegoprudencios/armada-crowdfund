@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import HopPill, { type HopVariant } from '../../../HopPill/HopPill'
 import hopPillStyles from '../../../HopPill/HopPill.module.css'
 import JoinButton from '../../../JoinButton/JoinButton'
 import styles from './Step0Invite.module.css'
+
+const HOVER_EXPAND_QUERY = '(hover: hover) and (pointer: fine)'
 
 export interface Step0InviteProps {
   hopVariant?: HopVariant
@@ -24,10 +26,20 @@ export default function Step0Invite({
   className,
 }: Step0InviteProps) {
   const [joinExpanded, setJoinExpanded] = useState(false)
+  const [canHoverExpand, setCanHoverExpand] = useState(false)
   const isLanding = variant === 'landing'
+
+  useEffect(() => {
+    const media = window.matchMedia(HOVER_EXPAND_QUERY)
+    const sync = () => setCanHoverExpand(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
 
   return (
     <div
+      data-flow-shell
       className={[
         styles.card,
         isLanding && styles.cardLanding,
@@ -35,8 +47,12 @@ export default function Step0Invite({
       ]
         .filter(Boolean)
         .join(' ')}
-      onMouseEnter={() => setJoinExpanded(true)}
-      onMouseLeave={() => setJoinExpanded(false)}
+      onMouseEnter={() => {
+        if (canHoverExpand) setJoinExpanded(true)
+      }}
+      onMouseLeave={() => {
+        if (canHoverExpand) setJoinExpanded(false)
+      }}
     >
       <video
         className={styles.media}
