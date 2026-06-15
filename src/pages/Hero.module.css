@@ -93,14 +93,6 @@
     width: 100%;
     max-width: none;
   }
-
-  /* Show primary content immediately — no staggered fade-up on mobile */
-  .enter {
-    opacity: 1;
-    animation: none;
-    transform: none;
-    will-change: auto;
-  }
 }
 
 .rightCorner {
