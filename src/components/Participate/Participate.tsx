@@ -76,15 +76,24 @@ export function Participate({
       onFocus={play}
       onBlur={stop}
     >
-      {videoSrc && (
+      {imageSrc ? (
+        <img
+          src={!videoSrc && hoverImageSrc && isHovered ? hoverImageSrc : imageSrc}
+          alt=""
+          className={styles.img}
+          aria-hidden
+        />
+      ) : null}
+      {videoSrc ? (
         <video
           ref={videoRef}
           className={[styles.video, videoReady ? styles.videoReady : ''].filter(Boolean).join(' ')}
           src={videoSrc}
+          poster={imageSrc}
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
           onLoadedData={(e) => {
             const v = e.currentTarget
             v.pause()
@@ -97,16 +106,7 @@ export function Participate({
           }}
           aria-hidden="true"
         />
-      )}
-
-      {/* Fallback: if no video, use static/hover image swap */}
-      {!videoSrc && imageSrc && (
-        <img
-          src={hoverImageSrc && isHovered ? hoverImageSrc : imageSrc}
-          alt=""
-          className={styles.img}
-        />
-      )}
+      ) : null}
       <div className={styles.overlay} />
 
       {onClose && (
