@@ -102,7 +102,7 @@ Common patterns:
 | `--semantic-color-brand-amber` | `#F3D0A0` |
 | `--semantic-color-brand-deep` | `#291433` |
 | `--semantic-color-text-primary` | `#FFFFFF` |
-| `--semantic-color-text-secondary` | `rgba(255,255,255,0.87)` |
+| `--semantic-color-text-secondary` | `rgba(255,255,255,0.7)` |
 | `--semantic-color-text-muted` | `rgba(255,255,255,0.45)` |
 | `--semantic-color-border-default` | `rgba(255,255,255,0.07)` |
 | `--semantic-color-border-lavender` | `rgba(196,145,229,0.14)` |
