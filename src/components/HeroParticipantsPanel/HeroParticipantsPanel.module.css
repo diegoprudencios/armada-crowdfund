@@ -47,7 +47,7 @@
   padding: 0 var(--primitives-spacing-4);
   border-radius: var(--semantic-component-navitem-radius);
   border: 1px solid var(--semantic-color-border-default);
-  background: color-mix(in srgb, var(--semantic-color-surface-raised) 55%, transparent);
+  background: color-mix(in srgb, var(--primitives-color-neutral-50) 72%, transparent);
   color: var(--semantic-color-text-secondary);
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: var(--semantic-component-navitem-font-size);
@@ -72,7 +72,7 @@
   height: var(--semantic-component-navitem-height);
   padding: 0;
   border-radius: var(--semantic-component-navitem-radius);
-  background: color-mix(in srgb, var(--semantic-color-surface-raised) 58%, transparent);
+  background: color-mix(in srgb, var(--primitives-color-neutral-50) 72%, transparent);
   border: 1px solid var(--semantic-color-border-default);
   flex: 0 0 auto;
   width: max-content;

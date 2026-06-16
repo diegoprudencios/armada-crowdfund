@@ -51,18 +51,18 @@
   margin: 0;
   border: none;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--primitives-color-white-full) 20%, transparent);
-  color: var(--primitives-color-white-full);
+  background: color-mix(in srgb, var(--semantic-color-text-primary) 20%, transparent);
+  color: var(--semantic-color-text-primary);
   cursor: pointer;
   transition: background 150ms ease;
 }
 
 .close:hover {
-  background: color-mix(in srgb, var(--primitives-color-white-full) 28%, transparent);
+  background: color-mix(in srgb, var(--semantic-color-text-primary) 28%, transparent);
 }
 
 .close:focus-visible {
-  outline: 2px solid var(--primitives-color-white-full);
+  outline: 2px solid var(--semantic-color-text-primary);
   outline-offset: 2px;
 }
 

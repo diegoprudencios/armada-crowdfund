@@ -167,6 +167,7 @@ export function DepositAmountCard({
             id={amountInputId}
             type="text"
             inputMode="decimal"
+            autoComplete="off"
             className={styles.amountInput}
             value={amount}
             onChange={(e) => handleAmountInput(e.target.value)}

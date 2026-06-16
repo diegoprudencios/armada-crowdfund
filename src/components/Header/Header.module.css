@@ -74,13 +74,13 @@
 }
 
 .myPositionActive {
-  background: var(--semantic-component-navitem-active-bg) !important;
-  color: var(--semantic-component-navitem-active-text) !important;
+  background: var(--semantic-color-brand-lavender) !important;
+  color: #291433 !important;
 }
 
 .myPositionActive:hover:not(:disabled) {
-  background: var(--semantic-component-navitem-active-bg) !important;
-  color: var(--semantic-component-navitem-active-text) !important;
+  background: var(--semantic-color-brand-lavender) !important;
+  color: #291433 !important;
 }
 
 /* Crowdfund hero — mobile: full logo + burger; header scrolls with page */

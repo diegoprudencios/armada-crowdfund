@@ -1,0 +1,11 @@
+.fullLight {
+  display: none;
+}
+
+:global([data-theme='light']) .fullLight {
+  display: block;
+}
+
+:global([data-theme='light']) .fullDark {
+  display: none;
+}

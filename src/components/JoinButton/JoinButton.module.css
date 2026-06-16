@@ -14,7 +14,7 @@
     var(--primitives-color-purple-300),
     var(--primitives-color-amber-300)
   );
-  color: var(--semantic-color-surface-bg);
+  color: #291433;
   gap: 0px;
   transition: width 220ms ease, padding 220ms ease, gap 220ms ease;
   white-space: nowrap;

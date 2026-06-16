@@ -1,8 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import {
   ArrowRightOnRectangleIcon,
   ChevronDownIcon,
   ClipboardDocumentIcon,
+  MoonIcon,
+  SunIcon,
   WalletIcon,
 } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
@@ -12,6 +14,7 @@ import {
   WalletWalletConnect,
 } from '@web3icons/react'
 import buttonStyles from '../Button/Button.module.css'
+import { getAppliedTheme, setTheme, type Theme } from '../../utils/theme'
 import styles from './WalletPillMenu.module.css'
 
 export interface WalletPillMenuProps {
@@ -27,6 +30,21 @@ export interface WalletPillMenuProps {
 
 const PROVIDER_ICON_PX = 20
 const CARD_ICON_PX = 48
+
+function subscribeToTheme(onStoreChange: () => void) {
+  const observer = new MutationObserver(onStoreChange)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
+  return () => observer.disconnect()
+}
+
+function useTheme() {
+  const theme = useSyncExternalStore(subscribeToTheme, getAppliedTheme, () => 'dark' as Theme)
+  const applyTheme = useCallback((next: Theme) => setTheme(next), [])
+  return [theme, applyTheme] as const
+}
 
 function WalletProviderIcon({ provider, size = PROVIDER_ICON_PX }: { provider?: string; size?: number }) {
   switch (provider) {
@@ -50,6 +68,7 @@ export function WalletPillMenu({
 }: WalletPillMenuProps) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [theme, applyTheme] = useTheme()
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -88,6 +107,10 @@ export function WalletPillMenu({
     } catch {
       setCopied(false)
     }
+  }
+
+  const handleToggleTheme = () => {
+    applyTheme(theme === 'light' ? 'dark' : 'light')
   }
 
   const handleDisconnect = () => {
@@ -135,6 +158,27 @@ export function WalletPillMenu({
             </div>
 
             <div className={styles.cardActions}>
+              <button
+                type="button"
+                role="menuitem"
+                className={[
+                  buttonStyles.btn,
+                  buttonStyles.secondary,
+                  buttonStyles.lg,
+                  styles.actionBtn,
+                ].join(' ')}
+                onClick={handleToggleTheme}
+              >
+                {theme === 'light' ? (
+                  <MoonIcon className={styles.actionIcon} aria-hidden />
+                ) : (
+                  <SunIcon className={styles.actionIcon} aria-hidden />
+                )}
+                <span className={styles.actionLabel}>
+                  {theme === 'light' ? 'Dark mode' : 'Light mode'}
+                </span>
+              </button>
+
               <button
                 type="button"
                 role="menuitem"

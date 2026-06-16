@@ -126,7 +126,7 @@
   --semantic-component-button-primary-bg-hover: var(--primitives-color-purple-400);
   --semantic-component-button-primary-bg-active: var(--primitives-color-purple-600);
   --semantic-component-button-primary-bg-disabled: var(--primitives-color-neutral-100);
-  --semantic-component-button-primary-text: var(--primitives-color-neutral-0);
+  --semantic-component-button-primary-text: #291433;
   --semantic-component-button-primary-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-button-primary-border: rgba(0,0,0,0);
   --semantic-component-button-primary-sm-height: var(--primitives-spacing-8);
@@ -195,7 +195,7 @@
   --semantic-component-button-ghost-lg-font-size: 15px;
   --semantic-component-button-ghost-lg-icon-gap: 6px;
   --semantic-component-button-ghost-lg-radius: var(--primitives-borderRadius-full);
-  --semantic-component-button-gradient-text: var(--primitives-color-neutral-0);
+  --semantic-component-button-gradient-text: #291433;
   --semantic-component-button-gradient-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-button-gradient-default-from: var(--primitives-color-purple-300);
   --semantic-component-button-gradient-default-to: var(--primitives-color-amber-300);
@@ -361,7 +361,7 @@
   --semantic-component-button-primary-bg-hover: var(--primitives-color-purple-400);
   --semantic-component-button-primary-bg-active: var(--primitives-color-purple-600);
   --semantic-component-button-primary-bg-disabled: var(--primitives-color-neutral-100);
-  --semantic-component-button-primary-text: var(--primitives-color-neutral-0);
+  --semantic-component-button-primary-text: #291433;
   --semantic-component-button-primary-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-button-primary-border: rgba(0,0,0,0);
   --semantic-component-button-primary-sm-height: var(--primitives-spacing-8);
@@ -430,7 +430,7 @@
   --semantic-component-button-ghost-lg-font-size: 15px;
   --semantic-component-button-ghost-lg-icon-gap: 6px;
   --semantic-component-button-ghost-lg-radius: var(--primitives-borderRadius-full);
-  --semantic-component-button-gradient-text: var(--primitives-color-neutral-0);
+  --semantic-component-button-gradient-text: #291433;
   --semantic-component-button-gradient-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-button-gradient-default-from: var(--primitives-color-purple-300);
   --semantic-component-button-gradient-default-to: var(--primitives-color-amber-300);
@@ -453,8 +453,8 @@
   --semantic-component-navitem-padding-y: 12px;
   --semantic-component-navitem-radius: 100px;
   --semantic-component-navitem-font-size: 12px;
-  --semantic-component-tag-bg: #ebe5e5;
-  --semantic-component-tag-label: var(--primitives-color-neutral-800);
+  --semantic-component-tag-bg: #202022;
+  --semantic-component-tag-label: #ffffff;
   --semantic-component-tag-padding-x: 12px;
   --semantic-component-tag-padding-y: 4px;
   --semantic-component-tag-gap: 8px;

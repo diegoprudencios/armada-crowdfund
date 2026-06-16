@@ -1,7 +1,23 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var key = 'armada-theme';
+        var saved = null;
+        try {
+          saved = localStorage.getItem(key);
+        } catch (e) {}
+        var theme =
+          saved === 'light' || saved === 'dark'
+            ? saved
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Armada — Hero</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
