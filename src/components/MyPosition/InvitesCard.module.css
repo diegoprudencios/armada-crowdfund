@@ -125,3 +125,23 @@
     overflow: visible;
   }
 }
+
+@media (max-width: 767px) {
+  .rootHero {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .rootHero .slotList {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .rootHero .chevron {
+    display: none;
+  }
+}

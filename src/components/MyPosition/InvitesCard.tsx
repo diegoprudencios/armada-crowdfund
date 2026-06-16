@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from 'react'
 import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import SlotCard, { type SlotData } from '../InviteFlow/screens/SlotCard'
-import { LAPTOP_LAYOUT_MAX_WIDTH_PX } from '../../constants/viewportBreakpoints'
+import { LAPTOP_LAYOUT_MAX_WIDTH_PX, MOBILE_LAYOUT_MAX_WIDTH_PX } from '../../constants/viewportBreakpoints'
 import { countAvailableInviteSlots } from './myPositionDemo'
 import styles from './InvitesCard.module.css'
 
@@ -14,6 +14,11 @@ export const INVITES_COLLAPSED_BY_DEFAULT_MAX_WIDTH_PX = LAPTOP_LAYOUT_MAX_WIDTH
 function invitesExpandedByDefault(): boolean {
   if (typeof window === 'undefined') return true
   return window.matchMedia(`(min-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`).matches
+}
+
+function isMobileViewport(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(`(max-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX}px)`).matches
 }
 
 export type InvitesCardVariant = 'default' | 'hero' | 'split'
@@ -39,15 +44,37 @@ export function InvitesCard({
   copiedSlotId = null,
   loadingSlotId = null,
 }: InvitesCardProps) {
-  const [expanded, setExpanded] = useState(invitesExpandedByDefault)
+  const [expanded, setExpanded] = useState(() => {
+    if (variant === 'hero' && isMobileViewport()) return true
+    return invitesExpandedByDefault()
+  })
 
   useEffect(() => {
+    if (variant === 'hero') {
+      const mobileMq = window.matchMedia(`(max-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX}px)`)
+      const desktopMq = window.matchMedia(`(min-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`)
+      const sync = () => {
+        if (mobileMq.matches) {
+          setExpanded(true)
+        } else {
+          setExpanded(desktopMq.matches)
+        }
+      }
+      sync()
+      mobileMq.addEventListener('change', sync)
+      desktopMq.addEventListener('change', sync)
+      return () => {
+        mobileMq.removeEventListener('change', sync)
+        desktopMq.removeEventListener('change', sync)
+      }
+    }
+
     const mq = window.matchMedia(`(min-width: ${LAPTOP_LAYOUT_MAX_WIDTH_PX}px)`)
     const sync = () => setExpanded(mq.matches)
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
-  }, [])
+  }, [variant])
 
   const listId = useId()
   const available = countAvailableInviteSlots(slots)
@@ -66,7 +93,10 @@ export function InvitesCard({
       <button
         type="button"
         className={styles.header}
-        onClick={() => setExpanded((open) => !open)}
+        onClick={() => {
+          if (variant === 'hero' && isMobileViewport()) return
+          setExpanded((open) => !open)
+        }}
         aria-expanded={expanded}
         aria-controls={listId}
         aria-label={`${expanded ? 'Collapse' : 'Expand'} invites, ${available} of ${total} available`}

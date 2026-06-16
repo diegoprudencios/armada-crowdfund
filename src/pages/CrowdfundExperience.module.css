@@ -171,6 +171,7 @@
 
   .cornerLayer {
     justify-content: flex-start;
+    transition: none;
   }
 
   .rightParticipateLayer {
@@ -224,5 +225,9 @@
 
   .leftCorner[class*='leftCornerExpanded'] {
     z-index: 10;
+  }
+
+  .experienceLayoutMyPosition .graphHost {
+    display: none;
   }
 }
