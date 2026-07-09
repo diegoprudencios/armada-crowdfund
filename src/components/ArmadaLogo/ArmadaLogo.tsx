@@ -99,12 +99,12 @@ export function ArmadaLogo({ variant = 'full', markTone = 'brand', className }: 
     )
   }
 
-  const fullClassName = [className, styles.fullDark].filter(Boolean).join(' ')
+  const rootClassName = [className, styles.fullRoot].filter(Boolean).join(' ')
 
   return (
-    <>
+    <span className={rootClassName}>
       <svg
-        className={fullClassName}
+        className={styles.fullDark}
         width="132"
         height="32"
         viewBox="0 0 132 32"
@@ -121,12 +121,13 @@ export function ArmadaLogo({ variant = 'full', markTone = 'brand', className }: 
         {GRADIENT_DEFS}
       </svg>
       <img
-        className={[className, styles.fullLight].filter(Boolean).join(' ')}
+        className={styles.fullLight}
         src={LIGHT_LOGO_SRC}
-        alt="Armada"
+        alt=""
+        aria-hidden
         width={132}
         height={32}
       />
-    </>
+    </span>
   )
 }

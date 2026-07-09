@@ -1,3 +1,17 @@
+.fullRoot {
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.fullDark,
+.fullLight {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+}
+
 .fullLight {
   display: none;
 }
