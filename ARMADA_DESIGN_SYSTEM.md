@@ -198,6 +198,22 @@ Three levels of surface, used to create depth:
 - **raised** (`#1D1C1F`) — elements that sit on top of cards. Hover states,
   nested items, inner blocks.
 
+### Neutrals vs cool grays
+
+- **`neutral`** — warm product neutrals (rose/taupe undertone in light theme).
+  Used for page bg, cards, and most surfaces via `--semantic-color-surface-*`.
+- **`gray`** — cool slate grays (blue-cool, not pink). Use for UI chrome that
+  should read as true gray on white — e.g. inset tables, bottom-sheet detail
+  cards, subtle bands.
+
+Light theme cool gray fills (common):
+| Token | Hex | Use |
+|---|---|---|
+| `--primitives-color-gray-50` | `#f8f9fb` | Table / detail body |
+| `--primitives-color-gray-100` | `#f1f3f6` | Emphasized band (e.g. Total) |
+
+Do not substitute warm `neutral-100` / `neutral-200` when cool gray is intended.
+
 ### Border usage
 
 - Default border: `--semantic-color-border-default` (rgba white 7%) — subtle

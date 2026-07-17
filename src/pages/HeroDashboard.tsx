@@ -71,7 +71,7 @@ export function HeroDashboard() {
         </section>
 
         <section className={styles.sphereSection} aria-label="Network">
-          <div className={styles.sphereFrame}>
+          <div className={styles.sphereFrame} data-theme="dark">
             <NodeSphere
               highlightAddress={selectedAddress}
               onSelectAddress={setSelectedAddress}

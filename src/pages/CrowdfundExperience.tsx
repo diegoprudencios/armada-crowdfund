@@ -428,7 +428,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           .filter(Boolean)
           .join(' ')}
       >
-        <div className={shellStyles.graphHost}>
+        <div className={shellStyles.graphHost} data-theme="dark">
           {mountGraph && !(isMyPosition && isMobileLayout()) ? (
             <NodeSphere
               key={graphLayoutKey}
