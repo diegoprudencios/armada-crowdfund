@@ -45,6 +45,23 @@
           "description": "Brand deep"
         }
       },
+      "violet": {
+        "500": {
+          "value": "#5227ca",
+          "type": "color",
+          "description": "Brand action (CTA fill)"
+        },
+        "600": {
+          "value": "#431fb0",
+          "type": "color",
+          "description": "Brand action hover"
+        },
+        "700": {
+          "value": "#361894",
+          "type": "color",
+          "description": "Brand action active"
+        }
+      },
       "amber": {
         "50": {
           "value": "#fdf6ec",
@@ -450,6 +467,24 @@
           "type": "color",
           "description": "#c491e5 \u2014 never as surface"
         },
+        "action": {
+          "value": "{color.violet.500}",
+          "type": "color",
+          "description": "#5227ca \u2014 CTA / primary action fill, never as surface"
+        },
+        "action-muted": {
+          "value": "rgba(82,39,202,0.15)",
+          "type": "color",
+          "description": "Soft action tint (dashboard action buttons)"
+        },
+        "action-muted-hover": {
+          "value": "rgba(82,39,202,0.25)",
+          "type": "color"
+        },
+        "action-muted-active": {
+          "value": "rgba(82,39,202,0.35)",
+          "type": "color"
+        },
         "amber": {
           "value": "{color.amber.300}",
           "type": "color",
@@ -807,15 +842,15 @@
       "button": {
         "primary": {
           "bg": {
-            "value": "{color.purple.500}",
+            "value": "{color.violet.500}",
             "type": "color"
           },
           "bg-hover": {
-            "value": "{color.purple.400}",
+            "value": "{color.violet.600}",
             "type": "color"
           },
           "bg-active": {
-            "value": "{color.purple.600}",
+            "value": "{color.violet.700}",
             "type": "color"
           },
           "bg-disabled": {
@@ -823,7 +858,7 @@
             "type": "color"
           },
           "text": {
-            "value": "{color.neutral.0}",
+            "value": "#ffffff",
             "type": "color"
           },
           "text-disabled": {
