@@ -100,6 +100,7 @@ Common patterns:
 | `--semantic-color-surface-raised` | `#1D1C1F` |
 | `--semantic-color-brand-lavender` | `#C491E5` |
 | `--semantic-color-brand-action` | `#5227CA` |
+| `--semantic-color-brand-ink` | `#151416` |
 | `--semantic-color-brand-amber` | `#F3D0A0` |
 | `--semantic-color-brand-deep` | `#291433` |
 | `--semantic-color-text-primary` | `#FFFFFF` |
@@ -116,8 +117,9 @@ Common patterns:
 colors only. They appear on buttons, icons, highlights, and decorative elements.
 They are never used as card backgrounds, page backgrounds, or panel fills.
 
-`brand-action` (`#5227CA`) is the primary CTA fill. `brand-lavender` remains for
-borders, accents, soft action chips, and the purple→amber gradient.
+`brand-action` (`#5227CA`) is the primary CTA fill. `brand-ink` (`#151416`) is
+the black CTA fill (white label) for marketing / on-media surfaces. `brand-lavender`
+remains for borders, accents, soft action chips, and the purple→amber gradient.
 
 ---
 
@@ -283,10 +285,12 @@ border-radius, `32px` padding. Inner blocks that sit on cards use
 
 ### Buttons
 
-Four variants: primary (action violet fill, white label), secondary (outline),
-ghost (no border), gradient (purple → amber).
+Five variants: primary (action violet fill, white label), secondary (outline),
+ghost (no border), gradient (purple → amber), ink (near-black fill, white label).
 
 Primary hover/active use darker violet (`violet-600` / `violet-700`).
+Ink uses `--semantic-color-brand-ink` (`#151416`) — fixed across themes for
+marketing / on-media CTAs.
 
 Three sizes: sm (32px), md (40px), lg (48px).
 
@@ -554,7 +558,7 @@ Before building anything, check if it already exists:
 
 | Component | Location | Notes |
 |---|---|---|
-| `Button` | `src/components/Button/` | 4 variants × 3 sizes |
+| `Button` | `src/components/Button/` | 5 variants × 3 sizes |
 | `Tag` | `src/components/Tag/` | Status dot variants |
 | `NavBar` / `NavItem` | `src/components/NavBar/` | |
 | `Header` | `src/components/Header/` | `activeNav`, `WalletPillMenu` when connected |

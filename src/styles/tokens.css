@@ -111,6 +111,10 @@
   --semantic-color-brand-action-muted-active: color-mix(in srgb, var(--semantic-color-brand-action) 35%, transparent);
   --semantic-color-brand-amber: var(--primitives-color-amber-300);
   --semantic-color-brand-amber-dark: var(--primitives-color-amber-500);
+  /* Fixed ink — same in both themes (marketing CTAs on light/media surfaces) */
+  --semantic-color-brand-ink: #151416;
+  --semantic-color-brand-ink-hover: #2a2830;
+  --semantic-color-brand-ink-active: #0e0d0f;
   --semantic-color-surface-bg: var(--primitives-color-neutral-0);
   --semantic-color-surface-default: var(--primitives-color-neutral-50);
   --semantic-color-surface-raised: var(--primitives-color-neutral-100);
@@ -219,6 +223,12 @@
   --semantic-component-button-gradient-hover-to: var(--primitives-color-amber-200);
   --semantic-component-button-gradient-active-from: var(--primitives-color-purple-400);
   --semantic-component-button-gradient-active-to: var(--primitives-color-amber-400);
+  --semantic-component-button-ink-bg: var(--semantic-color-brand-ink);
+  --semantic-component-button-ink-bg-hover: var(--semantic-color-brand-ink-hover);
+  --semantic-component-button-ink-bg-active: var(--semantic-color-brand-ink-active);
+  --semantic-component-button-ink-bg-disabled: var(--primitives-color-neutral-100);
+  --semantic-component-button-ink-text: #ffffff;
+  --semantic-component-button-ink-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-navbar-bg: var(--primitives-color-neutral-50);
   --semantic-component-navbar-height: 40px;
   --semantic-component-navbar-padding-x: 0px;
@@ -362,6 +372,10 @@
   --semantic-color-brand-action-muted-active: color-mix(in srgb, var(--semantic-color-brand-action) 35%, transparent);
   --semantic-color-brand-amber: var(--primitives-color-amber-300);
   --semantic-color-brand-amber-dark: var(--primitives-color-amber-500);
+  /* Fixed ink — same in both themes (marketing CTAs on light/media surfaces) */
+  --semantic-color-brand-ink: #151416;
+  --semantic-color-brand-ink-hover: #2a2830;
+  --semantic-color-brand-ink-active: #0e0d0f;
   --semantic-color-surface-bg: var(--primitives-color-neutral-0);
   --semantic-color-surface-default: var(--primitives-color-neutral-50);
   --semantic-color-surface-raised: var(--primitives-color-neutral-100);
@@ -470,6 +484,12 @@
   --semantic-component-button-gradient-hover-to: var(--primitives-color-amber-200);
   --semantic-component-button-gradient-active-from: var(--primitives-color-purple-400);
   --semantic-component-button-gradient-active-to: var(--primitives-color-amber-400);
+  --semantic-component-button-ink-bg: var(--semantic-color-brand-ink);
+  --semantic-component-button-ink-bg-hover: var(--semantic-color-brand-ink-hover);
+  --semantic-component-button-ink-bg-active: var(--semantic-color-brand-ink-active);
+  --semantic-component-button-ink-bg-disabled: var(--primitives-color-neutral-100);
+  --semantic-component-button-ink-text: #ffffff;
+  --semantic-component-button-ink-text-disabled: var(--primitives-color-neutral-400);
   --semantic-component-navbar-bg: var(--primitives-color-neutral-50);
   --semantic-component-navbar-height: 40px;
   --semantic-component-navbar-padding-x: 0px;

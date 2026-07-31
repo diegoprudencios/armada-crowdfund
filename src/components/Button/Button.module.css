@@ -75,6 +75,12 @@
 .gradient:hover:not(:disabled) { background: linear-gradient(to right, #f5d9ae 0%, #d4aff0 100%); }
 .gradient:active:not(:disabled) { background: linear-gradient(to right, #eab86a 0%, #b06fdf 100%); }
 
+/* Ink — black fill, white label (marketing / on-media CTAs) */
+.ink { background: var(--semantic-component-button-ink-bg); color: var(--semantic-component-button-ink-text); }
+.ink:hover:not(:disabled) { background: var(--semantic-component-button-ink-bg-hover); }
+.ink:active:not(:disabled) { background: var(--semantic-component-button-ink-bg-active); }
+.ink:disabled { background: var(--semantic-component-button-ink-bg-disabled); color: var(--semantic-component-button-ink-text-disabled); }
+
 /* Icon */
 .iconWrap {
   display: flex;

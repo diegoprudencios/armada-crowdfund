@@ -2,7 +2,7 @@ import { ArrowRightIcon as ArrowRightMicroIcon } from '@heroicons/react/16/solid
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import styles from './Button.module.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'gradient'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'gradient' | 'ink'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 export type ButtonIcon = 'arrow-right' | 'arrow-right-micro'
 
