@@ -5,7 +5,8 @@
     { "src": "^/invite/?$", "dest": "/invite.html" },
     { "src": "^/hero/?$", "dest": "/hero.html" },
     { "src": "^/dashboard/?$", "dest": "/dashboard.html" },
-    { "src": "^/$", "dest": "/hero.html" }
+    { "src": "^/$", "dest": "/hero.html" },
+    { "src": "^/brand/?$", "dest": "/brand.html" }
   ]
 }
 

@@ -68,9 +68,9 @@
   --primitives-fontWeight-regular: 400;
   --primitives-fontWeight-medium: 500;
   --primitives-fontWeight-semibold: 600;
-  --primitives-fontFamily-display: Charis SIL;
+  --primitives-fontFamily-display: "Charis SIL";
   --primitives-fontFamily-ui: Geist;
-  --primitives-fontFamily-mono: Geist Mono;
+  --primitives-fontFamily-mono: "Geist Mono";
   --primitives-lineHeight-none: 100%;
   --primitives-lineHeight-tight: 110%;
   --primitives-lineHeight-snug: 120%;
@@ -330,9 +330,9 @@
   --primitives-fontWeight-regular: 400;
   --primitives-fontWeight-medium: 500;
   --primitives-fontWeight-semibold: 600;
-  --primitives-fontFamily-display: Charis SIL;
+  --primitives-fontFamily-display: "Charis SIL";
   --primitives-fontFamily-ui: Geist;
-  --primitives-fontFamily-mono: Geist Mono;
+  --primitives-fontFamily-mono: "Geist Mono";
   --primitives-lineHeight-none: 100%;
   --primitives-lineHeight-tight: 110%;
   --primitives-lineHeight-snug: 120%;

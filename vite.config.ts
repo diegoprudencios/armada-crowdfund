@@ -18,6 +18,7 @@ export default defineConfig({
         mypositionSplit: resolve(__dirname, 'myposition-split.html'),
         mypositionHero: resolve(__dirname, 'myposition-hero.html'),
         invite: resolve(__dirname, 'invite.html'),
+        brand: resolve(__dirname, 'brand.html'),
       },
     },
   },

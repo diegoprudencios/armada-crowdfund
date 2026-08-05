@@ -8,9 +8,10 @@ alwaysApply: true
 ## Required workflow
 
 1. **Read `ARMADA_DESIGN_SYSTEM.md`** at the repo root before writing or editing any component, page, or CSS.
-2. **Never hardcode** hex colors, raw `px` spacing/sizing, or font sizes — use CSS custom properties from `src/styles/tokens.css`.
-3. **Verify token names** in `src/styles/tokens.css` before using any `var(--…)` (semantic and primitive names must exist).
-4. **Run `npm run build`** before marking any task complete (catches `tsc` errors Vercel will reject).
+2. **Follow `accessibility-a11y.mdc`** — strictly apply [A11Y.md](https://github.com/fecarrico/A11Y.md/blob/main/docs/en/A11Y.md) for all frontend work.
+3. **Never hardcode** hex colors, raw `px` spacing/sizing, or font sizes — use CSS custom properties from `src/styles/tokens.css`.
+4. **Verify token names** in `src/styles/tokens.css` before using any `var(--…)` (semantic and primitive names must exist).
+5. **Run `npm run build`** before marking any task complete (catches `tsc` errors Vercel will reject).
 
 Exceptions: rare cases called out in the design system (e.g. gradient overlays on media). When in doubt, check the doc and tokens first.
 

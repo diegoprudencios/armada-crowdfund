@@ -9,12 +9,8 @@
         try {
           saved = localStorage.getItem(key);
         } catch (e) {}
-        var theme =
-          saved === 'light' || saved === 'dark'
-            ? saved
-            : window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
+        // Crowdfund UI is dark-first; only honor an explicit saved preference.
+        var theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>

@@ -1,0 +1,35 @@
+---
+description: WCAG 2.2 AA accessibility baseline for frontend development
+alwaysApply: true
+---
+
+# Accessibility (A11Y.md)
+
+When developing the frontend, follow **strictly** the accessibility rules defined in [A11Y.md](https://github.com/fecarrico/A11Y.md/blob/main/docs/en/A11Y.md).
+
+## Required workflow
+
+1. Treat accessibility as a **pre-condition for use** — if a user cannot complete a task, the feature is broken.
+2. Default to **Standard (AA)** compliance (WCAG 2.2 AA): 4.5:1 text contrast, 3:1 UI contrast, 12px min font, 24×24px min targets (design to 44×44px).
+3. Before adding `onClick` to non-semantic elements, use native `<button>`, `<a>`, or full ARIA patterns from [WAI-ARIA APG](https://www.w3.org/WAI/ARIA/apg/).
+4. Reuse existing accessible components in the project — do not duplicate interactive patterns.
+5. For complex or unmapped components, follow the **Complex Component Protocol** in A11Y.md and consult upstream reference guides only when the task requires them.
+
+## Non-negotiable (CRITICAL)
+
+- 100% keyboard operability; no clickable `div`/`span` without full button semantics.
+- Visible focus indicators (min 2px, 3:1 contrast); never `outline: none` without a fallback.
+- Modals: trap focus, move focus in on open, restore focus on close, block background interaction.
+- Forms: explicit labels (`<label htmlFor>` or wrapping); never placeholder-only labels.
+- Dynamic feedback (errors, loading, success): `aria-live`, `role="status"`, or `role="alert"`.
+- State never conveyed by color alone — use icon + text + color.
+- Respect `@media (prefers-reduced-motion)`.
+
+## When reviewing
+
+Classify violations by severity (CRITICAL / HIGH / MEDIUM / LOW) and propose targeted fixes — not full rewrites unless damage is CRITICAL. Do not claim screen-reader testing was performed.
+
+## Reference
+
+- Source: https://github.com/fecarrico/A11Y.md/blob/main/docs/en/A11Y.md
+- Upstream references (lazy-load only when needed): https://github.com/fecarrico/A11Y.md/tree/main/docs/en/

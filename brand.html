@@ -2,20 +2,9 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <script>
-      (function () {
-        var key = 'armada-theme';
-        var saved = null;
-        try {
-          saved = localStorage.getItem(key);
-        } catch (e) {}
-        // Crowdfund UI is dark-first; only honor an explicit saved preference.
-        var theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Armada — Hero</title>
+    <title>Armada — Brand</title>
+    <meta name="description" content="Armada brand assets — logos, colors, and fleet imagery for download." />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -27,6 +16,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main-hero.tsx"></script>
+    <script type="module" src="/src/main-brand.tsx"></script>
   </body>
 </html>
