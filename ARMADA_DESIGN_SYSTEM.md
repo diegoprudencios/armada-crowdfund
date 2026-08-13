@@ -173,6 +173,23 @@ npm run tokens:typography --workspace=@armada/ui
 | `ui/label-xs` | 10px | 100% | Medium | Table headers, eyebrows |
 | `ui/button` | 14px | 100% | Medium | Button label typography |
 
+Marketing site composites (`site/*` → short classes `.armada-text-title|body|detail`):
+
+| Composite | Size | Line height | Weight | Use |
+|-----------|------|-------------|--------|-----|
+| `site/title` | fluid clamp 32→44px | 110% (tight) | Regular | All marketing headlines (hero + sections) |
+| `site/body` | 15px | 140% (normal) | Medium | Marketing body copy |
+| `site/detail` | 13px | 120% (snug) | Medium | Captions, hero badge labels |
+
+Marketing site spacing (fluid 767→1536px, same range as title):
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `--semantic-spacing-site-title-to-body` | `0.5 ×` site title size | Title→body, or title→CTA when no body |
+| `--semantic-spacing-site-body-to-cta` | `1.6 ×` site body size | Body→CTA |
+
+Apply via `.armada-site-stack` on title/body/CTA columns (Hero, WhatIsArmada, feature panels).
+
 Display composites (`display/hero-lg`, etc.) use **Charis SIL** — see `semantic.typography.display` in the token JSON. Full reference: `packages/ui/TYPOGRAPHY.md` in armada-poc.
 
 ### When to use Charis SIL
