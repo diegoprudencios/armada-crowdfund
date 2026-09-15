@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { HopVariant } from '../HopPill/HopPill'
 import type { SlotData } from '../InviteFlow/screens/SlotCard'
 import Step0Invite from './steps/Step0Invite/Step0Invite'
@@ -7,10 +7,15 @@ import Step2Commit from './screens/Step2Commit'
 import Step3Review from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
 import Step5Confirmation from './screens/Step5Confirmation'
+import { MaxOutBanner } from './screens/MaxOutBanner'
+import maxOutStyles from './screens/MaxOutBanner.module.css'
 import { ParticipateFlowModal } from './ParticipateFlowModal'
 import { ParticipateFlowInviteSlots } from './ParticipateFlowInviteSlots'
 import { CROWDFUND_MODAL_STEPS } from './participateFlowSteps'
 import stepStyles from './ParticipateFlowStepTransition.module.css'
+
+/** Demo hop cap — matches Step2Commit default. */
+const DEMO_HOP_CAP_USDC = 4000
 
 export interface ParticipateFlowCrowdfundProps {
   open: boolean
@@ -170,6 +175,33 @@ export function ParticipateFlowCrowdfund({
 
   const hopLevel = HOP_LEVEL_LABEL[hopVariant]
   const estimatedArm = Math.round(amount)
+  const remainingCap = Math.max(0, DEMO_HOP_CAP_USDC - committedUsdc)
+  const availableInviteCount = useMemo(
+    () => slots.filter((s) => s.status === 'empty').length,
+    [slots],
+  )
+
+  /** Demo: show max-out whenever there’s hop headroom (mirrors committer eligibility). */
+  const showMaxOutBanner =
+    (renderStep === 'commit' || renderStep === 'confirmation') && remainingCap > 0
+
+  const demoMaxOut = useMemo(() => {
+    if (!showMaxOutBanner) return null
+    const inviteCount = hopVariant === 'hop-2' ? 0 : availableInviteCount
+    const newCommitUsd =
+      inviteCount > 0
+        ? Math.min(
+            DEMO_HOP_CAP_USDC * (1 + inviteCount),
+            remainingCap + DEMO_HOP_CAP_USDC * inviteCount,
+          )
+        : remainingCap
+    const ceilingUsd = committedUsdc + newCommitUsd
+    return {
+      ceilingUsd,
+      newCommitUsd,
+      inviteCount,
+    }
+  }, [showMaxOutBanner, hopVariant, availableInviteCount, remainingCap, committedUsdc])
 
   const stepBar = {
     steps: MODAL_STEPS,
@@ -178,6 +210,14 @@ export function ParticipateFlowCrowdfund({
   const handleClose = useCallback(() => {
     onClose({ step })
   }, [onClose, step])
+
+  const handleDemoMaxOut = useCallback(() => {
+    if (!demoMaxOut) return
+    // Demo: commit remaining hop capacity in one step (self-fill is illustrative copy).
+    const commitNow = Math.min(remainingCap, demoMaxOut.newCommitUsd)
+    setAmount(commitNow > 0 ? commitNow : remainingCap)
+    transitionTo('review')
+  }, [demoMaxOut, remainingCap, transitionTo])
 
   const renderCurrentStep = () => {
     switch (renderStep) {
@@ -209,6 +249,7 @@ export function ParticipateFlowCrowdfund({
             {...stepBar}
             stepIndex={1}
             existingCommittedUsdc={committedUsdc}
+            maxAmount={DEMO_HOP_CAP_USDC}
             showBack={!hasParticipated}
             onBack={() => transitionTo('invite')}
             onNext={(nextAmount) => {
@@ -284,9 +325,19 @@ export function ParticipateFlowCrowdfund({
 
   return (
     <ParticipateFlowModal open={open} onClose={handleClose} ariaLabel={DIALOG_LABEL[step]}>
-      <StepTransition stepKey={renderStep} fading={fading}>
-        {renderCurrentStep()}
-      </StepTransition>
+      <div className={maxOutStyles.stack}>
+        {demoMaxOut ? (
+          <MaxOutBanner
+            maxOut={{
+              ...demoMaxOut,
+              onMaxOut: handleDemoMaxOut,
+            }}
+          />
+        ) : null}
+        <StepTransition stepKey={renderStep} fading={fading}>
+          {renderCurrentStep()}
+        </StepTransition>
+      </div>
     </ParticipateFlowModal>
   )
 }

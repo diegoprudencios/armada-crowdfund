@@ -48,10 +48,9 @@ const eyebrow = {
 }
 
 const NAV_ITEMS = [
-  { label: 'The project' },
   { label: 'Crowdfund', active: true },
   { label: 'My position' },
-  { label: 'Claim' },
+  { label: 'Claim', disabled: true },
 ]
 
 function DepositAmountCardShowcase() {

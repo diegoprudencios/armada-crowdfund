@@ -8,15 +8,17 @@ import { HeaderMobileMenu } from './HeaderMobileMenu'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
-  activeNav?: 'project' | 'crowdfund' | 'myposition'
+  /** Crowdfund · My position · Claim (Claim gated until claimAvailable). */
+  activeNav?: 'crowdfund' | 'myposition' | 'claim'
   walletAddress?: string
   /** Full address for clipboard copy in the wallet menu. */
   walletCopyAddress?: string
   walletProvider?: string
   usdcBalance?: number
   onDisconnect?: () => void
-  /** When false, show Connect wallet pill and hide My position. Defaults to true. */
+  /** When false, show Connect wallet pill. Defaults to true. */
   walletConnected?: boolean
+  /** When false, Claim stays in the nav but is not navigable. */
   claimAvailable?: boolean
   onMyPosition?: () => void
   onCrowdfund?: () => void
@@ -38,6 +40,7 @@ const BURGER_ICON_PX = 20
 
 const MY_POSITION_PATH = `${import.meta.env.BASE_URL}?view=myposition`
 const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
+const CLAIM_PATH = `${import.meta.env.BASE_URL}crowdfund-stages#claim-flow`
 
 export function Header({
   activeNav = 'crowdfund',
@@ -82,18 +85,39 @@ export function Header({
     }
   }
 
+  const handleClaim = () => {
+    if (!claimAvailable) return
+    if (onClaim) {
+      onClaim()
+      return
+    }
+    if (activeNav !== 'claim') {
+      window.location.assign(CLAIM_PATH)
+    }
+  }
+
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
   const navItems = useMemo<NavBarItem[]>(
     () => [
-      { label: 'The project', active: activeNav === 'project' },
       {
         label: 'Crowdfund',
         active: activeNav === 'crowdfund',
         onClick: activeNav !== 'crowdfund' ? handleCrowdfund : undefined,
       },
+      {
+        label: 'My position',
+        active: activeNav === 'myposition',
+        onClick: activeNav !== 'myposition' ? handleMyPosition : undefined,
+      },
+      {
+        label: 'Claim',
+        active: claimAvailable && activeNav === 'claim',
+        disabled: !claimAvailable,
+        onClick: claimAvailable ? handleClaim : undefined,
+      },
     ],
-    [activeNav, onCrowdfund],
+    [activeNav, claimAvailable, onCrowdfund, onMyPosition, onClaim],
   )
 
   useEffect(() => {
@@ -157,19 +181,6 @@ export function Header({
         </div>
 
         <div className={styles.actions}>
-          {walletConnected && (
-            <Button
-              variant="ghost"
-              size="md"
-              label="My position"
-              showIcon={false}
-              onClick={handleMyPosition}
-              className={activeNav === 'myposition' ? styles.myPositionActive : undefined}
-            />
-          )}
-          {claimAvailable && (
-            <Button variant="ghost" size="md" label="Claim" showIcon={false} onClick={onClaim} />
-          )}
           {walletConnected ? (
             <WalletPillMenu
               displayAddress={walletAddress}
@@ -221,15 +232,6 @@ export function Header({
           open={mobileMenuOpen}
           onClose={closeMobileMenu}
           navItems={navItems}
-          myPositionItem={
-            walletConnected
-              ? {
-                  label: 'My Position',
-                  active: activeNav === 'myposition',
-                  onClick: handleMyPosition,
-                }
-              : undefined
-          }
           walletConnected={walletConnected}
           walletAddress={walletAddress}
           walletCopyAddress={walletCopyAddress}
@@ -239,7 +241,6 @@ export function Header({
           onConnectWallet={onConnectWallet}
           onParticipate={onParticipate}
           claimAvailable={claimAvailable}
-          onClaim={onClaim}
         />
       ) : null}
     </>

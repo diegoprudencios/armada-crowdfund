@@ -56,3 +56,20 @@
 .cta {
   flex-shrink: 0;
 }
+
+/* Banner above the commit/confirmation shell (between modal X and card). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--primitives-spacing-4);
+  width: 480px;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .stack {
+    width: 100%;
+  }
+}
+

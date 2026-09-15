@@ -39,6 +39,7 @@ function MenuSeparator() {
 export interface HeaderMobileMenuNavItem {
   label: string
   active?: boolean
+  disabled?: boolean
   onClick?: () => void
 }
 
@@ -47,7 +48,6 @@ export interface HeaderMobileMenuProps {
   open: boolean
   onClose: () => void
   navItems: HeaderMobileMenuNavItem[]
-  myPositionItem?: HeaderMobileMenuNavItem
   walletConnected?: boolean
   walletAddress?: string
   walletCopyAddress?: string
@@ -56,8 +56,8 @@ export interface HeaderMobileMenuProps {
   onDisconnect?: () => void
   onConnectWallet?: () => void
   onParticipate?: () => void
+  /** When false, Participate card stays; Claim is in navItems (disabled). */
   claimAvailable?: boolean
-  onClaim?: () => void
 }
 
 export function HeaderMobileMenu({
@@ -65,7 +65,6 @@ export function HeaderMobileMenu({
   open,
   onClose,
   navItems,
-  myPositionItem,
   walletConnected = true,
   walletAddress = '',
   walletCopyAddress,
@@ -75,7 +74,6 @@ export function HeaderMobileMenu({
   onConnectWallet,
   onParticipate,
   claimAvailable,
-  onClaim,
 }: HeaderMobileMenuProps) {
   const [copied, setCopied] = useState(false)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -198,11 +196,18 @@ export function HeaderMobileMenu({
             <button
               key={item.label}
               type="button"
-              className={[styles.navItem, item.active && styles.navItemActive]
+              className={[
+                styles.navItem,
+                item.active && styles.navItemActive,
+                item.disabled && styles.navItemDisabled,
+              ]
                 .filter(Boolean)
                 .join(' ')}
               aria-current={item.active ? 'page' : undefined}
+              aria-disabled={item.disabled || undefined}
+              disabled={item.disabled}
               onClick={() => {
+                if (item.disabled) return
                 item.onClick?.()
                 onClose()
               }}
@@ -210,41 +215,9 @@ export function HeaderMobileMenu({
               {item.label}
             </button>
           ))}
-          {myPositionItem ? (
-            <button
-              type="button"
-              className={[
-                styles.navItem,
-                myPositionItem.active && styles.navItemActive,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-current={myPositionItem.active ? 'page' : undefined}
-              onClick={() => {
-                myPositionItem.onClick?.()
-                onClose()
-              }}
-            >
-              {myPositionItem.label}
-            </button>
-          ) : null}
         </nav>
 
         <MenuSeparator />
-
-        {claimAvailable ? (
-          <Button
-            variant="ghost"
-            size="md"
-            label="Claim"
-            showIcon={false}
-            className={styles.claimBtn}
-            onClick={() => {
-              onClaim?.()
-              onClose()
-            }}
-          />
-        ) : null}
 
         {!claimAvailable ? (
           <Participate
