@@ -46,7 +46,7 @@ export interface ParticipateFlowCloseContext {
 }
 
 const HOP_LEVEL_LABEL: Record<HopVariant, string> = {
-  seed: 'Seed',
+  seed: 'Hop-0',
   'hop-1': 'Hop 1',
   'hop-2': 'Hop 2',
   'multi-hop': 'Multi-hop',
@@ -62,7 +62,7 @@ const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
   confirmation: 'Participation confirmed',
-  invites: 'Invite participants',
+  invites: 'Whitelist a friend',
 }
 
 function initialStep(walletConnected: boolean, hasParticipated: boolean): CrowdfundFlowStep {
@@ -256,7 +256,9 @@ export function ParticipateFlowCrowdfund({
             }
             isAdditionalCommit={wasReturningParticipantRef.current}
             totalCommittedUsdc={committedUsdc}
+            canInvite={hopVariant !== 'hop-2'}
             onViewPosition={onViewPosition}
+            onBackToCrowdfund={handleClose}
             onInvite={() => transitionTo('invites')}
           />
         )

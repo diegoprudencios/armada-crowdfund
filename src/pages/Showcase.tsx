@@ -100,6 +100,24 @@ export function Showcase() {
         walletProvider="metamask"
       />
 
+      <section style={sectionStyle}>
+        <div style={eyebrow}>Crowdfund stages</div>
+        <p style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 16, maxWidth: 560 }}>
+          Lifecycle gallery for Progress / My Position cards, Participate modals, and Claim screens.
+        </p>
+        <a
+          href="/crowdfund-stages.html"
+          style={{
+            color: 'rgba(196,145,229,0.95)',
+            fontFamily: '"Geist", sans-serif',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          Open crowdfund stages →
+        </a>
+      </section>
+
       {/* DepositAmountCard */}
       <section style={sectionStyle}>
         <div style={eyebrow}>DEPOSIT AMOUNT CARD (WITH ARM ALLOCATION)</div>
@@ -418,7 +436,13 @@ export function Showcase() {
                 onInviteOnchain={async () => {}}
               />
               <SlotCard
-                slot={{ id: 6, status: 'redeemed', redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c' }}
+                slot={{
+                  id: 6,
+                  status: 'redeemed',
+                  redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c',
+                  joinedAt: new Date('2026-03-12T14:00:00Z'),
+                  inviteeHop: 1,
+                }}
                 onGenerateLink={async () => {}}
                 onCopy={() => {}}
                 onRevoke={() => {}}

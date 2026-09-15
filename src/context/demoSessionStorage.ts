@@ -4,8 +4,9 @@ import type { DemoWallet } from './DemoSessionContext'
 const STORAGE_KEY = 'armada-demo-session'
 const STORAGE_VERSION = 1
 
-type StoredSlot = Omit<SlotData, 'expiresAt'> & {
+type StoredSlot = Omit<SlotData, 'expiresAt' | 'joinedAt'> & {
   expiresAt?: string
+  joinedAt?: string
 }
 
 export type StoredDemoSession = {
@@ -20,6 +21,7 @@ function serializeSlots(slots: SlotData[]): StoredSlot[] {
   return slots.map((slot) => ({
     ...slot,
     expiresAt: slot.expiresAt?.toISOString(),
+    joinedAt: slot.joinedAt?.toISOString(),
   }))
 }
 
@@ -27,6 +29,7 @@ function reviveSlots(slots: StoredSlot[]): SlotData[] {
   return slots.map((slot) => ({
     ...slot,
     expiresAt: slot.expiresAt ? new Date(slot.expiresAt) : undefined,
+    joinedAt: slot.joinedAt ? new Date(slot.joinedAt) : undefined,
   }))
 }
 

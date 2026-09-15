@@ -119,6 +119,12 @@ export function MyPosition() {
               onInviteOnchain={handleInviteOnchain}
               copiedSlotId={copiedId}
               loadingSlotId={loadingId}
+              onViewRedeemed={(address) => {
+                const url = new URL('/', window.location.origin)
+                url.searchParams.set('view', 'crowdfund')
+                url.searchParams.set('select', address)
+                window.location.assign(url.toString())
+              }}
             />
           </div>
 

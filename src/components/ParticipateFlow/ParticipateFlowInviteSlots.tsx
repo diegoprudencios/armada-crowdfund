@@ -1,4 +1,6 @@
+import { INVITE_METHOD_PICKER_UX } from '../../constants/inviteUx'
 import SlotCard, { type SlotData } from '../InviteFlow/screens/SlotCard'
+import { InviteFocusChrome, useInviteSlotFocus } from '../InviteFlow/useInviteSlotFocus'
 import { Button } from '../Button'
 import inviteStyles from '../InviteFlow/screens/InviteSlots.module.css'
 import styles from './ParticipateFlowInviteSlots.module.css'
@@ -24,35 +26,63 @@ export function ParticipateFlowInviteSlots({
   copiedId = null,
   loadingId = null,
 }: ParticipateFlowInviteSlotsProps) {
+  const focusApi = useInviteSlotFocus()
+
+  const slotList = (
+    <div className={inviteStyles.slotList}>
+      {slots.map((slot) => (
+        <SlotCard
+          key={slot.id}
+          slot={slot}
+          onGenerateLink={onGenerateLink}
+          onCopy={onCopy}
+          onRevoke={onRevoke}
+          onInviteOnchain={onInviteOnchain}
+          copied={copiedId === slot.id}
+          loading={loadingId === slot.id}
+          onInviteClick={INVITE_METHOD_PICKER_UX ? focusApi.openPicker : undefined}
+          onInviteButtonRef={INVITE_METHOD_PICKER_UX ? focusApi.registerInviteButton : undefined}
+          invitePickerOpen={focusApi.pickerSlotId === slot.id}
+        />
+      ))}
+    </div>
+  )
+
+  const listFrame = (
+    <div className={inviteStyles.listFrame}>
+      <div className={inviteStyles.header}>
+        <h2 className={inviteStyles.title}>Whitelist a friend</h2>
+        <p className={inviteStyles.subtitle}>
+          We need more sailors like you to join the fleet.
+          <br />
+          Share a link or send an onchain invite to a specific address.
+        </p>
+      </div>
+      <div className={styles.scroll}>{slotList}</div>
+    </div>
+  )
+
   return (
     <div className={styles.layout}>
-      <div className={[inviteStyles.shell, styles.shell].join(' ')} data-flow-shell>
-        <div className={inviteStyles.header}>
-          <h2 className={inviteStyles.title}>Your invites</h2>
-          <p className={inviteStyles.subtitle}>
-            Share a link or send an onchain invite to a specific address.
-          </p>
-        </div>
-
-        <div className={styles.scroll}>
-          <div className={inviteStyles.slotList}>
-            {slots.map((slot) => (
-              <SlotCard
-                key={slot.id}
-                slot={slot}
-                onGenerateLink={onGenerateLink}
-                onCopy={onCopy}
-                onRevoke={onRevoke}
-                onInviteOnchain={onInviteOnchain}
-                copied={copiedId === slot.id}
-                loading={loadingId === slot.id}
-              />
-            ))}
-          </div>
-        </div>
+      <div
+        className={[inviteStyles.shell, styles.shell].join(' ')}
+        data-flow-shell
+        data-invite-surface=""
+      >
+        {INVITE_METHOD_PICKER_UX ? (
+          <InviteFocusChrome
+            focusApi={focusApi}
+            loadingSlotId={loadingId}
+            onGenerateLink={onGenerateLink}
+            onInviteOnchain={onInviteOnchain}
+            list={listFrame}
+          />
+        ) : (
+          listFrame
+        )}
       </div>
 
-      {onDoItLater && (
+      {onDoItLater && focusApi.view === 'list' && (
         <div className={styles.footer}>
           <Button
             variant="ghost"

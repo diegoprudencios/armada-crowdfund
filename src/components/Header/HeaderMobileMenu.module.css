@@ -7,6 +7,7 @@
   background: linear-gradient(
     180deg,
     var(--semantic-color-brand-lavender) 0%,
+    var(--semantic-color-brand-gradient-rose) 52%,
     var(--semantic-color-brand-amber) 100%
   );
   box-sizing: border-box;

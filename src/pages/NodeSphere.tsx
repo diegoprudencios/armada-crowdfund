@@ -531,6 +531,8 @@ export function NodeSphere({
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
+    const _dragUp = new THREE.Vector3(0, 1, 0)
+    const _dragRight = new THREE.Vector3(1, 0, 0)
     let hovered: THREE.Mesh | null = null
     let hoveredAddress: string | undefined
     let dragLastX = 0
@@ -568,9 +570,9 @@ export function NodeSphere({
         dragLastX = e.clientX
         dragLastY = e.clientY
 
-        // Drag rotation: right-drag rotates around Y, up/down rotates around X.
-        root.rotation.y += dx * 0.006
-        root.rotation.x += dy * 0.004
+        // Screen-space spin on world axes.
+        root.rotateOnWorldAxis(_dragUp, dx * 0.006)
+        root.rotateOnWorldAxis(_dragRight, dy * 0.004)
         return
       }
 

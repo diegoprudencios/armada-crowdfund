@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import { Header } from '../components/Header'
+import { Button } from '../components/Button'
 import { Progress } from '../components/Progress'
 import { Participate } from '../components/Participate'
 import { CrowdfundLeftColumn } from '../components/CrowdfundLeftColumn'
@@ -46,6 +47,12 @@ function readInitialView(prop?: CrowdfundView): CrowdfundView {
     if (v === 'myposition') return 'myposition'
   }
   return 'crowdfund'
+}
+
+function readInitialSelectAddress(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  const select = new URLSearchParams(window.location.search).get('select')
+  return select && select.length > 0 ? select : undefined
 }
 
 const PANEL_EXIT_MS = 480
@@ -140,7 +147,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     }
     return [self, ...participants.filter((p) => p.address !== wallet.displayAddress)]
   }, [participants, hasParticipated, wallet, committedUsdc])
-  const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
+  const [selectedAddress, setSelectedAddress] = useState<string | undefined>(() =>
+    readInitialSelectAddress(),
+  )
   const [filter, setFilter] = useState<'all' | 'seed' | 'hop1' | 'hop2' | 'multihop'>('all')
   const [participantsListOpen, setParticipantsListOpen] = useState(false)
   const [holdColumnExpanded, setHoldColumnExpanded] = useState(false)
@@ -152,6 +161,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
   const mobileParticipantsRef = useRef<HTMLDivElement | null>(null)
   const leftColumnRef = useRef<HTMLDivElement | null>(null)
+  const graphHostRef = useRef<HTMLDivElement | null>(null)
   const isCrowdfund = view === 'crowdfund'
   const isMyPosition = view === 'myposition'
   const isGraphCrowdfund = graphMode === 'crowdfund'
@@ -209,12 +219,18 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     }
   }
 
-  const startPanelTransition = (next: CrowdfundView) => {
-    if (view === next || panelPhase !== 'idle') return
+  const startPanelTransition = (next: CrowdfundView, options?: { selectAddress?: string }) => {
+    if (view === next || panelPhase !== 'idle') {
+      if (view === next && next === 'crowdfund' && options?.selectAddress) {
+        setSelectedAddress(options.selectAddress)
+        setGraphMode('crowdfund')
+      }
+      return
+    }
 
     if (next === 'crowdfund') {
       setGraphMode('crowdfund')
-      setSelectedAddress(undefined)
+      setSelectedAddress(options?.selectAddress)
     } else if (next === 'myposition') {
       setGraphMode('myposition')
       setSelectedAddress(wallet?.displayAddress)
@@ -265,11 +281,16 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   useEffect(() => {
     if (!isCrowdfund || !selectedAddress) return
 
+    // Deselect when clicking outside the graph + participants chrome.
+    // The graph is excluded so a drag start does not clear selection —
+    // NodeSphere owns click-vs-drag (empty click → deselect).
     const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (graphHostRef.current?.contains(t)) return
       const desktop = participantsPanelRef.current
       const mobile = mobileParticipantsRef.current
-      if (desktop?.contains(e.target as Node)) return
-      if (mobile?.contains(e.target as Node)) return
+      if (desktop?.contains(t)) return
+      if (mobile?.contains(t)) return
       setSelectedAddress(undefined)
     }
 
@@ -361,7 +382,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const graphPinnedNodes = useMemo(() => {
     const pins: PinnedNode[] = displayParticipants.map((p) => ({
       kind:
-        p.hop === 'SEED'
+        p.hop === 'HOP-0'
           ? ('Hop 0' as const)
           : p.hop === 'HOP-1'
             ? ('Hop 1' as const)
@@ -428,7 +449,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           .filter(Boolean)
           .join(' ')}
       >
-        <div className={shellStyles.graphHost} data-theme="dark">
+        <div ref={graphHostRef} className={shellStyles.graphHost} data-theme="dark">
           {mountGraph && !(isMyPosition && isMobileLayout()) ? (
             <NodeSphere
               key={graphLayoutKey}
@@ -521,7 +542,18 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           >
             <section className={mpStyles.positionCard} aria-label="Your position">
               <div className={mpStyles.cardHeader}>
-                <h1 className={mpStyles.pageTitle}>My Position</h1>
+                <div className={mpStyles.titleRow}>
+                  <h1 className={mpStyles.pageTitle}>My Position</h1>
+                  <Button
+                    className={mpStyles.headerCta}
+                    variant="gradient"
+                    size="sm"
+                    label={hasParticipated ? 'Commit again' : 'Participate'}
+                    showIcon
+                    icon="arrow-right-micro"
+                    onClick={openParticipateFlow}
+                  />
+                </div>
                 <div className={mpStyles.metaTags}>
                   {wallet && <Tag label={wallet.displayAddress} dot="lavender" />}
                   <Tag label={hopLabel} dot="lavender" />
@@ -599,6 +631,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
               onInviteOnchain={inviteSlotOnchain}
               copiedSlotId={copiedId}
               loadingSlotId={loadingSlotId}
+              onViewRedeemed={(address) =>
+                startPanelTransition('crowdfund', { selectAddress: address })
+              }
             />
           </div>
         </div>
