@@ -148,6 +148,10 @@
   flex: 1;
 }
 
+.ctaBlocked {
+  cursor: not-allowed;
+}
+
 @media (max-width: 767px) {
   .buttonRow {
     flex-direction: column-reverse;

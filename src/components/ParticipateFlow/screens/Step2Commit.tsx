@@ -138,10 +138,14 @@ export default function Step2Commit({
         <Button
           variant="primary"
           size="lg"
-          label="Review"
+          label={hasNewAmount ? 'Review' : 'Insert amount'}
           showIcon={false}
-          onClick={() => onNext(amount)}
-          disabled={!hasNewAmount}
+          className={!hasNewAmount ? styles.ctaBlocked : undefined}
+          aria-disabled={!hasNewAmount || undefined}
+          onClick={() => {
+            if (!hasNewAmount) return
+            onNext(amount)
+          }}
         />
       </div>
     </div>
