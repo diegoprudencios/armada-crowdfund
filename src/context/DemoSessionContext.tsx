@@ -24,6 +24,13 @@ const INITIAL_SLOTS: SlotData[] = [
   { id: 3, status: 'empty' },
 ]
 
+const HOP_LABEL: Record<HopVariant, string> = {
+  seed: 'HOP-0',
+  'hop-1': 'HOP-1',
+  'hop-2': 'HOP-2',
+  'multi-hop': 'MULTI-HOP',
+}
+
 function freshSlots() {
   return INITIAL_SLOTS.map((slot) => ({ ...slot }))
 }
@@ -33,6 +40,7 @@ function createFreshSession() {
     wallet: null as DemoWallet | null,
     committedUsdc: 0,
     hasParticipated: false,
+    hopVariant: 'hop-1' as HopVariant,
     slots: freshSlots(),
   }
 }
@@ -56,6 +64,7 @@ type DemoSessionContextValue = {
   connectWallet: (provider: string) => void
   disconnectWallet: () => void
   completeParticipation: (amountUsdc: number) => void
+  consumeSelfInvites: (inviteCount: number) => void
   generateSlotLink: (slotId: number) => Promise<void>
   revokeSlot: (slotId: number) => void
   inviteSlotOnchain: (slotId: number, address: string, ensName?: string) => Promise<void>
@@ -79,6 +88,7 @@ function loadInitialSession() {
     wallet: stored.wallet,
     committedUsdc: stored.committedUsdc,
     hasParticipated: stored.hasParticipated,
+    hopVariant: stored.hopVariant,
     slots: stored.slots.length > 0 ? stored.slots : freshSlots(),
   }
 }
@@ -88,15 +98,15 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<DemoWallet | null>(initial.wallet)
   const [committedUsdc, setCommittedUsdc] = useState(initial.committedUsdc)
   const [hasParticipated, setHasParticipated] = useState(initial.hasParticipated)
+  const [hopVariant, setHopVariant] = useState<HopVariant>(initial.hopVariant)
   const [slots, setSlots] = useState<SlotData[]>(initial.slots)
   const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
 
   useEffect(() => {
-    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
-  }, [wallet, committedUsdc, hasParticipated, slots])
+    writeDemoSession({ wallet, committedUsdc, hasParticipated, hopVariant, slots })
+  }, [wallet, committedUsdc, hasParticipated, hopVariant, slots])
 
-  const hopVariant: HopVariant = 'hop-1'
-  const hopLabel = 'HOP-1'
+  const hopLabel = HOP_LABEL[hopVariant]
 
   const connectWallet = useCallback((provider: string) => {
     if (!isProviderWhitelisted(provider)) return
@@ -113,13 +123,38 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     setWallet(fresh.wallet)
     setCommittedUsdc(fresh.committedUsdc)
     setHasParticipated(fresh.hasParticipated)
+    setHopVariant(fresh.hopVariant)
     setSlots(fresh.slots)
     setLoadingSlotId(null)
   }, [])
 
   const completeParticipation = useCallback((amountUsdc: number) => {
-    setCommittedUsdc((prev) => prev + amountUsdc)
+    setCommittedUsdc((prev) => Math.min(CAP, prev + amountUsdc))
     setHasParticipated(true)
+  }, [])
+
+  /**
+   * Self-fill max-out: spend empty invite slots on yourself and promote to multi-hop
+   * (same address, multiple hop positions — mirrors committer / treeLayout merge).
+   */
+  const consumeSelfInvites = useCallback((inviteCount: number) => {
+    if (inviteCount <= 0) return
+    setHopVariant('multi-hop')
+    setSlots((prev) => {
+      let remaining = inviteCount
+      return prev.map((slot) => {
+        if (remaining <= 0 || slot.status !== 'empty') return slot
+        remaining -= 1
+        return {
+          ...slot,
+          status: 'redeemed' as const,
+          redeemedBy: DEMO_WALLET,
+          joinedAt: new Date(),
+          // Self-fill unlocks the next hop(s); mark as hop-2 invitee for demo fidelity.
+          inviteeHop: 2 as const,
+        }
+      })
+    })
   }, [])
 
   const generateSlotLink = useCallback(async (slotId: number) => {
@@ -166,11 +201,12 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       hopVariant,
       hopLabel,
       capUsdc: CAP,
-      fillPct: (committedUsdc / CAP) * 100,
+      fillPct: Math.min(100, (committedUsdc / CAP) * 100),
       slots,
       connectWallet,
       disconnectWallet,
       completeParticipation,
+      consumeSelfInvites,
       generateSlotLink,
       revokeSlot,
       inviteSlotOnchain,
@@ -180,10 +216,13 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       wallet,
       committedUsdc,
       hasParticipated,
+      hopVariant,
+      hopLabel,
       slots,
       connectWallet,
       disconnectWallet,
       completeParticipation,
+      consumeSelfInvites,
       generateSlotLink,
       revokeSlot,
       inviteSlotOnchain,

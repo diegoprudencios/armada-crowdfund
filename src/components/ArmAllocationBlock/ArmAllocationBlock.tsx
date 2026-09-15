@@ -39,6 +39,8 @@ export function ArmAllocationBlock({
   const hasNewAmount = newAmount > 0
   const valueActive = hasNewAmount || hasExisting
   const maxLabel = maxArm.toLocaleString('en-US')
+  const committedUsdc = existingCommittedUsdc + newAmount
+  const committedLabel = committedUsdc.toLocaleString('en-US')
 
   return (
     <div className={styles.block}>
@@ -59,7 +61,7 @@ export function ArmAllocationBlock({
           ) : null}
         </div>
         <div className={styles.barScale}>
-          <span className={styles.barScaleMin}>0 USDC</span>
+          <span className={styles.barScaleMin}>{committedLabel} USDC</span>
           <span className={styles.barScaleMax}>MAX {maxLabel} USDC</span>
         </div>
       </div>

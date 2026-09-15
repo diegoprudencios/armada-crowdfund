@@ -12,7 +12,7 @@ interface Step4ApproveProps extends ParticipateStepBarProps {
   amount?: number
 }
 
-const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
 
 const STATUS_LABEL: Record<Transaction['status'], string> = {
   loading: 'Loading',
@@ -24,7 +24,7 @@ export default function Step4Approve({
   onDone,
   amount = 1000,
   steps = DEFAULT_STEPS,
-  stepIndex = 4,
+  stepIndex = 3,
 }: Step4ApproveProps) {
   const [txs, setTxs] = useState<Transaction[]>([
     { label: `Approve ${amount.toLocaleString()} USDC`, status: 'loading' },

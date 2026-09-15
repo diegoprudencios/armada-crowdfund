@@ -19,6 +19,14 @@
   overflow: visible;
 }
 
+/* Multi-hop / max-out: grow past fixed 500px with a viewport ceiling. */
+.shellMultiHop {
+  height: auto;
+  min-height: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -75,6 +83,13 @@
   gap: var(--primitives-spacing-2);
 }
 
+.hopDot {
+  width: var(--primitives-spacing-2);
+  height: var(--primitives-spacing-2);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .summaryLabel {
   font-family: var(--primitives-fontFamily-ui);
   font-size: calc(var(--primitives-fontSize-base) * 1px);
@@ -119,6 +134,19 @@
   transition: color 150ms ease;
 }
 
+/* Self-fill note — lavender wash (same exception pattern as MaxOutBanner). */
+.maxOutNote {
+  padding: var(--primitives-spacing-3) var(--primitives-spacing-3);
+  border-radius: calc(var(--primitives-borderRadius-xl) * 1px);
+  border: 1px solid color-mix(in srgb, var(--semantic-color-brand-lavender) 40%, transparent);
+  background: color-mix(in srgb, var(--semantic-color-brand-lavender) 8%, transparent);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-regular);
+  color: var(--semantic-color-text-secondary);
+  line-height: 1.45;
+}
+
 /* ── Warning block ── */
 .warningBlock {
   background: rgba(196, 145, 229, 0.15);
@@ -141,6 +169,7 @@
   display: flex;
   gap: var(--primitives-spacing-3);
   width: 100%;
+  margin-top: var(--primitives-spacing-6);
 }
 
 .buttonRow > * {

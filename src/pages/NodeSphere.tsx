@@ -378,8 +378,16 @@ export function NodeSphere({
     addShell('Multi-hop', shellRadii[3].radius, scenarioCounts.real.multi, scenarioCounts.ghost.multi)
 
     // Wallet node when there are participants or a connected demo wallet.
+    // Prefer an explicit “Your wallet” pin; else any pin matching walletAddress
+    // (so multi-hop / max-out totals still surface on this node).
     if (scenario.participants > 0 || walletAddress) {
-      const walletPinned = pinnedByKind.get('Your wallet')?.[0]
+      const walletPinned =
+        pinnedByKind.get('Your wallet')?.[0] ??
+        layoutPinnedNodes?.find(
+          (p) =>
+            !!walletAddress &&
+            p.address.toLowerCase() === walletAddress.toLowerCase(),
+        )
       const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
       pushNode(walletPos, {
         kind: 'Your wallet',

@@ -46,11 +46,18 @@ export const DEMO_SLOTS: SlotData[] = [
   { id: 3, status: 'empty' },
 ]
 
+/**
+ * Graph pins for My Position / crowdfund.
+ * Self-fill redemptions (redeemedBy === self) are omitted — POC merges those into one
+ * wallet node (NodeSphere “Your wallet”), not N duplicate invitee pins.
+ * Multi-hop is shown via hop label / list; the sphere keeps one Your-wallet pin with the total.
+ */
 export function buildInvitePinnedNodes(
   slots: SlotData[],
   walletAddress: string,
   committedUsdc: number,
 ): PinnedNode[] {
+  const self = walletAddress.toLowerCase()
   const nodes: PinnedNode[] = [
     {
       kind: 'Your wallet',
@@ -64,12 +71,14 @@ export function buildInvitePinnedNodes(
 
   for (const slot of slots) {
     if (slot.status === 'redeemed' && slot.redeemedBy) {
+      if (slot.redeemedBy.toLowerCase() === self) continue
       nodes.push({
         kind: 'Hop 1',
         address: slot.redeemedBy,
         committed: 'Joined',
       })
     } else if (slot.status === 'onchain-pending' && slot.invitedAddress) {
+      if (slot.invitedAddress.toLowerCase() === self) continue
       nodes.push({
         kind: 'Hop 1',
         address: slot.invitedAddress,

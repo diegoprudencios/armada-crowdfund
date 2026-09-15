@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
-import { Header } from '../../components/Header'
 import type { SlotData } from '../../components/InviteFlow/screens/SlotCard'
 import { InvitesCard } from '../../components/MyPosition/InvitesCard'
 import { DEMO_SLOTS } from '../../components/MyPosition/myPositionDemo'
@@ -12,7 +11,6 @@ import {
 } from '../../components/ParticipateFlow'
 import { ParticipateFlowInviteSlots } from '../../components/ParticipateFlow/ParticipateFlowInviteSlots'
 import Step0Invite from '../../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
-import Step1Wallet from '../../components/ParticipateFlow/screens/Step1Wallet'
 import Step1WalletNotWhitelisted from '../../components/ParticipateFlow/screens/Step1WalletNotWhitelisted'
 import Step2Commit from '../../components/ParticipateFlow/screens/Step2Commit'
 import Step3Review from '../../components/ParticipateFlow/screens/Step3Review'
@@ -22,6 +20,7 @@ import {
   MaxOutBanner,
   type MaxOutBannerOption,
 } from '../../components/ParticipateFlow/screens/MaxOutBanner'
+import { hopPillDotColor } from '../../constants/graphHopColors'
 import {
   ClaimFlowDemo,
   CLAIM_DEMO_LABELS,
@@ -48,11 +47,11 @@ const EMPTY_INVITE_SLOTS: SlotData[] = [
 
 type ParticipateStepId =
   | 'invite'
-  | 'wallet'
   | 'not-whitelisted'
   | 'commit'
   | 'commit-max-out'
   | 'review'
+  | 'review-max-out'
   | 'approve'
   | 'confirmation'
   | 'confirmation-again'
@@ -73,6 +72,29 @@ const DEMO_MAX_OUT_COMMIT_ONLY: Omit<MaxOutBannerOption, 'onMaxOut'> = {
   inviteCount: 0,
 }
 
+const DEMO_MAX_OUT_HOP_COMMITS = [
+  {
+    hop: 1 as const,
+    hopLabel: 'HOP-1',
+    hopColor: hopPillDotColor('hop-1'),
+    amount: 2_000,
+  },
+  {
+    hop: 2 as const,
+    hopLabel: 'HOP-2',
+    hopColor: hopPillDotColor('hop-2'),
+    amount: 4_000,
+  },
+]
+
+const DEMO_MAX_OUT_NOTE = (
+  <>
+    <strong>Self-invite bundle.</strong> Issues 2 self-invites to unlock your full ceiling,
+    then commits at every hop — all in one transaction. This spends your own invite slots
+    on yourself, so they won&apos;t be available to invite others.
+  </>
+)
+
 function withMaxOutBanner(
   maxOut: Omit<MaxOutBannerOption, 'onMaxOut'>,
   onMaxOut: () => void,
@@ -88,16 +110,16 @@ function withMaxOutBanner(
 
 const PARTICIPATE_STEPS: { id: ParticipateStepId; label: string }[] = [
   { id: 'invite', label: 'Step 0 — Invite' },
-  { id: 'wallet', label: 'Step 1 — Wallet' },
-  { id: 'not-whitelisted', label: 'Step 1 — Not allowlisted' },
-  { id: 'commit', label: 'Step 2 — Commit' },
-  { id: 'commit-max-out', label: 'Step 2 — Commit + max out' },
-  { id: 'review', label: 'Step 3 — Review' },
-  { id: 'approve', label: 'Step 4 — Approve' },
-  { id: 'confirmation', label: 'Step 5 — Confirmation' },
-  { id: 'confirmation-again', label: 'Step 5 — Commit again' },
-  { id: 'confirmation-max-out', label: 'Step 5 — Confirmation + max out' },
-  { id: 'confirmation-no-invites', label: 'Step 5 — No invites (Hop-2)' },
+  { id: 'not-whitelisted', label: 'Not allowlisted' },
+  { id: 'commit', label: 'Step 1 — Commit' },
+  { id: 'commit-max-out', label: 'Step 1 — Commit + max out' },
+  { id: 'review', label: 'Step 2 — Review' },
+  { id: 'review-max-out', label: 'Step 2 — Review max out' },
+  { id: 'approve', label: 'Step 3 — Approve' },
+  { id: 'confirmation', label: 'Step 4 — Confirmation' },
+  { id: 'confirmation-again', label: 'Step 4 — Commit again' },
+  { id: 'confirmation-max-out', label: 'Step 4 — Confirmation + max out' },
+  { id: 'confirmation-no-invites', label: 'Step 4 — No invites (Hop-2)' },
 ]
 
 const POSITION_VARIANTS: { variant: PositionCardDemoVariant; label: string; note: string }[] = [
@@ -202,8 +224,6 @@ function ParticipateStepContent({
           variant="landing"
         />
       )
-    case 'wallet':
-      return <Step1Wallet onNext={onClose} />
     case 'not-whitelisted':
       return (
         <Step1WalletNotWhitelisted
@@ -225,6 +245,17 @@ function ParticipateStepContent({
           hopLevel="Hop 1"
           amount={1000}
           estimatedArm={1000}
+        />
+      )
+    case 'review-max-out':
+      return (
+        <Step3Review
+          onNext={onClose}
+          onBack={onClose}
+          hopCommits={DEMO_MAX_OUT_HOP_COMMITS}
+          amount={6_000}
+          estimatedArm={6_000}
+          note={DEMO_MAX_OUT_NOTE}
         />
       )
     case 'approve':
@@ -353,15 +384,6 @@ export function CrowdfundStages() {
 
   return (
     <div className={styles.page}>
-      <Header
-        activeNav="crowdfund"
-        autoHideOnScroll={false}
-        walletAddress="0x1a2b...9a3c"
-        walletCopyAddress="0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c"
-        walletProvider="metamask"
-        onParticipate={openParticipateFlow}
-      />
-
       <main className={styles.main}>
         <header className={styles.intro}>
           <p className={styles.eyebrow}>Showcase</p>
@@ -581,14 +603,16 @@ export function CrowdfundStages() {
               />
             ))}
           </div>
-          <div className={styles.scrollRow} aria-label="Participate steps gallery">
-            {PARTICIPATE_STEPS.map((step) => (
-              <StateCard key={`gallery-${step.id}`} label={step.label}>
-                <div className={styles.flowStatic}>
-                  <ParticipateStepContent step={step.id} onClose={() => {}} />
-                </div>
-              </StateCard>
-            ))}
+          <div className={styles.scrollViewport} aria-label="Participate steps gallery">
+            <div className={styles.scrollRow}>
+              {PARTICIPATE_STEPS.map((step) => (
+                <StateCard key={`gallery-${step.id}`} label={step.label}>
+                  <div className={styles.flowStatic}>
+                    <ParticipateStepContent step={step.id} onClose={() => {}} />
+                  </div>
+                </StateCard>
+              ))}
+            </div>
           </div>
         </Section>
 
@@ -609,12 +633,14 @@ export function CrowdfundStages() {
               />
             ))}
           </div>
-          <div className={styles.scrollRow} aria-label="Claim screens gallery">
-            {CLAIM_DEMO_SCREENS.map((screen) => (
-              <StateCard key={screen} label={CLAIM_DEMO_LABELS[screen]}>
-                <ClaimFlowDemo screen={screen} />
-              </StateCard>
-            ))}
+          <div className={styles.scrollViewport} aria-label="Claim screens gallery">
+            <div className={styles.scrollRow}>
+              {CLAIM_DEMO_SCREENS.map((screen) => (
+                <StateCard key={screen} label={CLAIM_DEMO_LABELS[screen]}>
+                  <ClaimFlowDemo screen={screen} />
+                </StateCard>
+              ))}
+            </div>
           </div>
         </Section>
       </main>
@@ -629,6 +655,23 @@ export function CrowdfundStages() {
           committedUsdc={0}
           hopVariant="hop-1"
           slots={modalSlots}
+          onConsumeSelfInvites={(inviteCount) => {
+            if (inviteCount <= 0) return
+            setModalSlots((prev) => {
+              let remaining = inviteCount
+              return prev.map((slot) => {
+                if (remaining <= 0 || slot.status !== 'empty') return slot
+                remaining -= 1
+                return {
+                  ...slot,
+                  status: 'redeemed' as const,
+                  redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c',
+                  joinedAt: new Date(),
+                  inviteeHop: 1 as const,
+                }
+              })
+            })
+          }}
           onGenerateSlotLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
           onCopySlotLink={handleCopy}
           onRevokeSlot={(slotId) => handleRevoke(setModalSlots, slotId)}
@@ -643,6 +686,18 @@ export function CrowdfundStages() {
           open={modal !== null}
           onClose={closeModal}
           ariaLabel={modalAria}
+          showClose={!(modal?.kind === 'participate-step' && modal.step === 'invite')}
+          footer={
+            modal?.kind === 'participate-step' && modal.step === 'invite' ? (
+              <Button
+                variant="ghost"
+                size="md"
+                label="Do it later"
+                showIcon={false}
+                onClick={closeModal}
+              />
+            ) : null
+          }
         >
           {modal?.kind === 'participate-step' ? (
             <ParticipateStepContent step={modal.step} onClose={closeModal} />

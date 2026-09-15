@@ -20,7 +20,7 @@ interface Step5ConfirmationProps extends ParticipateStepBarProps {
   totalCommittedUsdc?: number
 }
 
-const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
 
 function formatUsd(value: number) {
   return value.toLocaleString('en-US', {
@@ -42,7 +42,7 @@ export default function Step5Confirmation({
   isAdditionalCommit = false,
   totalCommittedUsdc,
   steps = DEFAULT_STEPS,
-  stepIndex = 4,
+  stepIndex = 3,
   stepsStatus = 'confirmed',
 }: Step5ConfirmationProps) {
   const formattedAmount = formatUsd(amount)
