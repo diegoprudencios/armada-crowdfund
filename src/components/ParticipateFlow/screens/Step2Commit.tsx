@@ -21,7 +21,7 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   showBack?: boolean
 }
 
-const DEFAULT_STEPS = ['Connect', 'Commit', 'Review', 'Confirmation']
+const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
 
 export default function Step2Commit({
   onNext,
@@ -32,7 +32,7 @@ export default function Step2Commit({
   existingCommittedUsdc = 0,
   showBack = true,
   steps = DEFAULT_STEPS,
-  stepIndex = 2,
+  stepIndex = 1,
 }: Step2CommitProps) {
   const [amountInput, setAmountInput] = useState('')
 

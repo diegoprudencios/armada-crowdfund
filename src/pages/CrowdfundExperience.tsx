@@ -103,12 +103,15 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     walletConnected,
     committedUsdc,
     hasParticipated,
+    hopVariant,
     hopLabel,
     fillPct,
+    capUsdc,
     slots,
     connectWallet,
     disconnectWallet,
     completeParticipation,
+    consumeSelfInvites,
     generateSlotLink,
     revokeSlot,
     inviteSlotOnchain,
@@ -141,12 +144,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     if (!hasParticipated || !wallet) return participants
     const self: HeroParticipant = {
       address: wallet.displayAddress,
-      hop: 'HOP-1',
+      hop: hopVariant === 'multi-hop' ? 'MULTI-HOP' : hopVariant === 'hop-2' ? 'HOP-2' : hopVariant === 'seed' ? 'HOP-0' : 'HOP-1',
       amountUsd: committedUsdc,
       isSelf: true,
     }
     return [self, ...participants.filter((p) => p.address !== wallet.displayAddress)]
-  }, [participants, hasParticipated, wallet, committedUsdc])
+  }, [participants, hasParticipated, wallet, committedUsdc, hopVariant])
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(() =>
     readInitialSelectAddress(),
   )
@@ -380,28 +383,29 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   }
 
   const graphPinnedNodes = useMemo(() => {
-    const pins: PinnedNode[] = displayParticipants.map((p) => ({
-      kind:
-        p.hop === 'HOP-0'
-          ? ('Hop 0' as const)
-          : p.hop === 'HOP-1'
-            ? ('Hop 1' as const)
-            : p.hop === 'HOP-2'
-              ? ('Hop 2' as const)
-              : ('Multi-hop' as const),
-      address: p.address,
-      committed: `$${p.amountUsd.toLocaleString()} committed`,
-    }))
+    const pins: PinnedNode[] = displayParticipants
+      .filter((p) => !wallet || p.address !== wallet.displayAddress)
+      .map((p) => ({
+        kind:
+          p.hop === 'HOP-0'
+            ? ('Hop 0' as const)
+            : p.hop === 'HOP-1'
+              ? ('Hop 1' as const)
+              : p.hop === 'HOP-2'
+                ? ('Hop 2' as const)
+                : ('Multi-hop' as const),
+        address: p.address,
+        committed: `$${p.amountUsd.toLocaleString()} committed`,
+      }))
 
     if (wallet) {
-      pins.push({
-        kind: 'Your wallet',
-        address: wallet.displayAddress,
-        committed: `$${committedUsdc.toLocaleString()} committed`,
-      })
-
-      for (const pin of buildInvitePinnedNodes(slots, wallet.displayAddress, committedUsdc)) {
-        if (pin.kind !== 'Your wallet') pins.push(pin)
+      const invitePins = buildInvitePinnedNodes(
+        slots,
+        wallet.displayAddress,
+        committedUsdc,
+      )
+      for (const pin of invitePins) {
+        pins.push(pin)
       }
     }
 
@@ -548,9 +552,16 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                     className={mpStyles.headerCta}
                     variant="gradient"
                     size="sm"
-                    label={hasParticipated ? 'Commit again' : 'Participate'}
-                    showIcon
+                    label={
+                      !hasParticipated
+                        ? 'Participate'
+                        : fillPct >= 100
+                          ? 'Maxed out'
+                          : 'Commit again'
+                    }
+                    showIcon={fillPct < 100}
                     icon="arrow-right-micro"
+                    disabled={fillPct >= 100}
                     onClick={openParticipateFlow}
                   />
                 </div>
@@ -625,6 +636,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
             <InvitesCard
               variant="hero"
               slots={slots}
+              selfWalletAddress={wallet?.address}
               onGenerateLink={generateSlotLink}
               onCopy={handleCopy}
               onRevoke={revokeSlot}
@@ -646,8 +658,11 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         walletConnected={walletConnected}
         onConnectWallet={connectWallet}
         onCompleteParticipation={completeParticipation}
+        onConsumeSelfInvites={consumeSelfInvites}
         hasParticipated={hasParticipated}
         committedUsdc={committedUsdc}
+        capUsdc={capUsdc}
+        hopVariant={hopVariant}
         slots={slots}
         onGenerateSlotLink={generateSlotLink}
         onRevokeSlot={revokeSlot}

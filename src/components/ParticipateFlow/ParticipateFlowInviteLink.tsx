@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { HopVariant } from '../HopPill/HopPill'
 import type { SlotData } from '../InviteFlow/screens/SlotCard'
-import Step1Wallet from './screens/Step1Wallet'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
@@ -13,7 +12,6 @@ import inlineStyles from './ParticipateFlowInviteInline.module.css'
 import stepStyles from './ParticipateFlowStepTransition.module.css'
 
 export type InviteLinkFlowStep =
-  | 'wallet'
   | 'commit'
   | 'review'
   | 'approve'
@@ -29,7 +27,9 @@ export interface ParticipateFlowInviteLinkProps {
   /** `inline` swaps content in the invite landing shell; `modal` overlays a dialog. */
   presentation?: 'modal' | 'inline'
   onClose: (context: ParticipateFlowInviteLinkCloseContext) => void
+  /** @deprecated Wallet connect is RainbowKit; kept for callers. Ignored for step routing. */
   walletConnected?: boolean
+  /** @deprecated Unused — connect happens outside this flow. */
   onConnectWallet?: (provider: string) => void
   onCompleteParticipation?: (amountUsdc: number) => void
   onViewPosition?: () => void
@@ -58,16 +58,11 @@ const STEP_TRANSITION_MS = 240
 const MY_POSITION_URL = `${import.meta.env.BASE_URL}?view=myposition`
 
 const DIALOG_LABEL: Record<InviteLinkFlowStep, string> = {
-  wallet: 'Select your wallet',
   commit: 'How much USDC?',
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
   confirmation: 'Participation confirmed',
   invites: 'Whitelist a friend',
-}
-
-function initialStep(walletConnected: boolean): InviteLinkFlowStep {
-  return walletConnected ? 'commit' : 'wallet'
 }
 
 function StepTransition({
@@ -91,14 +86,13 @@ function StepTransition({
 
 /**
  * Path 1 — invite link entry.
- * Landing page shows Step 0; this flow runs Connect → Commit → Review → Confirm.
+ * Landing page shows Step 0; this flow runs Commit → Review → Confirm.
+ * Wallet connect is RainbowKit (outside this flow).
  */
 export function ParticipateFlowInviteLink({
   open,
   presentation = 'modal',
   onClose,
-  walletConnected = false,
-  onConnectWallet,
   onCompleteParticipation,
   onViewPosition,
   hasParticipated = false,
@@ -112,8 +106,8 @@ export function ParticipateFlowInviteLink({
   loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowInviteLinkProps) {
-  const [step, setStep] = useState<InviteLinkFlowStep>(() => initialStep(walletConnected))
-  const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>(() => initialStep(walletConnected))
+  const [step, setStep] = useState<InviteLinkFlowStep>('commit')
+  const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>('commit')
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -148,22 +142,20 @@ export function ParticipateFlowInviteLink({
 
     if (justOpened) {
       wasReturningParticipantRef.current = hasParticipated
-      const start = initialStep(walletConnected)
-      setStep(start)
-      setRenderStep(start)
+      setStep('commit')
+      setRenderStep('commit')
       return
     }
 
     if (open) return
 
     clearTransitionTimer()
-    const start = initialStep(walletConnected)
-    setStep(start)
-    setRenderStep(start)
+    setStep('commit')
+    setRenderStep('commit')
     setFading(false)
     setAmount(0)
     wasReturningParticipantRef.current = false
-  }, [open, walletConnected, hasParticipated])
+  }, [open, hasParticipated])
 
   const hopLevel = HOP_LEVEL_LABEL[hopVariant]
   const estimatedArm = Math.round(amount)
@@ -186,25 +178,14 @@ export function ParticipateFlowInviteLink({
 
   const renderCurrentStep = () => {
     switch (renderStep) {
-      case 'wallet':
-        return (
-          <Step1Wallet
-            showSteps
-            onNext={(provider) => {
-              onConnectWallet?.(provider)
-              transitionTo('commit')
-            }}
-          />
-        )
-
       case 'commit':
         return (
           <Step2Commit
             {...stepBar}
-            stepIndex={2}
+            stepIndex={1}
             existingCommittedUsdc={committedUsdc}
-            showBack={!hasParticipated}
-            onBack={() => transitionTo('wallet')}
+            showBack={false}
+            onBack={handleClose}
             onNext={(nextAmount) => {
               setAmount(nextAmount)
               transitionTo('review')
@@ -216,7 +197,7 @@ export function ParticipateFlowInviteLink({
         return (
           <Step3Review
             {...stepBar}
-            stepIndex={3}
+            stepIndex={2}
             hopLevel={hopLevel}
             amount={amount}
             estimatedArm={estimatedArm}
@@ -229,7 +210,7 @@ export function ParticipateFlowInviteLink({
         return (
           <Step4Approve
             {...stepBar}
-            stepIndex={4}
+            stepIndex={3}
             amount={amount}
             onDone={() => {
               onCompleteParticipation?.(amount)
@@ -242,7 +223,7 @@ export function ParticipateFlowInviteLink({
         return (
           <Step5Confirmation
             {...stepBar}
-            stepIndex={4}
+            stepIndex={3}
             stepsStatus="confirmed"
             amount={amount}
             estimatedArm={

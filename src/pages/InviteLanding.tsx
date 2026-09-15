@@ -70,7 +70,7 @@ function InviteLandingInner() {
   const openFlow = () => setFlowActive(true)
 
   const goToMyPosition = () => {
-    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
+    writeDemoSession({ wallet, committedUsdc, hasParticipated, hopVariant: sessionHop, slots })
     window.location.assign(MY_POSITION_URL)
   }
 

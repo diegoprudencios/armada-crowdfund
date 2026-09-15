@@ -1,8 +1,9 @@
+import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
 import type { DemoWallet } from './DemoSessionContext'
 
 const STORAGE_KEY = 'armada-demo-session'
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
 
 type StoredSlot = Omit<SlotData, 'expiresAt' | 'joinedAt'> & {
   expiresAt?: string
@@ -14,6 +15,7 @@ export type StoredDemoSession = {
   wallet: DemoWallet | null
   committedUsdc: number
   hasParticipated: boolean
+  hopVariant: HopVariant
   slots: StoredSlot[]
 }
 
@@ -33,10 +35,15 @@ function reviveSlots(slots: StoredSlot[]): SlotData[] {
   }))
 }
 
+function isHopVariant(value: unknown): value is HopVariant {
+  return value === 'seed' || value === 'hop-1' || value === 'hop-2' || value === 'multi-hop'
+}
+
 export function readDemoSession(): {
   wallet: DemoWallet | null
   committedUsdc: number
   hasParticipated: boolean
+  hopVariant: HopVariant
   slots: SlotData[]
 } | null {
   if (typeof window === 'undefined') return null
@@ -52,6 +59,7 @@ export function readDemoSession(): {
       wallet: parsed.wallet,
       committedUsdc: parsed.committedUsdc ?? 0,
       hasParticipated: parsed.hasParticipated ?? false,
+      hopVariant: isHopVariant(parsed.hopVariant) ? parsed.hopVariant : 'hop-1',
       slots: reviveSlots(parsed.slots ?? []),
     }
   } catch {
@@ -63,6 +71,7 @@ export function writeDemoSession(session: {
   wallet: DemoWallet | null
   committedUsdc: number
   hasParticipated: boolean
+  hopVariant: HopVariant
   slots: SlotData[]
 }): void {
   if (typeof window === 'undefined') return
@@ -72,6 +81,7 @@ export function writeDemoSession(session: {
     wallet: session.wallet,
     committedUsdc: session.committedUsdc,
     hasParticipated: session.hasParticipated,
+    hopVariant: session.hopVariant,
     slots: serializeSlots(session.slots),
   }
 

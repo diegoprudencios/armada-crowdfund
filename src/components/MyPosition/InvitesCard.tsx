@@ -1,6 +1,6 @@
 // ABOUTME: My Position invites panel — collapsible list with available/total count in the header.
 
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { INVITE_METHOD_PICKER_UX } from '../../constants/inviteUx'
 import SlotCard, { type SlotData } from '../InviteFlow/screens/SlotCard'
@@ -23,11 +23,25 @@ function isMobileViewport(): boolean {
   return window.matchMedia(`(max-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX}px)`).matches
 }
 
+/** True when every slot was spent as a self-invite (max-out), not shared with friends. */
+function isSelfFillExhausted(slots: SlotData[], selfWalletAddress?: string): boolean {
+  if (!selfWalletAddress || slots.length === 0) return false
+  const self = selfWalletAddress.toLowerCase()
+  return slots.every(
+    (slot) =>
+      slot.status === 'redeemed' &&
+      typeof slot.redeemedBy === 'string' &&
+      slot.redeemedBy.toLowerCase() === self,
+  )
+}
+
 export type InvitesCardVariant = 'default' | 'hero' | 'split'
 
 export interface InvitesCardProps {
   slots: SlotData[]
   variant?: InvitesCardVariant
+  /** Connected wallet — used to detect self-fill max-out exhaustion. */
+  selfWalletAddress?: string
   onGenerateLink: (slotId: number) => Promise<void>
   onCopy: (slotId: number, link: string) => void
   onRevoke: (slotId: number) => void
@@ -41,6 +55,7 @@ export interface InvitesCardProps {
 export function InvitesCard({
   slots,
   variant = 'default',
+  selfWalletAddress,
   onGenerateLink,
   onCopy,
   onRevoke,
@@ -85,6 +100,10 @@ export function InvitesCard({
   const listId = useId()
   const available = countAvailableInviteSlots(slots)
   const total = slots.length
+  const selfFillExhausted = useMemo(
+    () => isSelfFillExhausted(slots, selfWalletAddress),
+    [slots, selfWalletAddress],
+  )
   const isActionView = INVITE_METHOD_PICKER_UX && focusApi.view === 'action'
   const panelOpen = expanded || isActionView
 
@@ -97,7 +116,15 @@ export function InvitesCard({
     .filter(Boolean)
     .join(' ')
 
-  const slotList = (
+  const slotList = selfFillExhausted ? (
+    <div className={styles.emptyState} role="status">
+      <p className={styles.emptyTitle}>No invites left</p>
+      <p className={styles.emptyBody}>
+        You used all {total} invite slot{total === 1 ? '' : 's'} on yourself to max out your
+        commit. Those slots are no longer available to whitelist friends.
+      </p>
+    </div>
+  ) : (
     <div className={styles.slotListInner}>
       {slots.map((slot) => (
         <SlotCard
@@ -162,7 +189,9 @@ export function InvitesCard({
           .filter(Boolean)
           .join(' ')}
       >
-        {INVITE_METHOD_PICKER_UX ? (
+        {selfFillExhausted ? (
+          slotList
+        ) : INVITE_METHOD_PICKER_UX ? (
           <InviteFocusChrome
             focusApi={focusApi}
             loadingSlotId={loadingSlotId}
