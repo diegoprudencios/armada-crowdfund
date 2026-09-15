@@ -74,43 +74,45 @@ export default function Step2Commit({
 
       <div className={styles.content}>
         <div className={styles.inputBlock}>
-          <h2 className={styles.title} id="commit-title">
-            How much USDC?
-          </h2>
+          <div className={styles.amountGroup}>
+            <h2 className={styles.title} id="commit-title">
+              How much USDC?
+            </h2>
 
-          <div className={styles.amountCluster}>
-            <label className={styles.amountWrapper} htmlFor="commit-amount">
-              <span className={styles.visuallyHidden}>Amount in USDC</span>
-              <span
-                className={[styles.amountField, showActiveAmount && styles.amountFieldHasValue]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
+            <div className={styles.amountCluster}>
+              <label className={styles.amountWrapper} htmlFor="commit-amount">
+                <span className={styles.visuallyHidden}>Amount in USDC</span>
                 <span
-                  className={[styles.amountDisplay, showActiveAmount && styles.amountDisplayActive]
+                  className={[styles.amountField, showActiveAmount && styles.amountFieldHasValue]
                     .filter(Boolean)
                     .join(' ')}
-                  aria-hidden="true"
                 >
-                  {showActiveAmount ? amountInput : '0'}
+                  <span
+                    className={[styles.amountDisplay, showActiveAmount && styles.amountDisplayActive]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-hidden="true"
+                  >
+                    {showActiveAmount ? amountInput : '0'}
+                  </span>
+                  <input
+                    id="commit-amount"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={amountInput}
+                    onChange={(e) => handleInput(e.target.value)}
+                    className={styles.amountInput}
+                    aria-labelledby="commit-title"
+                    aria-describedby="commit-balance"
+                  />
                 </span>
-                <input
-                  id="commit-amount"
-                  type="text"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={amountInput}
-                  onChange={(e) => handleInput(e.target.value)}
-                  className={styles.amountInput}
-                  aria-labelledby="commit-title"
-                  aria-describedby="commit-balance"
-                />
-              </span>
-            </label>
+              </label>
 
-            <p className={styles.balanceLabel} id="commit-balance">
-              Balance {formatBalance(availableBalance)}
-            </p>
+              <p className={styles.balanceLabel} id="commit-balance">
+                Balance {formatBalance(availableBalance)}
+              </p>
+            </div>
           </div>
         </div>
 
