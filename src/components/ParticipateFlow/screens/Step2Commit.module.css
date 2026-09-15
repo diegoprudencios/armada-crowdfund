@@ -130,7 +130,8 @@
   gap: var(--primitives-spacing-3);
   width: 100%;
   flex-shrink: 0;
-  margin-top: var(--primitives-spacing-11);
+  /* Match ArmAllocationBlock gap above the ARM card (bar scale → card). */
+  margin-top: var(--primitives-spacing-4);
 }
 
 .buttonRow > * {
