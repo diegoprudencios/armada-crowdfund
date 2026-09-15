@@ -1,0 +1,58 @@
+/* ABOUTME: Self-fill “Commit the maximum” banner — sits above participate commit/confirmation shells. */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--primitives-spacing-4);
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  padding: var(--primitives-spacing-3) var(--primitives-spacing-4);
+  border-radius: calc(var(--primitives-borderRadius-2xl) * 1px);
+  border: 1px solid color-mix(in srgb, var(--semantic-color-brand-lavender) 45%, transparent);
+  /* Lavender wash — same media/overlay exception pattern as Step3Review warning. */
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--semantic-color-brand-lavender) 18%, transparent),
+    color-mix(in srgb, var(--semantic-color-brand-lavender) 6%, transparent)
+  );
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-1);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-semibold);
+  color: var(--semantic-color-text-primary);
+  line-height: 1.35;
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-regular);
+  color: var(--semantic-color-text-secondary);
+  line-height: 1.35;
+}
+
+.error {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-semibold);
+  color: var(--semantic-color-status-warning);
+  line-height: 1.35;
+}
+
+.cta {
+  flex-shrink: 0;
+}

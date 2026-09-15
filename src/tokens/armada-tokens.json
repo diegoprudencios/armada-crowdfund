@@ -442,6 +442,14 @@
         "value": "12",
         "type": "borderRadius"
       },
+      "2xl": {
+        "value": "16",
+        "type": "borderRadius"
+      },
+      "3xl": {
+        "value": "20",
+        "type": "borderRadius"
+      },
       "full": {
         "value": "999",
         "type": "borderRadius"
@@ -889,7 +897,7 @@
         "description": "Interactive list rows and items"
       },
       "modal": {
-        "value": "20",
+        "value": "{borderRadius.3xl}",
         "type": "borderRadius",
         "description": "Modal and overlay containers"
       }

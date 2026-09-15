@@ -1,0 +1,197 @@
+/* ABOUTME: Layout for the Crowdfund Stages showcase — lifecycle gallery for cards and flows. */
+
+.page {
+  min-height: 100vh;
+  background: var(--semantic-color-surface-bg);
+  color: var(--semantic-color-text-primary);
+}
+
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: calc(var(--primitives-spacing-11) + var(--primitives-spacing-10))
+    var(--primitives-spacing-6) var(--primitives-spacing-11);
+  box-sizing: border-box;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+  margin-bottom: var(--primitives-spacing-10);
+  max-width: 720px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  letter-spacing: var(--primitives-letterSpacing-widest);
+  text-transform: uppercase;
+  color: var(--semantic-color-text-muted);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-4xl) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  line-height: var(--primitives-lineHeight-snug);
+  color: var(--semantic-color-text-primary);
+}
+
+.lede {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  line-height: 1.5;
+  color: var(--semantic-color-text-secondary);
+}
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--primitives-spacing-2);
+  margin-top: var(--primitives-spacing-4);
+}
+
+.tocLink,
+.tocLinkMuted {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--primitives-spacing-4);
+  border-radius: 999px;
+  border: 1px solid var(--semantic-color-border-default);
+  background: var(--semantic-color-surface-default);
+  color: var(--semantic-color-text-primary);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  text-decoration: none;
+}
+
+.tocLink:hover {
+  border-color: var(--semantic-color-border-lavender);
+}
+
+.tocLink:focus-visible,
+.tocLinkMuted:focus-visible {
+  outline: 2px solid var(--semantic-color-border-focus);
+  outline-offset: 2px;
+}
+
+.tocLinkMuted {
+  color: var(--semantic-color-text-muted);
+}
+
+.section {
+  padding: var(--primitives-spacing-10) 0;
+  border-top: 1px solid var(--semantic-color-border-default);
+  scroll-margin-top: var(--primitives-spacing-11);
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-2);
+  margin-bottom: var(--primitives-spacing-6);
+  max-width: 720px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-2xl) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+}
+
+.sectionDesc {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  line-height: 1.5;
+  color: var(--semantic-color-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+  gap: var(--primitives-spacing-6);
+  align-items: start;
+}
+
+.stateCard {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+  min-width: 0;
+}
+
+.stateMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-1);
+}
+
+.stateLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  letter-spacing: var(--primitives-letterSpacing-widest);
+  text-transform: uppercase;
+  color: var(--semantic-color-text-muted);
+}
+
+.stateNote {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  color: var(--semantic-color-text-secondary);
+}
+
+.stateBody {
+  min-width: 0;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--primitives-spacing-3);
+  margin-bottom: var(--primitives-spacing-6);
+}
+
+.scrollRow {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--primitives-spacing-6);
+  align-items: flex-start;
+  overflow-x: auto;
+  width: 100%;
+  padding-bottom: var(--primitives-spacing-4);
+}
+
+.scrollRow > * {
+  flex: 0 0 auto;
+}
+
+.flowStatic {
+  width: max-content;
+}
+
+.invitesCardWrap {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Banner above participate shell — matches committer Option A (between X and card). */
+.maxOutStack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--primitives-spacing-4);
+  width: 480px;
+  max-width: 100%;
+}

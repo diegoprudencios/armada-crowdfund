@@ -1,7 +1,7 @@
 export type ScenarioParticipants = 0 | 3 | 4 | 5 | 30 | 800
 
 type HopKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop'
-type HeroHop = 'SEED' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
+type HeroHop = 'HOP-0' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
 
 export type HeroParticipantRow = {
   address: string
@@ -75,7 +75,7 @@ export function toHeroParticipants(rows: DashboardParticipant[]): HeroParticipan
     address: r.address,
     hop:
       r.hop === 'Hop 0'
-        ? 'SEED'
+        ? 'HOP-0'
         : r.hop === 'Hop 1'
           ? 'HOP-1'
           : r.hop === 'Hop 2'

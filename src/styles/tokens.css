@@ -99,6 +99,8 @@
   --primitives-borderRadius-md: 6;
   --primitives-borderRadius-lg: 8;
   --primitives-borderRadius-xl: 12;
+  --primitives-borderRadius-2xl: 16;
+  --primitives-borderRadius-3xl: 20;
   --primitives-borderRadius-full: 999;
   --primitives-borderWidth-default: 1;
 
@@ -111,6 +113,8 @@
   --semantic-color-brand-action-muted-active: color-mix(in srgb, var(--semantic-color-brand-action) 35%, transparent);
   --semantic-color-brand-amber: var(--primitives-color-amber-300);
   --semantic-color-brand-amber-dark: var(--primitives-color-amber-500);
+  /* Gem mid-stop — same pink as app/homepage marketing gradient. */
+  --semantic-color-brand-gradient-rose: #f39db0;
   /* Fixed ink — same in both themes (marketing CTAs on light/media surfaces) */
   --semantic-color-brand-ink: #151416;
   --semantic-color-brand-ink-hover: #2a2830;
@@ -136,11 +140,12 @@
   --semantic-spacing-card-padding: var(--primitives-spacing-6);
   --semantic-spacing-section-gap: var(--primitives-spacing-10);
   --semantic-spacing-component-gap: var(--primitives-spacing-3);
+  --semantic-spacing-page-block: calc(var(--primitives-spacing-24) + var(--primitives-spacing-1));
   --semantic-spacing-site-title-to-body: calc(var(--semantic-typography-title-font-size) * 0.5);
   --semantic-spacing-site-body-to-cta: calc(var(--semantic-typography-body-font-size) * 1.6);
   --semantic-borderRadius-card: var(--primitives-borderRadius-lg);
   --semantic-borderRadius-item: 8;
-  --semantic-borderRadius-modal: 20;
+  --semantic-borderRadius-modal: var(--primitives-borderRadius-3xl);
   --semantic-borderRadius-button: var(--primitives-borderRadius-full);
   --semantic-borderRadius-input: var(--primitives-borderRadius-md);
   --semantic-borderRadius-badge: var(--primitives-borderRadius-sm);
@@ -219,12 +224,15 @@
   --semantic-component-button-ghost-lg-radius: var(--primitives-borderRadius-full);
   --semantic-component-button-gradient-text: #291433;
   --semantic-component-button-gradient-text-disabled: var(--primitives-color-neutral-400);
-  --semantic-component-button-gradient-default-from: var(--primitives-color-purple-300);
-  --semantic-component-button-gradient-default-to: var(--primitives-color-amber-300);
-  --semantic-component-button-gradient-hover-from: var(--primitives-color-purple-200);
-  --semantic-component-button-gradient-hover-to: var(--primitives-color-amber-200);
-  --semantic-component-button-gradient-active-from: var(--primitives-color-purple-400);
-  --semantic-component-button-gradient-active-to: var(--primitives-color-amber-400);
+  --semantic-component-button-gradient-default-from: var(--semantic-color-brand-amber);
+  --semantic-component-button-gradient-default-mid: var(--semantic-color-brand-gradient-rose);
+  --semantic-component-button-gradient-default-to: var(--semantic-color-brand-lavender);
+  --semantic-component-button-gradient-hover-from: var(--primitives-color-amber-200);
+  --semantic-component-button-gradient-hover-mid: color-mix(in srgb, var(--semantic-color-brand-gradient-rose) 85%, white);
+  --semantic-component-button-gradient-hover-to: var(--primitives-color-purple-200);
+  --semantic-component-button-gradient-active-from: var(--primitives-color-amber-400);
+  --semantic-component-button-gradient-active-mid: color-mix(in srgb, var(--semantic-color-brand-gradient-rose) 85%, black);
+  --semantic-component-button-gradient-active-to: var(--primitives-color-purple-400);
   --semantic-component-button-ink-bg: var(--semantic-color-brand-ink);
   --semantic-component-button-ink-bg-hover: var(--semantic-color-brand-ink-hover);
   --semantic-component-button-ink-bg-active: var(--semantic-color-brand-ink-active);
@@ -363,6 +371,8 @@
   --primitives-borderRadius-md: 6;
   --primitives-borderRadius-lg: 8;
   --primitives-borderRadius-xl: 12;
+  --primitives-borderRadius-2xl: 16;
+  --primitives-borderRadius-3xl: 20;
   --primitives-borderRadius-full: 999;
   --primitives-borderWidth-default: 1;
   /* Semantic */
@@ -374,6 +384,8 @@
   --semantic-color-brand-action-muted-active: color-mix(in srgb, var(--semantic-color-brand-action) 35%, transparent);
   --semantic-color-brand-amber: var(--primitives-color-amber-300);
   --semantic-color-brand-amber-dark: var(--primitives-color-amber-500);
+  /* Gem mid-stop — same pink as app/homepage marketing gradient. */
+  --semantic-color-brand-gradient-rose: #f39db0;
   /* Fixed ink — same in both themes (marketing CTAs on light/media surfaces) */
   --semantic-color-brand-ink: #151416;
   --semantic-color-brand-ink-hover: #2a2830;
@@ -399,11 +411,12 @@
   --semantic-spacing-card-padding: var(--primitives-spacing-6);
   --semantic-spacing-section-gap: var(--primitives-spacing-10);
   --semantic-spacing-component-gap: var(--primitives-spacing-3);
+  --semantic-spacing-page-block: calc(var(--primitives-spacing-24) + var(--primitives-spacing-1));
   --semantic-spacing-site-title-to-body: calc(var(--semantic-typography-title-font-size) * 0.5);
   --semantic-spacing-site-body-to-cta: calc(var(--semantic-typography-body-font-size) * 1.6);
   --semantic-borderRadius-card: var(--primitives-borderRadius-lg);
   --semantic-borderRadius-item: 8;
-  --semantic-borderRadius-modal: 20;
+  --semantic-borderRadius-modal: var(--primitives-borderRadius-3xl);
   --semantic-borderRadius-button: var(--primitives-borderRadius-full);
   --semantic-borderRadius-input: var(--primitives-borderRadius-md);
   --semantic-borderRadius-badge: var(--primitives-borderRadius-sm);
@@ -482,12 +495,15 @@
   --semantic-component-button-ghost-lg-radius: var(--primitives-borderRadius-full);
   --semantic-component-button-gradient-text: #291433;
   --semantic-component-button-gradient-text-disabled: var(--primitives-color-neutral-400);
-  --semantic-component-button-gradient-default-from: var(--primitives-color-purple-300);
-  --semantic-component-button-gradient-default-to: var(--primitives-color-amber-300);
-  --semantic-component-button-gradient-hover-from: var(--primitives-color-purple-200);
-  --semantic-component-button-gradient-hover-to: var(--primitives-color-amber-200);
-  --semantic-component-button-gradient-active-from: var(--primitives-color-purple-400);
-  --semantic-component-button-gradient-active-to: var(--primitives-color-amber-400);
+  --semantic-component-button-gradient-default-from: var(--semantic-color-brand-amber);
+  --semantic-component-button-gradient-default-mid: var(--semantic-color-brand-gradient-rose);
+  --semantic-component-button-gradient-default-to: var(--semantic-color-brand-lavender);
+  --semantic-component-button-gradient-hover-from: var(--primitives-color-amber-200);
+  --semantic-component-button-gradient-hover-mid: color-mix(in srgb, var(--semantic-color-brand-gradient-rose) 85%, white);
+  --semantic-component-button-gradient-hover-to: var(--primitives-color-purple-200);
+  --semantic-component-button-gradient-active-from: var(--primitives-color-amber-400);
+  --semantic-component-button-gradient-active-mid: color-mix(in srgb, var(--semantic-color-brand-gradient-rose) 85%, black);
+  --semantic-component-button-gradient-active-to: var(--primitives-color-purple-400);
   --semantic-component-button-ink-bg: var(--semantic-color-brand-ink);
   --semantic-component-button-ink-bg-hover: var(--semantic-color-brand-ink-hover);
   --semantic-component-button-ink-bg-active: var(--semantic-color-brand-ink-active);

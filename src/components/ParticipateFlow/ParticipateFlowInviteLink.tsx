@@ -46,7 +46,7 @@ export interface ParticipateFlowInviteLinkProps {
 }
 
 const HOP_LEVEL_LABEL: Record<HopVariant, string> = {
-  seed: 'Seed',
+  seed: 'Hop-0',
   'hop-1': 'Hop 1',
   'hop-2': 'Hop 2',
   'multi-hop': 'Multi-hop',
@@ -63,7 +63,7 @@ const DIALOG_LABEL: Record<InviteLinkFlowStep, string> = {
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
   confirmation: 'Participation confirmed',
-  invites: 'Invite participants',
+  invites: 'Whitelist a friend',
 }
 
 function initialStep(walletConnected: boolean): InviteLinkFlowStep {
@@ -251,7 +251,9 @@ export function ParticipateFlowInviteLink({
             isAdditionalCommit={wasReturningParticipantRef.current}
             totalCommittedUsdc={committedUsdc}
             showViewPositionButton
+            canInvite={hopVariant !== 'hop-2'}
             onViewPosition={handleViewPosition}
+            onBackToCrowdfund={handleClose}
             onInvite={() => transitionTo('invites')}
           />
         )

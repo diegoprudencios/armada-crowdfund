@@ -9,7 +9,8 @@
   padding: var(--primitives-spacing-8);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: var(--primitives-spacing-8);
   box-sizing: border-box;
   animation: feedbackIn 200ms ease;
@@ -54,11 +55,14 @@
 }
 
 .buttonRow {
-  width: 100%;
+  display: flex;
+  justify-content: center;
+  width: auto;
 }
 
 .buttonRow > * {
-  width: 100%;
+  width: auto;
+  flex: none;
 }
 
 @keyframes feedbackIn {

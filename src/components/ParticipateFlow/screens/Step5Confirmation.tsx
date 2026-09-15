@@ -2,9 +2,15 @@ import styles from './Step5Confirmation.module.css'
 import Steps from '../../Steps/Steps'
 import { Button } from '../../Button'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
+import { WhatHappensNextSlider } from './WhatHappensNextSlider'
+
 interface Step5ConfirmationProps extends ParticipateStepBarProps {
-  onInvite: () => void
+  /** When false (e.g. Hop-2 with no invite capacity), hide Invite and promote View position. */
+  canInvite?: boolean
+  onInvite?: () => void
   onViewPosition?: () => void
+  /** Shown as secondary when `canInvite` is false. */
+  onBackToCrowdfund?: () => void
   /** Path 1 invite link — always show View your position beside Invite. */
   showViewPositionButton?: boolean
   amount?: number
@@ -26,8 +32,10 @@ function formatUsd(value: number) {
 }
 
 export default function Step5Confirmation({
+  canInvite = true,
   onInvite,
   onViewPosition,
+  onBackToCrowdfund,
   showViewPositionButton = false,
   amount = 1000,
   estimatedArm = 1000,
@@ -41,7 +49,8 @@ export default function Step5Confirmation({
   const totalCommitted = totalCommittedUsdc ?? estimatedArm
   const formattedTotal = formatUsd(totalCommitted)
   const shouldShowViewPosition =
-    Boolean(onViewPosition) && (showViewPositionButton || isAdditionalCommit)
+    Boolean(onViewPosition) &&
+    (showViewPositionButton || isAdditionalCommit || !canInvite)
 
   const headline = isAdditionalCommit ? 'Commitment updated.' : "You're in."
   const subline = isAdditionalCommit ? (
@@ -68,33 +77,53 @@ export default function Step5Confirmation({
           <p className={styles.subline}>{subline}</p>
         </div>
 
-        <div className={styles.nextCard}>
-          <span className={styles.nextEyebrow}>WHAT HAPPENS NEXT</span>
-          <p className={styles.nextText}>
-            {isAdditionalCommit
-              ? 'Your updated allocation will be recalculated when the window closes. You can claim your tokens then.'
-              : 'The window stays open for 3 weeks. When it closes, your ARM allocation is calculated and you can claim your tokens.'}
-          </p>
-        </div>
+        <WhatHappensNextSlider />
       </div>
 
       <div className={styles.buttonRow}>
-        {shouldShowViewPosition && onViewPosition && (
-          <Button
-            variant="secondary"
-            size="lg"
-            label="View your position"
-            showIcon={false}
-            onClick={onViewPosition}
-          />
+        {canInvite ? (
+          <>
+            {shouldShowViewPosition && onViewPosition && (
+              <Button
+                variant="secondary"
+                size="lg"
+                label="View your position"
+                showIcon={false}
+                onClick={onViewPosition}
+              />
+            )}
+            {onInvite && (
+              <Button
+                variant="primary"
+                size="lg"
+                label="Whitelist a friend"
+                showIcon={false}
+                onClick={onInvite}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {onBackToCrowdfund && (
+              <Button
+                variant="secondary"
+                size="lg"
+                label="Back to crowdfund"
+                showIcon={false}
+                onClick={onBackToCrowdfund}
+              />
+            )}
+            {onViewPosition && (
+              <Button
+                variant="primary"
+                size="lg"
+                label="View your position"
+                showIcon={false}
+                onClick={onViewPosition}
+              />
+            )}
+          </>
         )}
-        <Button
-          variant="primary"
-          size="lg"
-          label="Invite participants"
-          showIcon={false}
-          onClick={onInvite}
-        />
       </div>
     </div>
   )

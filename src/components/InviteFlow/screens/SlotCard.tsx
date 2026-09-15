@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import styles from './SlotCard.module.css'
 import { Button } from '../../Button'
 import { Tag } from '../../Tag'
+import { INVITE_METHOD_PICKER_UX } from '../../../constants/inviteUx'
 import { MOBILE_LAYOUT_MAX_WIDTH_PX } from '../../../constants/viewportBreakpoints'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -19,6 +20,10 @@ export interface SlotData {
   invitedAddress?: string
   ensName?: string
   redeemedBy?: string
+  /** When the invitee joined / redeemed (shown as “Joined on …”). */
+  joinedAt?: Date
+  /** Hop the invitee joined as (0 = HOP-0 / seed, 1 = HOP-1, 2 = HOP-2). */
+  inviteeHop?: 0 | 1 | 2
 }
 
 interface SlotCardProps {
@@ -29,8 +34,22 @@ interface SlotCardProps {
   onInviteOnchain: (slotId: number, address: string, ensName?: string) => Promise<void>
   copied?: boolean
   loading?: boolean
-  /** Showcase / static demos — start with link or onchain panel open */
+  /** Showcase / static demos — start with link or onchain panel open (legacy UX only). */
   defaultExpandedAction?: Exclude<ExpandedAction, null>
+  /**
+   * Method-picker UX: empty slots show a single Invite button. Called with the
+   * slot id and the button element (anchor for the desktop menu).
+   */
+  onInviteClick?: (slotId: number, anchor: HTMLElement) => void
+  /** When true with method-picker UX, Invite button reports aria-expanded. */
+  invitePickerOpen?: boolean
+  /** Keeps a stable Invite button ref for focus restore after Back. */
+  onInviteButtonRef?: (slotId: number, el: HTMLButtonElement | null) => void
+  /**
+   * Redeemed slots: open crowdfund with this invitee selected.
+   * Called with the redeemed wallet address.
+   */
+  onViewRedeemed?: (address: string) => void
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -40,6 +59,20 @@ function formatExpiry(date: Date): string {
   if (diffDays <= 0) return 'Expired'
   if (diffDays === 1) return 'Expires tomorrow'
   return `Expires in ${diffDays} days`
+}
+
+function formatJoinedOn(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+const INVITEE_HOP_META: Record<0 | 1 | 2, string> = {
+  0: 'Hop-0',
+  1: 'Hop-1',
+  2: 'Hop-2',
 }
 
 export function truncateAddress(addr: string): string {
@@ -66,9 +99,22 @@ export default function SlotCard({
   copied = false,
   loading = false,
   defaultExpandedAction,
+  onInviteClick,
+  invitePickerOpen = false,
+  onInviteButtonRef,
+  onViewRedeemed,
 }: SlotCardProps) {
+  const useMethodPicker = INVITE_METHOD_PICKER_UX && Boolean(onInviteClick)
+  const inviteBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!useMethodPicker || !onInviteButtonRef) return
+    onInviteButtonRef(slot.id, inviteBtnRef.current)
+    return () => onInviteButtonRef(slot.id, null)
+  }, [useMethodPicker, onInviteButtonRef, slot.id])
+
   const [expandedAction, setExpandedAction] = useState<ExpandedAction>(
-    slot.status === 'empty' ? (defaultExpandedAction ?? null) : null
+    slot.status === 'empty' && !useMethodPicker ? (defaultExpandedAction ?? null) : null
   )
   const [addressInput, setAddressInput] = useState('')
   const [ensState, setEnsState] = useState<EnsState>('idle')
@@ -234,7 +280,23 @@ export default function SlotCard({
         <div className={styles.right}>
 
           {/* Empty — action buttons */}
-          {slot.status === 'empty' && (
+          {slot.status === 'empty' && useMethodPicker && (
+            <div className={styles.actions}>
+              <Button
+                ref={inviteBtnRef}
+                variant="secondary"
+                size="sm"
+                label="Invite"
+                showIcon={false}
+                aria-haspopup="menu"
+                aria-expanded={invitePickerOpen}
+                onClick={(e) => {
+                  if (onInviteClick) onInviteClick(slot.id, e.currentTarget)
+                }}
+              />
+            </div>
+          )}
+          {slot.status === 'empty' && !useMethodPicker && (
             <div className={styles.actions}>
               <Button
                 variant="secondary"
@@ -315,12 +377,32 @@ export default function SlotCard({
           {/* Redeemed */}
           {slot.status === 'redeemed' && (
             <div className={styles.statusRow}>
-              <span className={styles.addressPrimary}>
-                {slot.redeemedBy
-                  ? truncateAddress(slot.redeemedBy)
-                  : 'Link redeemed'}
-              </span>
-              <Tag label="Joined" dot="active" />
+              <div className={styles.addressStack}>
+                <span className={styles.addressPrimaryBright}>
+                  {slot.redeemedBy
+                    ? truncateAddress(slot.redeemedBy)
+                    : 'Link redeemed'}
+                </span>
+                {(slot.inviteeHop != null || slot.joinedAt) && (
+                  <span className={styles.addressSecondary}>
+                    {[
+                      slot.inviteeHop != null ? INVITEE_HOP_META[slot.inviteeHop] : null,
+                      slot.joinedAt ? `Joined on ${formatJoinedOn(slot.joinedAt)}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' • ')}
+                  </span>
+                )}
+              </div>
+              {slot.redeemedBy && onViewRedeemed ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  label="View"
+                  showIcon={false}
+                  onClick={() => onViewRedeemed(slot.redeemedBy!)}
+                />
+              ) : null}
             </div>
           )}
 
@@ -328,7 +410,7 @@ export default function SlotCard({
       </div>
 
       {/* ── Expanded: create link ── */}
-      {slot.status === 'empty' && expandedAction === 'link' && (
+      {!useMethodPicker && slot.status === 'empty' && expandedAction === 'link' && (
         <div className={styles.expandedSection}>
           <p className={styles.hint}>
             Your wallet will sign a message to generate the link. No gas required.
@@ -347,7 +429,7 @@ export default function SlotCard({
       )}
 
       {/* ── Expanded: invite onchain ── */}
-      {slot.status === 'empty' && expandedAction === 'onchain' && (
+      {!useMethodPicker && slot.status === 'empty' && expandedAction === 'onchain' && (
         <div className={styles.expandedSection}>
           <div className={styles.inputWrapper}>
             <input

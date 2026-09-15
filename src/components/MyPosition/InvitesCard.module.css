@@ -25,6 +25,11 @@
   min-height: 0;
 }
 
+.rootAction {
+  display: flex;
+  flex-direction: column;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -92,6 +97,14 @@
   gap: var(--primitives-spacing-3);
 }
 
+.slotListInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+  min-width: 0;
+}
+
 .slotList > * {
   flex-shrink: 0;
 }
@@ -113,6 +126,18 @@
 
 .slotListCollapsed {
   display: none;
+}
+
+.slotListAction {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.slotListAction > * {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 @media (max-width: 900px) {
