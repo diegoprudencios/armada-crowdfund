@@ -222,6 +222,17 @@
   color: var(--semantic-color-surface-bg);
 }
 
+.navItemDisabled,
+.navItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.navItemDisabled:hover,
+.navItem:disabled:hover {
+  color: var(--primitives-color-white-full);
+}
+
 .participateCard {
   width: 100% !important;
   max-width: none;

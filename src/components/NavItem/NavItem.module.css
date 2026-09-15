@@ -17,7 +17,7 @@
   white-space: nowrap;
   outline: none;
 }
-.navItem:hover:not(.active) {
+.navItem:hover:not(.active):not(:disabled) {
   background: transparent;
   color: var(--semantic-color-text-secondary);
 }
@@ -29,4 +29,10 @@
 .active:hover {
   background: var(--semantic-color-brand-lavender);
   color: #291433;
+}
+.navItem:disabled,
+.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
