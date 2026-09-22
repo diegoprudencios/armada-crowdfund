@@ -43,11 +43,9 @@ type ModalKind =
   | { kind: 'participate-flow' }
   | { kind: 'invite-slots' }
 
-const EMPTY_INVITE_SLOTS: SlotData[] = [
-  { id: 1, status: 'empty' },
-  { id: 2, status: 'empty' },
-  { id: 3, status: 'empty' },
-]
+/** Fresh post-commit modal: no issued invites yet; allowance drives hop rows. */
+const EMPTY_INVITE_SLOTS: SlotData[] = []
+const MODAL_INVITE_ALLOWANCE = { hop1: 3, hop2: 0 } as const
 
 type ParticipateStepId =
   | 'invite'
@@ -629,15 +627,16 @@ export function CrowdfundStages() {
               <div className={styles.flowStatic}>
                 <ParticipateFlowInviteSlots
                   slots={modalSlots}
-                  onGenerateLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
+                  allowance={MODAL_INVITE_ALLOWANCE}
+                  onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
                   onCopy={handleCopy}
-                  onRevoke={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
-                  onInviteOnchain={(slotId, address, ensName) =>
-                    handleInviteOnchain(setModalSlots, slotId, address, ensName)
+                  onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
+                  onInviteOnchain={(hop, address, ensName) =>
+                    handleInviteOnchainForHop(setModalSlots, hop, address, ensName)
                   }
                   onDoItLater={() => {}}
                   copiedId={copiedSlotId}
-                  loadingId={loadingSlotId}
+                  loadingHop={loadingHop}
                 />
               </div>
             </StateCard>
@@ -731,31 +730,35 @@ export function CrowdfundStages() {
           committedUsdc={0}
           hopVariant="hop-1"
           slots={modalSlots}
+          inviteAllowance={MODAL_INVITE_ALLOWANCE}
           onConsumeSelfInvites={(inviteCount) => {
             if (inviteCount <= 0) return
             setModalSlots((prev) => {
               let remaining = inviteCount
-              return prev.map((slot) => {
-                if (remaining <= 0 || slot.status !== 'empty') return slot
-                remaining -= 1
-                return {
-                  ...slot,
-                  status: 'redeemed' as const,
+              const next = [...prev]
+              let id = next.reduce((m, s) => Math.max(m, s.id), 0) + 1
+              const now = new Date()
+              while (remaining > 0) {
+                next.push({
+                  id: id++,
+                  status: 'redeemed',
                   redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c',
-                  joinedAt: new Date(),
-                  inviteeHop: 1 as const,
-                }
-              })
+                  joinedAt: now,
+                  inviteeHop: 1,
+                })
+                remaining -= 1
+              }
+              return next
             })
           }}
-          onGenerateSlotLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
+          onGenerateInviteLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
           onCopySlotLink={handleCopy}
-          onRevokeSlot={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
-          onInviteSlotOnchain={(slotId, address, ensName) =>
-            handleInviteOnchain(setModalSlots, slotId, address, ensName)
+          onRevokeSlot={(slotId) => handleRevoke(setModalSlots, slotId)}
+          onInviteOnchainHop={(hop, address, ensName) =>
+            handleInviteOnchainForHop(setModalSlots, hop, address, ensName)
           }
           copiedSlotId={copiedSlotId}
-          loadingSlotId={loadingSlotId}
+          loadingHop={loadingHop}
         />
       ) : (
         <ParticipateFlowModal
@@ -782,15 +785,16 @@ export function CrowdfundStages() {
           {modal?.kind === 'invite-slots' ? (
             <ParticipateFlowInviteSlots
               slots={modalSlots}
-              onGenerateLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
+              allowance={MODAL_INVITE_ALLOWANCE}
+              onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
               onCopy={handleCopy}
-              onRevoke={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
-              onInviteOnchain={(slotId, address, ensName) =>
-                handleInviteOnchain(setModalSlots, slotId, address, ensName)
+              onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
+              onInviteOnchain={(hop, address, ensName) =>
+                handleInviteOnchainForHop(setModalSlots, hop, address, ensName)
               }
               onDoItLater={closeModal}
               copiedId={copiedSlotId}
-              loadingId={loadingSlotId}
+              loadingHop={loadingHop}
             />
           ) : null}
         </ParticipateFlowModal>

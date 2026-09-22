@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { HopVariant } from '../HopPill/HopPill'
 import type { SlotData } from '../InviteFlow/screens/SlotCard'
+import {
+  availableForHop,
+  type InviteAllowance,
+  type InviteeHop,
+} from '../MyPosition/inviteModel'
+import { DEMO_INVITE_ALLOWANCE } from '../MyPosition/myPositionDemo'
 import { hopPillDotColor } from '../../constants/graphHopColors'
 import { CAP } from '../MyPosition/myPositionDemo'
 import { Button } from '../Button'
@@ -43,10 +49,22 @@ export interface ParticipateFlowCrowdfundProps {
   hopVariant?: HopVariant
   daysLeft?: number
   slots?: SlotData[]
+  inviteAllowance?: InviteAllowance
+  onGenerateInviteLink?: (
+    hop: InviteeHop,
+  ) => Promise<{ id: number; link: string; expiresAt: Date } | void>
+  /** @deprecated Prefer onGenerateInviteLink — kept for older callers. */
   onGenerateSlotLink?: (slotId: number) => Promise<void>
-  onRevokeSlot?: (slotId: number) => void
+  onRevokeSlot?: (slotId: number) => void | Promise<void>
+  onInviteOnchainHop?: (
+    hop: InviteeHop,
+    address: string,
+    ensName?: string,
+  ) => Promise<{ id: number; address: string; ensName?: string } | void>
+  /** @deprecated Prefer onInviteOnchainHop. */
   onInviteSlotOnchain?: (slotId: number, address: string, ensName?: string) => Promise<void>
   onCopySlotLink?: (slotId: number, link: string) => void
+  loadingHop?: InviteeHop | null
   loadingSlotId?: number | null
   copiedSlotId?: number | null
 }
@@ -211,10 +229,14 @@ export function ParticipateFlowCrowdfund({
   hopVariant = 'hop-1',
   daysLeft = 3,
   slots = [],
+  inviteAllowance = DEMO_INVITE_ALLOWANCE,
+  onGenerateInviteLink,
   onGenerateSlotLink,
   onRevokeSlot,
+  onInviteOnchainHop,
   onInviteSlotOnchain,
   onCopySlotLink,
+  loadingHop = null,
   loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowCrowdfundProps) {
@@ -284,8 +306,10 @@ export function ParticipateFlowCrowdfund({
   const estimatedArm = Math.round(amount)
   const remainingCap = Math.max(0, capUsdc - committedUsdc)
   const availableInviteCount = useMemo(
-    () => slots.filter((s) => s.status === 'empty').length,
-    [slots],
+    () =>
+      availableForHop(slots, inviteAllowance, 1) +
+      availableForHop(slots, inviteAllowance, 2),
+    [slots, inviteAllowance],
   )
 
   const showMaxOutBanner =
@@ -433,13 +457,25 @@ export function ParticipateFlowCrowdfund({
         return (
           <ParticipateFlowInviteSlots
             slots={slots}
-            onGenerateLink={onGenerateSlotLink ?? (async () => {})}
+            allowance={inviteAllowance}
+            onGenerateLink={
+              onGenerateInviteLink ??
+              (async (hop) => {
+                // Legacy slot-id path: map hop → first empty-ish id.
+                await onGenerateSlotLink?.(hop === 2 ? 2 : 1)
+              })
+            }
             onCopy={onCopySlotLink ?? (() => {})}
             onRevoke={onRevokeSlot ?? (() => {})}
-            onInviteOnchain={onInviteSlotOnchain ?? (async () => {})}
+            onInviteOnchain={
+              onInviteOnchainHop ??
+              (async (hop, address, ensName) => {
+                await onInviteSlotOnchain?.(hop === 2 ? 2 : 1, address, ensName)
+              })
+            }
             onDoItLater={handleClose}
             copiedId={copiedSlotId}
-            loadingId={loadingSlotId}
+            loadingHop={loadingHop}
           />
         )
 

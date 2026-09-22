@@ -681,11 +681,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         capUsdc={capUsdc}
         hopVariant={hopVariant}
         slots={slots}
-        onGenerateSlotLink={generateSlotLink}
+        inviteAllowance={inviteAllowance}
+        onGenerateInviteLink={generateInviteLink}
         onRevokeSlot={revokeSlot}
-        onInviteSlotOnchain={inviteSlotOnchain}
+        onInviteOnchainHop={inviteOnchain}
         onCopySlotLink={handleCopy}
-        loadingSlotId={loadingSlotId}
+        loadingHop={loadingHop}
         copiedSlotId={copiedId}
       />
 

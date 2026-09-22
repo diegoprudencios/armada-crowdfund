@@ -40,10 +40,10 @@ function InviteLandingInner() {
     inviteAllowance,
     connectWallet,
     completeParticipation,
-    generateSlotLink,
+    generateInviteLink,
     revokeSlot,
-    inviteSlotOnchain,
-    loadingSlotId,
+    inviteOnchain,
+    loadingHop,
   } = useDemoSession()
 
   const [flowActive, setFlowActive] = useState(false)
@@ -110,11 +110,12 @@ function InviteLandingInner() {
             committedUsdc={committedUsdc}
             hopVariant={hopVariant}
             slots={slots}
-            onGenerateSlotLink={generateSlotLink}
+            inviteAllowance={inviteAllowance}
+            onGenerateInviteLink={generateInviteLink}
             onRevokeSlot={revokeSlot}
-            onInviteSlotOnchain={inviteSlotOnchain}
+            onInviteOnchainHop={inviteOnchain}
             onCopySlotLink={handleCopy}
-            loadingSlotId={loadingSlotId}
+            loadingHop={loadingHop}
             copiedSlotId={copiedId}
           />
         ) : (

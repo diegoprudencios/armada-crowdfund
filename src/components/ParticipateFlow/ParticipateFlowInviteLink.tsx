@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { HopVariant } from '../HopPill/HopPill'
 import type { SlotData } from '../InviteFlow/screens/SlotCard'
+import {
+  DEMO_INVITE_ALLOWANCE,
+} from '../MyPosition/myPositionDemo'
+import type { InviteAllowance, InviteeHop } from '../MyPosition/inviteModel'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
@@ -37,10 +41,20 @@ export interface ParticipateFlowInviteLinkProps {
   committedUsdc?: number
   hopVariant?: HopVariant
   slots?: SlotData[]
+  inviteAllowance?: InviteAllowance
+  onGenerateInviteLink?: (
+    hop: InviteeHop,
+  ) => Promise<{ id: number; link: string; expiresAt: Date } | void>
   onGenerateSlotLink?: (slotId: number) => Promise<void>
-  onRevokeSlot?: (slotId: number) => void
+  onRevokeSlot?: (slotId: number) => void | Promise<void>
+  onInviteOnchainHop?: (
+    hop: InviteeHop,
+    address: string,
+    ensName?: string,
+  ) => Promise<{ id: number; address: string; ensName?: string } | void>
   onInviteSlotOnchain?: (slotId: number, address: string, ensName?: string) => Promise<void>
   onCopySlotLink?: (slotId: number, link: string) => void
+  loadingHop?: InviteeHop | null
   loadingSlotId?: number | null
   copiedSlotId?: number | null
 }
@@ -99,10 +113,14 @@ export function ParticipateFlowInviteLink({
   committedUsdc = 0,
   hopVariant = 'hop-1',
   slots = [],
+  inviteAllowance = DEMO_INVITE_ALLOWANCE,
+  onGenerateInviteLink,
   onGenerateSlotLink,
   onRevokeSlot,
+  onInviteOnchainHop,
   onInviteSlotOnchain,
   onCopySlotLink,
+  loadingHop = null,
   loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowInviteLinkProps) {
@@ -243,13 +261,24 @@ export function ParticipateFlowInviteLink({
         const invites = (
           <ParticipateFlowInviteSlots
             slots={slots}
-            onGenerateLink={onGenerateSlotLink ?? (async () => {})}
+            allowance={inviteAllowance}
+            onGenerateLink={
+              onGenerateInviteLink ??
+              (async (hop) => {
+                await onGenerateSlotLink?.(hop === 2 ? 2 : 1)
+              })
+            }
             onCopy={onCopySlotLink ?? (() => {})}
             onRevoke={onRevokeSlot ?? (() => {})}
-            onInviteOnchain={onInviteSlotOnchain ?? (async () => {})}
+            onInviteOnchain={
+              onInviteOnchainHop ??
+              (async (hop, address, ensName) => {
+                await onInviteSlotOnchain?.(hop === 2 ? 2 : 1, address, ensName)
+              })
+            }
             onDoItLater={handleClose}
             copiedId={copiedSlotId}
-            loadingId={loadingSlotId}
+            loadingHop={loadingHop}
           />
         )
         return presentation === 'inline' ? (
