@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
 import { Header } from '../components/Header'
 import { Button } from '../components/Button'
@@ -108,13 +108,20 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     fillPct,
     capUsdc,
     slots,
+    inviteAllowance,
     connectWallet,
     disconnectWallet,
     completeParticipation,
     consumeSelfInvites,
+    generateInviteLink,
     generateSlotLink,
     revokeSlot,
+    revealInviteInList,
+    discardDeferredInvite,
+    flushPendingInvites,
+    inviteOnchain,
     inviteSlotOnchain,
+    loadingHop,
     loadingSlotId,
   } = session
   const scenario = useRef<{ participants: 800; seed: number } | null>(null)
@@ -157,6 +164,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [participantsListOpen, setParticipantsListOpen] = useState(false)
   const [holdColumnExpanded, setHoldColumnExpanded] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [inviteListOpen, setInviteListOpen] = useState(false)
   const [participateOpen, setParticipateOpen] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
   const [pendingParticipateOpen, setPendingParticipateOpen] = useState(false)
@@ -377,10 +385,14 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const myPositionPanelAnimates = panelAnimates(view, 'myposition', panelPhase, motionReady)
 
   const handleCopy = (slotId: number, link: string) => {
-    navigator.clipboard.writeText(link)
+    void navigator.clipboard.writeText(link)
     setCopiedId(slotId)
-    setTimeout(() => setCopiedId(null), 2000)
+    setTimeout(() => setCopiedId(null), 1200)
   }
+
+  const handleInviteListOpenChange = useCallback((open: boolean) => {
+    setInviteListOpen(open)
+  }, [])
 
   const graphPinnedNodes = useMemo(() => {
     const pins: PinnedNode[] = displayParticipants
@@ -412,19 +424,15 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     return pins
   }, [displayParticipants, wallet, committedUsdc, slots])
 
-  // Only remount when graph structure changes — not on link create/revoke (link-active ↔ empty).
+  // Remount only when wallet / participation structure changes — invite
+  // actions (link or onchain) must not reshuffle node positions.
   const graphLayoutKey = useMemo(() => {
-    const invitePinKey = slots
-      .filter((s) => s.status === 'onchain-pending' || s.status === 'redeemed')
-      .map((s) => `${s.id}:${s.status}:${s.invitedAddress ?? s.redeemedBy ?? ''}`)
-      .join('|')
     return [
       scenario.current!.seed,
       walletConnected ? 'connected' : 'guest',
       hasParticipated ? committedUsdc : 0,
-      invitePinKey,
     ].join('-')
-  }, [slots, walletConnected, hasParticipated, committedUsdc])
+  }, [walletConnected, hasParticipated, committedUsdc])
 
   return (
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
@@ -458,7 +466,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
             <NodeSphere
               key={graphLayoutKey}
               highlightAddress={
-                isGraphMyPosition ? selectedAddress ?? wallet?.displayAddress : selectedAddress
+                isGraphMyPosition
+                  ? selectedAddress ?? wallet?.displayAddress
+                  : selectedAddress
               }
               onSelectAddress={setSelectedAddress}
               filterKind={
@@ -477,6 +487,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
               walletAddress={wallet?.displayAddress}
               lockOnWallet={isGraphMyPosition}
               inviteGraph={isGraphMyPosition}
+              hideNodePopover={isGraphMyPosition && inviteListOpen}
               interactionDisabled={isGraphCrowdfund && participantsListOpen}
               scenarioParticipants={graphParticipants}
               scenarioSeed={scenario.current!.seed}
@@ -636,13 +647,19 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
             <InvitesCard
               variant="hero"
               slots={slots}
+              allowance={inviteAllowance}
               selfWalletAddress={wallet?.address}
-              onGenerateLink={generateSlotLink}
+              onGenerateLink={generateInviteLink}
               onCopy={handleCopy}
               onRevoke={revokeSlot}
-              onInviteOnchain={inviteSlotOnchain}
+              onConfirmCreated={revealInviteInList}
+              onDiscardCreated={discardDeferredInvite}
+              onFlushPending={flushPendingInvites}
+              onInviteOnchain={inviteOnchain}
               copiedSlotId={copiedId}
-              loadingSlotId={loadingSlotId}
+              loadingHop={loadingHop}
+              onInviteListOpenChange={handleInviteListOpenChange}
+              panelActive={isMyPosition}
               onViewRedeemed={(address) =>
                 startPanelTransition('crowdfund', { selectAddress: address })
               }

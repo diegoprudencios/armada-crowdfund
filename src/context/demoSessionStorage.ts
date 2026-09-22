@@ -1,13 +1,16 @@
 import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
+import type { InviteAllowance } from '../components/MyPosition/inviteModel'
 import type { DemoWallet } from './DemoSessionContext'
 
 const STORAGE_KEY = 'armada-demo-session'
-const STORAGE_VERSION = 2
+const STORAGE_VERSION = 3
 
-type StoredSlot = Omit<SlotData, 'expiresAt' | 'joinedAt'> & {
+type StoredSlot = Omit<SlotData, 'expiresAt' | 'joinedAt' | 'invitedAt' | 'closedAt'> & {
   expiresAt?: string
   joinedAt?: string
+  invitedAt?: string
+  closedAt?: string
 }
 
 export type StoredDemoSession = {
@@ -17,6 +20,7 @@ export type StoredDemoSession = {
   hasParticipated: boolean
   hopVariant: HopVariant
   slots: StoredSlot[]
+  inviteAllowance: InviteAllowance
 }
 
 function serializeSlots(slots: SlotData[]): StoredSlot[] {
@@ -24,6 +28,8 @@ function serializeSlots(slots: SlotData[]): StoredSlot[] {
     ...slot,
     expiresAt: slot.expiresAt?.toISOString(),
     joinedAt: slot.joinedAt?.toISOString(),
+    invitedAt: slot.invitedAt?.toISOString(),
+    closedAt: slot.closedAt?.toISOString(),
   }))
 }
 
@@ -32,6 +38,10 @@ function reviveSlots(slots: StoredSlot[]): SlotData[] {
     ...slot,
     expiresAt: slot.expiresAt ? new Date(slot.expiresAt) : undefined,
     joinedAt: slot.joinedAt ? new Date(slot.joinedAt) : undefined,
+    invitedAt: slot.invitedAt ? new Date(slot.invitedAt) : undefined,
+    closedAt: slot.closedAt ? new Date(slot.closedAt) : undefined,
+    // Deferred-list invites become visible if the confirmation was abandoned mid-session.
+    hideFromList: false,
   }))
 }
 
@@ -45,6 +55,7 @@ export function readDemoSession(): {
   hasParticipated: boolean
   hopVariant: HopVariant
   slots: SlotData[]
+  inviteAllowance: InviteAllowance
 } | null {
   if (typeof window === 'undefined') return null
 
@@ -61,6 +72,7 @@ export function readDemoSession(): {
       hasParticipated: parsed.hasParticipated ?? false,
       hopVariant: isHopVariant(parsed.hopVariant) ? parsed.hopVariant : 'hop-1',
       slots: reviveSlots(parsed.slots ?? []),
+      inviteAllowance: parsed.inviteAllowance ?? { hop1: 3, hop2: 0 },
     }
   } catch {
     return null
@@ -73,6 +85,7 @@ export function writeDemoSession(session: {
   hasParticipated: boolean
   hopVariant: HopVariant
   slots: SlotData[]
+  inviteAllowance: InviteAllowance
 }): void {
   if (typeof window === 'undefined') return
 
@@ -83,6 +96,7 @@ export function writeDemoSession(session: {
     hasParticipated: session.hasParticipated,
     hopVariant: session.hopVariant,
     slots: serializeSlots(session.slots),
+    inviteAllowance: session.inviteAllowance,
   }
 
   window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))

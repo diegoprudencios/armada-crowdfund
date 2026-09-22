@@ -37,6 +37,7 @@ function InviteLandingInner() {
     committedUsdc,
     hopVariant: sessionHop,
     slots,
+    inviteAllowance,
     connectWallet,
     completeParticipation,
     generateSlotLink,
@@ -70,7 +71,14 @@ function InviteLandingInner() {
   const openFlow = () => setFlowActive(true)
 
   const goToMyPosition = () => {
-    writeDemoSession({ wallet, committedUsdc, hasParticipated, hopVariant: sessionHop, slots })
+    writeDemoSession({
+      wallet,
+      committedUsdc,
+      hasParticipated,
+      hopVariant: sessionHop,
+      slots,
+      inviteAllowance,
+    })
     window.location.assign(MY_POSITION_URL)
   }
 
