@@ -2,7 +2,11 @@ import { useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import type { SlotData } from '../../components/InviteFlow/screens/SlotCard'
 import { InvitesCard } from '../../components/MyPosition/InvitesCard'
-import { DEMO_SLOTS } from '../../components/MyPosition/myPositionDemo'
+import { DEMO_INVITE_ALLOWANCE, DEMO_SLOTS } from '../../components/MyPosition/myPositionDemo'
+import {
+  nextInviteId,
+  type InviteeHop,
+} from '../../components/MyPosition/inviteModel'
 import { Participate } from '../../components/Participate'
 import { Progress } from '../../components/Progress'
 import {
@@ -316,6 +320,7 @@ export function CrowdfundStages() {
   )
   const [copiedSlotId, setCopiedSlotId] = useState<number | null>(null)
   const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
+  const [loadingHop, setLoadingHop] = useState<InviteeHop | null>(null)
   const closeModal = () => setModal(null)
 
   const openParticipateFlow = () => {
@@ -323,6 +328,33 @@ export function CrowdfundStages() {
     setCopiedSlotId(null)
     setLoadingSlotId(null)
     setModal({ kind: 'participate-flow' })
+  }
+
+  const handleGenerateLinkForHop = async (
+    setSlots: typeof setPositionSlots,
+    hop: InviteeHop,
+  ) => {
+    setLoadingHop(hop)
+    await new Promise((r) => setTimeout(r, 800))
+    const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-${hop}`
+    let createdId = 0
+    setSlots((prev) => {
+      createdId = nextInviteId(prev)
+      return [
+        {
+          id: createdId,
+          status: 'link-active' as const,
+          link,
+          expiresAt,
+          inviteeHop: hop,
+          invitedAt: new Date(),
+        },
+        ...prev,
+      ]
+    })
+    setLoadingHop(null)
+    return { id: createdId, link, expiresAt }
   }
 
   const handleGenerateLink = async (
@@ -335,7 +367,9 @@ export function CrowdfundStages() {
     const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-1`
     setSlots((prev) =>
       prev.map((s) =>
-        s.id === slotId ? { ...s, status: 'link-active', link, expiresAt } : s,
+        s.id === slotId
+          ? { ...s, status: 'link-active', link, expiresAt, inviteeHop: 1 }
+          : s,
       ),
     )
     setLoadingSlotId(null)
@@ -344,13 +378,47 @@ export function CrowdfundStages() {
   const handleCopy = (slotId: number, link: string) => {
     void navigator.clipboard.writeText(link)
     setCopiedSlotId(slotId)
-    setTimeout(() => setCopiedSlotId(null), 2000)
+    setTimeout(() => setCopiedSlotId(null), 1200)
   }
 
-  const handleRevoke = (setSlots: typeof setPositionSlots, slotId: number) => {
+  const handleRevoke = async (setSlots: typeof setPositionSlots, slotId: number) => {
+    await new Promise((r) => setTimeout(r, 600))
     setSlots((prev) =>
-      prev.map((s) => (s.id === slotId ? { id: s.id, status: 'empty' } : s)),
+      prev.map((s) =>
+        s.id === slotId
+          ? { ...s, status: 'revoked' as const, closedAt: new Date() }
+          : s,
+      ),
     )
+  }
+
+  /** SlotCard / participate modal — reset to empty (legacy fixed-slot UX). */
+  const handleRevokeToEmpty = (setSlots: typeof setPositionSlots, slotId: number) => {
+    setSlots((prev) =>
+      prev.map((s) => (s.id === slotId ? { id: s.id, status: 'empty' as const } : s)),
+    )
+  }
+
+  const handleInviteOnchainForHop = async (
+    setSlots: typeof setPositionSlots,
+    hop: InviteeHop,
+    address: string,
+    ensName?: string,
+  ) => {
+    setLoadingHop(hop)
+    await new Promise((r) => setTimeout(r, 800))
+    setSlots((prev) => [
+      {
+        id: nextInviteId(prev),
+        status: 'onchain-pending',
+        invitedAddress: address,
+        ensName,
+        inviteeHop: hop,
+        invitedAt: new Date(),
+      },
+      ...prev,
+    ])
+    setLoadingHop(null)
   }
 
   const handleInviteOnchain = async (
@@ -364,7 +432,14 @@ export function CrowdfundStages() {
     setSlots((prev) =>
       prev.map((s) =>
         s.id === slotId
-          ? { ...s, status: 'onchain-pending', invitedAddress: address, ensName }
+          ? {
+              ...s,
+              status: 'onchain-pending',
+              invitedAddress: address,
+              ensName,
+              inviteeHop: 1,
+              invitedAt: new Date(),
+            }
           : s,
       ),
     )
@@ -529,14 +604,15 @@ export function CrowdfundStages() {
               <div className={styles.invitesCardWrap}>
                 <InvitesCard
                   slots={positionSlots}
-                  onGenerateLink={(slotId) => handleGenerateLink(setPositionSlots, slotId)}
+                  allowance={DEMO_INVITE_ALLOWANCE}
+                  onGenerateLink={(hop) => handleGenerateLinkForHop(setPositionSlots, hop)}
                   onCopy={handleCopy}
                   onRevoke={(slotId) => handleRevoke(setPositionSlots, slotId)}
-                  onInviteOnchain={(slotId, address, ensName) =>
-                    handleInviteOnchain(setPositionSlots, slotId, address, ensName)
+                  onInviteOnchain={(hop, address, ensName) =>
+                    handleInviteOnchainForHop(setPositionSlots, hop, address, ensName)
                   }
                   copiedSlotId={copiedSlotId}
-                  loadingSlotId={loadingSlotId}
+                  loadingHop={loadingHop}
                   onViewRedeemed={(address) => {
                     const url = new URL('/', window.location.origin)
                     url.searchParams.set('view', 'crowdfund')
@@ -555,7 +631,7 @@ export function CrowdfundStages() {
                   slots={modalSlots}
                   onGenerateLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
                   onCopy={handleCopy}
-                  onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
+                  onRevoke={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
                   onInviteOnchain={(slotId, address, ensName) =>
                     handleInviteOnchain(setModalSlots, slotId, address, ensName)
                   }
@@ -674,7 +750,7 @@ export function CrowdfundStages() {
           }}
           onGenerateSlotLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
           onCopySlotLink={handleCopy}
-          onRevokeSlot={(slotId) => handleRevoke(setModalSlots, slotId)}
+          onRevokeSlot={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
           onInviteSlotOnchain={(slotId, address, ensName) =>
             handleInviteOnchain(setModalSlots, slotId, address, ensName)
           }
@@ -708,7 +784,7 @@ export function CrowdfundStages() {
               slots={modalSlots}
               onGenerateLink={(slotId) => handleGenerateLink(setModalSlots, slotId)}
               onCopy={handleCopy}
-              onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
+              onRevoke={(slotId) => handleRevokeToEmpty(setModalSlots, slotId)}
               onInviteOnchain={(slotId, address, ensName) =>
                 handleInviteOnchain(setModalSlots, slotId, address, ensName)
               }

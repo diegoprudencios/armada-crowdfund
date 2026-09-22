@@ -1,14 +1,22 @@
+// ABOUTME: Cross-page demo wallet / commit / invite session (sessionStorage; reset on refresh).
+
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
+import {
+  nextInviteId,
+  type InviteAllowance,
+  type InviteeHop,
+} from '../components/MyPosition/inviteModel'
 import { isProviderWhitelisted } from '../components/ParticipateFlow/participateFlowWallets'
 import { CAP, DEMO_WALLET, DEMO_WALLET_DISPLAY } from '../components/MyPosition/myPositionDemo'
 import {
@@ -18,11 +26,8 @@ import {
   writeDemoSession,
 } from './demoSessionStorage'
 
-const INITIAL_SLOTS: SlotData[] = [
-  { id: 1, status: 'empty' },
-  { id: 2, status: 'empty' },
-  { id: 3, status: 'empty' },
-]
+/** Hop-0 starts with 3→Hop-1; Hop-2 rights unlock with Hop-1 positions. */
+const INITIAL_ALLOWANCE: InviteAllowance = { hop1: 3, hop2: 0 }
 
 const HOP_LABEL: Record<HopVariant, string> = {
   seed: 'HOP-0',
@@ -31,17 +36,14 @@ const HOP_LABEL: Record<HopVariant, string> = {
   'multi-hop': 'MULTI-HOP',
 }
 
-function freshSlots() {
-  return INITIAL_SLOTS.map((slot) => ({ ...slot }))
-}
-
 function createFreshSession() {
   return {
     wallet: null as DemoWallet | null,
     committedUsdc: 0,
     hasParticipated: false,
     hopVariant: 'hop-1' as HopVariant,
-    slots: freshSlots(),
+    slots: [] as SlotData[],
+    inviteAllowance: { ...INITIAL_ALLOWANCE },
   }
 }
 
@@ -61,13 +63,33 @@ type DemoSessionContextValue = {
   capUsdc: number
   fillPct: number
   slots: SlotData[]
+  inviteAllowance: InviteAllowance
   connectWallet: (provider: string) => void
   disconnectWallet: () => void
   completeParticipation: (amountUsdc: number) => void
   consumeSelfInvites: (inviteCount: number) => void
+  generateInviteLink: (hop: InviteeHop) => Promise<{
+    id: number
+    link: string
+    expiresAt: Date
+  }>
+  /** @deprecated Prefer generateInviteLink(hop) — maps slot id → hop for legacy SlotCard flows. */
   generateSlotLink: (slotId: number) => Promise<void>
-  revokeSlot: (slotId: number) => void
+  revokeSlot: (slotId: number) => Promise<void>
+  /** Reveal a newly created invite in the sent list (after confirmation Done/close). */
+  revealInviteInList: (id: number) => void
+  /** Drop a deferred invite that was revoked from the confirmation screen. */
+  discardDeferredInvite: (id: number) => void
+  /** Commit every deferred invite (e.g. leaving My Position mid-confirmation). */
+  flushPendingInvites: () => void
+  inviteOnchain: (
+    hop: InviteeHop,
+    address: string,
+    ensName?: string,
+  ) => Promise<{ id: number; address: string; ensName?: string }>
+  /** @deprecated Prefer inviteOnchain(hop, …). */
   inviteSlotOnchain: (slotId: number, address: string, ensName?: string) => Promise<void>
+  loadingHop: InviteeHop | null
   loadingSlotId: number | null
 }
 
@@ -89,7 +111,8 @@ function loadInitialSession() {
     committedUsdc: stored.committedUsdc,
     hasParticipated: stored.hasParticipated,
     hopVariant: stored.hopVariant,
-    slots: stored.slots.length > 0 ? stored.slots : freshSlots(),
+    slots: stored.slots,
+    inviteAllowance: stored.inviteAllowance ?? { ...INITIAL_ALLOWANCE },
   }
 }
 
@@ -100,11 +123,32 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const [hasParticipated, setHasParticipated] = useState(initial.hasParticipated)
   const [hopVariant, setHopVariant] = useState<HopVariant>(initial.hopVariant)
   const [slots, setSlots] = useState<SlotData[]>(initial.slots)
-  const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
+  const [inviteAllowance, setInviteAllowance] = useState<InviteAllowance>(
+    initial.inviteAllowance,
+  )
+  const [loadingHop, setLoadingHop] = useState<InviteeHop | null>(null)
+  /** Drafts created during confirmation — not in `slots` until Done. */
+  const pendingInvitesRef = useRef<Map<number, SlotData>>(new Map())
+  const slotsRef = useRef(slots)
+  slotsRef.current = slots
+
+  const allocateInviteId = useCallback(() => {
+    return nextInviteId([
+      ...slotsRef.current,
+      ...pendingInvitesRef.current.values(),
+    ])
+  }, [])
 
   useEffect(() => {
-    writeDemoSession({ wallet, committedUsdc, hasParticipated, hopVariant, slots })
-  }, [wallet, committedUsdc, hasParticipated, hopVariant, slots])
+    writeDemoSession({
+      wallet,
+      committedUsdc,
+      hasParticipated,
+      hopVariant,
+      slots,
+      inviteAllowance,
+    })
+  }, [wallet, committedUsdc, hasParticipated, hopVariant, slots, inviteAllowance])
 
   const hopLabel = HOP_LABEL[hopVariant]
 
@@ -125,7 +169,9 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     setHasParticipated(fresh.hasParticipated)
     setHopVariant(fresh.hopVariant)
     setSlots(fresh.slots)
-    setLoadingSlotId(null)
+    setInviteAllowance(fresh.inviteAllowance)
+    setLoadingHop(null)
+    pendingInvitesRef.current.clear()
   }, [])
 
   const completeParticipation = useCallback((amountUsdc: number) => {
@@ -134,62 +180,153 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * Self-fill max-out: spend empty invite slots on yourself and promote to multi-hop
-   * (same address, multiple hop positions — mirrors committer / treeLayout merge).
+   * Self-fill max-out: spend Hop-1 invite slots on yourself and unlock Hop-2 rights
+   * (2 per Hop-1 position — CROWDFUND.md).
    */
   const consumeSelfInvites = useCallback((inviteCount: number) => {
     if (inviteCount <= 0) return
     setHopVariant('multi-hop')
     setSlots((prev) => {
       let remaining = inviteCount
-      return prev.map((slot) => {
-        if (remaining <= 0 || slot.status !== 'empty') return slot
-        remaining -= 1
-        return {
-          ...slot,
-          status: 'redeemed' as const,
+      const next = [...prev]
+      let id = nextInviteId(prev)
+      const now = new Date()
+      while (remaining > 0) {
+        next.push({
+          id: id++,
+          status: 'redeemed',
           redeemedBy: DEMO_WALLET,
-          joinedAt: new Date(),
-          // Self-fill unlocks the next hop(s); mark as hop-2 invitee for demo fidelity.
-          inviteeHop: 2 as const,
-        }
-      })
+          joinedAt: now,
+          invitedAt: now,
+          inviteeHop: 1,
+        })
+        remaining -= 1
+      }
+      return next
+    })
+    setInviteAllowance((prev) => ({
+      ...prev,
+      hop2: Math.min(20, prev.hop2 + inviteCount * 2),
+    }))
+  }, [])
+
+  const generateInviteLink = useCallback(async (hop: InviteeHop) => {
+    setLoadingHop(hop)
+    await new Promise((r) => setTimeout(r, 1200))
+    const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-${hop}`
+    const createdId = allocateInviteId()
+    pendingInvitesRef.current.set(createdId, {
+      id: createdId,
+      status: 'link-active',
+      link,
+      expiresAt,
+      inviteeHop: hop,
+      invitedAt: new Date(),
+    })
+    setLoadingHop(null)
+    return { id: createdId, link, expiresAt }
+  }, [allocateInviteId])
+
+  const generateSlotLink = useCallback(
+    async (slotId: number) => {
+      const hop: InviteeHop = slotId === 2 ? 2 : 1
+      const created = await generateInviteLink(hop)
+      // Legacy slot UI has no confirmation — commit immediately.
+      const draft = pendingInvitesRef.current.get(created.id)
+      pendingInvitesRef.current.delete(created.id)
+      if (draft) {
+        setSlots((prev) => [draft, ...prev])
+      }
+    },
+    [generateInviteLink],
+  )
+
+  const revokeSlot = useCallback(async (slotId: number) => {
+    await new Promise((r) => setTimeout(r, 900))
+    pendingInvitesRef.current.delete(slotId)
+    setSlots((prev) =>
+      prev.map((slot) =>
+        slot.id === slotId
+          ? {
+              ...slot,
+              status: 'revoked' as const,
+              closedAt: new Date(),
+              hideFromList: false,
+            }
+          : slot,
+      ),
+    )
+  }, [])
+
+  const revealInviteInList = useCallback((id: number) => {
+    const draft = pendingInvitesRef.current.get(id)
+    pendingInvitesRef.current.delete(id)
+    if (!draft) {
+      setSlots((prev) =>
+        prev.map((slot) =>
+          slot.id === id ? { ...slot, hideFromList: false } : slot,
+        ),
+      )
+      return
+    }
+    setSlots((prev) => {
+      if (prev.some((slot) => slot.id === id)) {
+        return prev.map((slot) =>
+          slot.id === id ? { ...slot, hideFromList: false } : slot,
+        )
+      }
+      return [draft, ...prev]
     })
   }, [])
 
-  const generateSlotLink = useCallback(async (slotId: number) => {
-    setLoadingSlotId(slotId)
-    await new Promise((r) => setTimeout(r, 1200))
-    const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-    const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-1`
-    setSlots((prev) =>
-      prev.map((slot) =>
-        slot.id === slotId ? { ...slot, status: 'link-active', link, expiresAt } : slot,
-      ),
-    )
-    setLoadingSlotId(null)
+  const discardDeferredInvite = useCallback((id: number) => {
+    pendingInvitesRef.current.delete(id)
+    setSlots((prev) => prev.filter((slot) => slot.id !== id))
   }, [])
 
-  const revokeSlot = useCallback((slotId: number) => {
-    setSlots((prev) =>
-      prev.map((slot) => (slot.id === slotId ? { id: slot.id, status: 'empty' } : slot)),
-    )
+  const flushPendingInvites = useCallback(() => {
+    const drafts = [...pendingInvitesRef.current.values()]
+    pendingInvitesRef.current.clear()
+    if (drafts.length === 0) return
+    setSlots((prev) => {
+      const existing = new Set(prev.map((slot) => slot.id))
+      const fresh = drafts.filter((draft) => !existing.has(draft.id))
+      if (fresh.length === 0) return prev
+      return [...fresh, ...prev]
+    })
   }, [])
+
+  const inviteOnchain = useCallback(
+    async (hop: InviteeHop, address: string, ensName?: string) => {
+      setLoadingHop(hop)
+      await new Promise((r) => setTimeout(r, 1500))
+      const createdId = allocateInviteId()
+      pendingInvitesRef.current.set(createdId, {
+        id: createdId,
+        status: 'onchain-pending',
+        invitedAddress: address,
+        ensName,
+        inviteeHop: hop,
+        invitedAt: new Date(),
+      })
+      setLoadingHop(null)
+      return { id: createdId, address, ensName }
+    },
+    [allocateInviteId],
+  )
 
   const inviteSlotOnchain = useCallback(
     async (slotId: number, address: string, ensName?: string) => {
-      setLoadingSlotId(slotId)
-      await new Promise((r) => setTimeout(r, 1500))
-      setSlots((prev) =>
-        prev.map((slot) =>
-          slot.id === slotId
-            ? { ...slot, status: 'onchain-pending', invitedAddress: address, ensName }
-            : slot,
-        ),
-      )
-      setLoadingSlotId(null)
+      const hop: InviteeHop = slotId === 2 ? 2 : 1
+      const created = await inviteOnchain(hop, address, ensName)
+      const draft = pendingInvitesRef.current.get(created.id)
+      pendingInvitesRef.current.delete(created.id)
+      if (draft) {
+        setSlots((prev) => [draft, ...prev])
+      }
     },
-    [],
+    [inviteOnchain],
   )
 
   const value = useMemo<DemoSessionContextValue>(
@@ -203,14 +340,21 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       capUsdc: CAP,
       fillPct: Math.min(100, (committedUsdc / CAP) * 100),
       slots,
+      inviteAllowance,
       connectWallet,
       disconnectWallet,
       completeParticipation,
       consumeSelfInvites,
+      generateInviteLink,
       generateSlotLink,
       revokeSlot,
+      revealInviteInList,
+      discardDeferredInvite,
+      flushPendingInvites,
+      inviteOnchain,
       inviteSlotOnchain,
-      loadingSlotId,
+      loadingHop,
+      loadingSlotId: loadingHop,
     }),
     [
       wallet,
@@ -219,14 +363,20 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       hopVariant,
       hopLabel,
       slots,
+      inviteAllowance,
       connectWallet,
       disconnectWallet,
       completeParticipation,
       consumeSelfInvites,
+      generateInviteLink,
       generateSlotLink,
       revokeSlot,
+      revealInviteInList,
+      discardDeferredInvite,
+      flushPendingInvites,
+      inviteOnchain,
       inviteSlotOnchain,
-      loadingSlotId,
+      loadingHop,
     ],
   )
 

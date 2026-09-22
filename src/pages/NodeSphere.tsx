@@ -141,6 +141,8 @@ export interface NodeSphereProps {
   lockOnWallet?: boolean
   /** Wire wallet to Hop-1 invitees instead of crowdfund hop layers. */
   inviteGraph?: boolean
+  /** Hide hover / selection tooltips (e.g. when an overlay list is expanded). */
+  hideNodePopover?: boolean
 }
 
 export function NodeSphere({
@@ -154,6 +156,7 @@ export function NodeSphere({
   walletAddress,
   lockOnWallet = false,
   inviteGraph = false,
+  hideNodePopover = false,
 }: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
@@ -934,7 +937,9 @@ export function NodeSphere({
       }}
     >
       {/* Hover tooltip (hidden when pinned selection tip is showing for the same node) */}
-      {hover?.visible && (!selectedTip?.visible || hover.address !== selectedTip.address) && (
+      {!hideNodePopover &&
+        hover?.visible &&
+        (!selectedTip?.visible || hover.address !== selectedTip.address) && (
         <div
           style={{
             position: 'fixed',
@@ -998,7 +1003,7 @@ export function NodeSphere({
       )}
 
       {/* Selected tooltip (pinned) */}
-      {selectedTip?.visible && (
+      {!hideNodePopover && selectedTip?.visible && (
         <div
           style={{
             position: 'fixed',
