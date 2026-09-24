@@ -21,10 +21,10 @@
 
 /* Multi-hop / max-out: grow past fixed 500px with a viewport ceiling. */
 .shellMultiHop {
+  /* Grow with content — scrolling happens on the modal backdrop, not here. */
   height: auto;
   min-height: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .content {

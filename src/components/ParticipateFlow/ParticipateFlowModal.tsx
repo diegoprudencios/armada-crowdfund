@@ -4,7 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import styles from './ParticipateFlowModal.module.css'
 
 const EXIT_MS = 280
-const CLOSE_ICON_PX = 20
+const CLOSE_ICON_PX = 14
 const ARMADA_SYMBOL_SRC = `${import.meta.env.BASE_URL}armada-symbol-color.png`
 
 export interface ParticipateFlowModalProps {

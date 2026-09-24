@@ -1,12 +1,18 @@
+/* ABOUTME: Participate modal backdrop — scrolls over the app; panel hugs step content. */
+
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 200;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: var(--primitives-spacing-8);
   box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: color-mix(in srgb, var(--semantic-color-surface-bg) 72%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -23,6 +29,7 @@
   align-items: flex-end;
   width: 480px;
   max-width: 100%;
+  flex-shrink: 0;
   gap: var(--primitives-spacing-5);
   animation: modalPanelIn 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -55,8 +62,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--primitives-spacing-12);
-  height: var(--primitives-spacing-12);
+  width: var(--primitives-spacing-6);
+  height: var(--primitives-spacing-6);
   padding: 0;
   margin: 0;
   border: none;
@@ -164,6 +171,8 @@
     top: var(--primitives-spacing-5);
     right: var(--primitives-spacing-5);
     z-index: 201;
+    width: var(--primitives-spacing-6);
+    height: var(--primitives-spacing-6);
   }
 
   .panel {
@@ -172,6 +181,7 @@
     min-width: 0;
     align-items: stretch;
     gap: 0;
+    overflow: visible;
   }
 
   .step {
