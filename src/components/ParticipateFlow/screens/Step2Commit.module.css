@@ -9,7 +9,7 @@
   width: 480px;
   height: 500px;
   background: var(--semantic-color-surface-default);
-  border: 1px solid var(--semantic-color-border-lavender);
+  border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   padding: var(--primitives-spacing-8);
   display: flex;
@@ -55,6 +55,27 @@
   color: var(--semantic-color-text-primary);
   margin: 0;
   text-align: center;
+}
+
+.fullyCommittedGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+  max-width: 28ch;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.maxLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-muted);
+  margin: 0;
+  text-align: center;
+  line-height: 1.45;
 }
 
 .amountCluster {

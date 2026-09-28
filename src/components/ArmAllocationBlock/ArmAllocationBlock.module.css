@@ -64,10 +64,11 @@
   font-weight: var(--primitives-fontWeight-medium);
   letter-spacing: var(--primitives-letterSpacing-wider);
   text-transform: uppercase;
-  color: var(--semantic-color-brand-lavender);
+  color: var(--semantic-color-text-muted);
 }
 
-.barScaleMax {
+.barScaleMax,
+.barScaleMaxBtn {
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-xs) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
@@ -75,6 +76,34 @@
   text-transform: uppercase;
   color: var(--semantic-color-text-muted);
   text-align: right;
+}
+
+.barScaleMaxBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--primitives-spacing-6);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.barScaleMaxBtn:hover:not(:disabled) {
+  color: var(--semantic-color-brand-lavender);
+}
+
+.barScaleMaxBtn:focus-visible {
+  outline: 2px solid var(--semantic-color-brand-lavender);
+  outline-offset: 2px;
+  border-radius: calc(var(--primitives-borderRadius-sm) * 1px);
+}
+
+.barScaleMaxBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .armCard {
@@ -86,7 +115,7 @@
   padding: var(--primitives-spacing-3) var(--primitives-spacing-4);
   box-sizing: border-box;
   background: var(--semantic-color-surface-raised);
-  border: 1px solid var(--semantic-color-border-default);
+  border: none;
   border-radius: calc(var(--semantic-borderRadius-item) * 1px);
 }
 
@@ -157,7 +186,8 @@
 @media (prefers-reduced-motion: reduce) {
   .barFillExisting,
   .barFillNew,
-  .infoIcon {
+  .infoIcon,
+  .barScaleMaxBtn {
     transition: none;
   }
 }

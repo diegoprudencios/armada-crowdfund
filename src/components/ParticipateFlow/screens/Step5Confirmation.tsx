@@ -11,13 +11,22 @@ interface Step5ConfirmationProps extends ParticipateStepBarProps {
   onViewPosition?: () => void
   /** Shown as secondary when `canInvite` is false. */
   onBackToCrowdfund?: () => void
-  /** Path 1 invite link — always show View your position beside Invite. */
+  /** When true with `onViewPosition`, forces the secondary View CTA. Prefer
+   *  always passing `onViewPosition` — the secondary shows whenever that
+   *  callback is set (first and additional commits). */
   showViewPositionButton?: boolean
   amount?: number
   estimatedArm?: number
   /** User committed more USDC in a follow-up visit (not first participation). */
   isAdditionalCommit?: boolean
   totalCommittedUsdc?: number
+  /** User was already at their maximum on entry — they didn't commit anything
+   *  this visit. Swaps in "already fully committed" copy (no amount added). */
+  maxedOut?: boolean
+  /** Commit-window countdown — forwarded to What happens next slide 1. */
+  daysLeft?: number
+  secondsLeft?: number
+  endsAt?: number | Date | null
 }
 
 const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
@@ -36,11 +45,14 @@ export default function Step5Confirmation({
   onInvite,
   onViewPosition,
   onBackToCrowdfund,
-  showViewPositionButton = false,
   amount = 1000,
   estimatedArm = 1000,
   isAdditionalCommit = false,
   totalCommittedUsdc,
+  maxedOut = false,
+  daysLeft = 3,
+  secondsLeft,
+  endsAt = null,
   steps = DEFAULT_STEPS,
   stepIndex = 3,
   stepsStatus = 'confirmed',
@@ -48,12 +60,24 @@ export default function Step5Confirmation({
   const formattedAmount = formatUsd(amount)
   const totalCommitted = totalCommittedUsdc ?? estimatedArm
   const formattedTotal = formatUsd(totalCommitted)
-  const shouldShowViewPosition =
-    Boolean(onViewPosition) &&
-    (showViewPositionButton || isAdditionalCommit || !canInvite)
+  // Maxed-out shortcut: no more invites from this screen (self-fill / at-cap).
+  const showInvite = canInvite && !maxedOut && Boolean(onInvite)
+  // Always show beside Invite when the parent provides a handler — first commit
+  // and additional commit share the same secondary CTA.
+  const shouldShowViewPosition = Boolean(onViewPosition)
 
-  const headline = isAdditionalCommit ? 'Commitment updated.' : "You're in."
-  const subline = isAdditionalCommit ? (
+  const headline = maxedOut
+    ? "You're fully committed."
+    : isAdditionalCommit
+      ? 'Commitment updated.'
+      : "You're in."
+  const subline = maxedOut ? (
+    <>
+      You&apos;ve committed the maximum — {formattedTotal} USDC.
+      <br />
+      Up to {estimatedArm.toLocaleString()} ARM reserved for you.
+    </>
+  ) : isAdditionalCommit ? (
     <>
       {formattedAmount} added to your position.
       <br />
@@ -77,11 +101,11 @@ export default function Step5Confirmation({
           <p className={styles.subline}>{subline}</p>
         </div>
 
-        <WhatHappensNextSlider />
+        <WhatHappensNextSlider daysLeft={daysLeft} secondsLeft={secondsLeft} endsAt={endsAt} />
       </div>
 
       <div className={styles.buttonRow}>
-        {canInvite ? (
+        {showInvite ? (
           <>
             {shouldShowViewPosition && onViewPosition && (
               <Button
@@ -92,15 +116,13 @@ export default function Step5Confirmation({
                 onClick={onViewPosition}
               />
             )}
-            {onInvite && (
-              <Button
-                variant="primary"
-                size="lg"
-                label="Whitelist a friend"
-                showIcon={false}
-                onClick={onInvite}
-              />
-            )}
+            <Button
+              variant="primary"
+              size="lg"
+              label="Whitelist a friend"
+              showIcon={false}
+              onClick={onInvite}
+            />
           </>
         ) : (
           <>

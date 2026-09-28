@@ -219,13 +219,13 @@ export function HeaderMobileMenu({
 
         <MenuSeparator />
 
-        {!claimAvailable ? (
+        {!claimAvailable && onParticipate ? (
           <Participate
             className={styles.participateCard}
             imageSrc="/fleet.png"
             videoSrc="/fleet.mp4"
             onCtaClick={() => {
-              onParticipate?.()
+              onParticipate()
               onClose()
             }}
           />

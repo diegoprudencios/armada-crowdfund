@@ -233,3 +233,72 @@
     display: none;
   }
 }
+
+.claimPage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--primitives-spacing-6);
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: calc(56px + var(--primitives-spacing-8)) var(--primitives-spacing-6)
+    var(--primitives-spacing-8);
+  background: var(--semantic-color-surface-bg);
+  color: var(--semantic-color-text-primary);
+}
+
+.saleDebug {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--primitives-spacing-2);
+  padding: var(--primitives-spacing-2) var(--primitives-spacing-3);
+  border: 1px solid var(--semantic-color-border-default);
+  border-radius: calc(var(--primitives-borderRadius-md) * 1px);
+  background: var(--semantic-color-surface-raised);
+}
+
+.saleDebugLabel {
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-muted);
+  margin-right: var(--primitives-spacing-1);
+}
+
+.saleDebugBtn {
+  appearance: none;
+  margin: 0;
+  padding: var(--primitives-spacing-1) var(--primitives-spacing-3);
+  border: 1px solid var(--semantic-color-border-default);
+  border-radius: calc(var(--primitives-borderRadius-sm) * 1px);
+  background: var(--semantic-color-surface-default);
+  color: var(--semantic-color-text-primary);
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.saleDebugBtn:hover {
+  background: var(--semantic-color-surface-hover);
+}
+
+.saleDebugBtn:focus-visible {
+  outline: 2px solid var(--semantic-color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Non-claim: pin demo sale controls above the graph corners */
+.experienceLayout ~ .saleDebug {
+  position: fixed;
+  left: 50%;
+  bottom: var(--primitives-spacing-4);
+  z-index: 20;
+  transform: translateX(-50%);
+}

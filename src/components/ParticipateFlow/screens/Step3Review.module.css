@@ -9,7 +9,7 @@
   width: 480px;
   height: 500px;
   background: var(--semantic-color-surface-default);
-  border: 1px solid var(--semantic-color-border-lavender);
+  border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   padding: var(--primitives-spacing-8);
   display: flex;
@@ -49,7 +49,7 @@
 /* ── Summary card ── */
 .summaryCard {
   background: var(--semantic-color-surface-raised);
-  border: 1px solid var(--semantic-color-border-default);
+  border: none;
   border-radius: calc(var(--semantic-borderRadius-item) * 1px);
   padding: var(--primitives-spacing-5);
   display: flex;
@@ -160,8 +160,13 @@
   font-weight: var(--primitives-fontWeight-regular);
   color: var(--semantic-color-text-secondary);
   margin: 0;
-  text-align: center;
+  text-align: left;
   line-height: 1.5;
+}
+
+.warningLead {
+  font-weight: var(--primitives-fontWeight-semibold);
+  color: var(--semantic-color-text-primary);
 }
 
 /* ── Button row ── */

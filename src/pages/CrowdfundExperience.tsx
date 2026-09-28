@@ -14,15 +14,20 @@ import {
 import { Tag } from '../components/Tag/Tag'
 import Tooltip from '../components/Tooltip/Tooltip'
 import { InvitesCard } from '../components/MyPosition/InvitesCard'
+import { MyPositionEmptyState } from '../components/MyPosition/MyPositionEmptyState'
 import {
   ParticipateFlowCrowdfund,
   type ParticipateFlowCloseContext,
 } from '../components/ParticipateFlow'
 import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
 import { ParticipateFlowModal } from '../components/ParticipateFlow/ParticipateFlowModal'
+import { ClaimFlow } from '../components/ClaimFlow/ClaimFlow'
 import { DemoSessionProvider, useDemoSession } from '../context/DemoSessionContext'
 import {
-  CAP,
+  formatSaleStatusLabel,
+  type DemoSalePreset,
+} from '../lib/demoSaleLifecycle'
+import {
   formatArmAllocation,
   formatUsdcCommitted,
   buildInvitePinnedNodes,
@@ -41,12 +46,17 @@ export interface CrowdfundExperienceProps {
 }
 
 function readInitialView(prop?: CrowdfundView): CrowdfundView {
-  if (prop) return prop
+  if (prop === 'crowdfund' || prop === 'myposition') return prop
   if (typeof window !== 'undefined') {
     const v = new URLSearchParams(window.location.search).get('view')
     if (v === 'myposition') return 'myposition'
   }
   return 'crowdfund'
+}
+
+function readInitialClaimOpen(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get('view') === 'claim'
 }
 
 function readInitialSelectAddress(): string | undefined {
@@ -77,13 +87,18 @@ function layerClass(visible: boolean, motionReady: boolean, animate: boolean) {
     .join(' ')
 }
 
-function panelVisible(view: CrowdfundView, layer: CrowdfundView, phase: PanelPhase) {
+function panelVisible(view: CrowdfundView, layer: 'crowdfund' | 'myposition', phase: PanelPhase) {
   if (phase === 'idle') return view === layer
   if (phase === 'exit') return false
   return view === layer
 }
 
-function panelAnimates(view: CrowdfundView, layer: CrowdfundView, phase: PanelPhase, motionReady: boolean) {
+function panelAnimates(
+  view: CrowdfundView,
+  layer: 'crowdfund' | 'myposition',
+  phase: PanelPhase,
+  motionReady: boolean,
+) {
   if (!motionReady || phase === 'idle') return motionReady
   return view === layer
 }
@@ -107,22 +122,29 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     hopLabel,
     fillPct,
     capUsdc,
+    remainingHopUsdc,
+    maxOutPlan,
     slots,
     inviteAllowance,
     connectWallet,
     disconnectWallet,
     completeParticipation,
-    consumeSelfInvites,
+    applyMaxOutPlan,
+    setSalePreset,
+    completeClaim,
+    claimReady,
+    claimMode,
+    hasClaimed,
+    windowOpen,
+    salePhase,
+    saleBelowMin,
     generateInviteLink,
-    generateSlotLink,
     revokeSlot,
     revealInviteInList,
     discardDeferredInvite,
     flushPendingInvites,
     inviteOnchain,
-    inviteSlotOnchain,
     loadingHop,
-    loadingSlotId,
   } = session
   const scenario = useRef<{ participants: 800; seed: number } | null>(null)
   if (!scenario.current) {
@@ -133,13 +155,33 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   }
 
   const [view, setView] = useState<CrowdfundView>(() => readInitialView(initialView))
-  const [graphMode, setGraphMode] = useState<CrowdfundView>(() => readInitialView(initialView))
+  const [graphMode, setGraphMode] = useState<'crowdfund' | 'myposition'>(() =>
+    readInitialView(initialView),
+  )
+  const [claimOpen, setClaimOpen] = useState(() => readInitialClaimOpen())
   const [panelPhase, setPanelPhase] = useState<PanelPhase>('idle')
   const [motionReady, setMotionReady] = useState(() => isMobileLayout())
   const [mountGraph, setMountGraph] = useState(() => !isMobileLayout())
   const panelTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const committedAmount = 1_700_000
+  const committedAmount = saleBelowMin ? 800_000 : 1_700_000
+  const saleStatus = formatSaleStatusLabel(salePhase, windowOpen)
+  const participationEnabled = windowOpen && !claimReady && salePhase !== 2
+  const awaitingFinalize = claimReady && salePhase === 0 && saleBelowMin
+  const armAllocLabel =
+    salePhase >= 1 || !windowOpen
+      ? claimMode === 'refund'
+        ? formatUsdcCommitted(committedUsdc)
+        : formatArmAllocation(committedUsdc)
+      : formatArmAllocation(committedUsdc)
+  const armTooltip =
+    hasClaimed
+      ? 'Claimed'
+      : salePhase >= 1
+        ? claimMode === 'refund'
+          ? 'USDC refund available'
+          : 'Final ARM allocation'
+        : 'Estimated · pending finalization'
 
   const dashRows = useMemo(
     () => generateDashboardParticipants(scenario.current!.seed, scenario.current!.participants),
@@ -178,6 +220,15 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const isGraphCrowdfund = graphMode === 'crowdfund'
   const isGraphMyPosition = graphMode === 'myposition'
   const graphParticipants = scenario.current!.participants
+
+  const SALE_PRESETS: { id: DemoSalePreset; label: string }[] = [
+    { id: 'active', label: 'Active' },
+    { id: 'closed', label: 'Closed' },
+    { id: 'below-min', label: 'Below min' },
+    { id: 'finalized', label: 'Finalized' },
+    { id: 'finalized-refund', label: 'Finalized · refund' },
+    { id: 'cancelled', label: 'Cancelled' },
+  ]
 
   useEffect(() => {
     if (isMobileLayout()) {
@@ -230,12 +281,18 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     }
   }
 
-  const startPanelTransition = (next: CrowdfundView, options?: { selectAddress?: string }) => {
+  const startPanelTransition = (
+    next: 'crowdfund' | 'myposition',
+    options?: { selectAddress?: string },
+  ) => {
+    setClaimOpen(false)
+
     if (view === next || panelPhase !== 'idle') {
       if (view === next && next === 'crowdfund' && options?.selectAddress) {
         setSelectedAddress(options.selectAddress)
         setGraphMode('crowdfund')
       }
+      if (view === next) syncUrl(next, false)
       return
     }
 
@@ -257,7 +314,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
 
     panelTransitionTimer.current = setTimeout(() => {
       setView(next)
-      syncUrl(next)
+      syncUrl(next, false)
       setPanelPhase('enter')
 
       panelTransitionTimer.current = setTimeout(() => {
@@ -309,22 +366,60 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     return () => window.removeEventListener('pointerdown', onPointerDown)
   }, [selectedAddress, isCrowdfund])
 
-  const syncUrl = (next: CrowdfundView) => {
+  const syncUrl = (next: CrowdfundView, claim = claimOpen) => {
     const base = import.meta.env.BASE_URL
-    const path = next === 'myposition' ? `${base}?view=myposition` : base
-    window.history.replaceState(null, '', path)
+    const url = new URL(base, window.location.origin)
+    if (claim) url.searchParams.set('view', 'claim')
+    else if (next === 'myposition') url.searchParams.set('view', 'myposition')
+    const sale = new URLSearchParams(window.location.search).get('sale')
+    if (sale) url.searchParams.set('sale', sale)
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`)
   }
 
   const goToMyPosition = () => {
+    if (claimOpen) {
+      setClaimOpen(false)
+      if (isMyPosition) {
+        syncUrl('myposition', false)
+        return
+      }
+    }
     if (isMyPosition || panelPhase !== 'idle') return
     setParticipantsListOpen(false)
     startPanelTransition('myposition')
   }
 
   const goToCrowdfund = () => {
+    if (claimOpen) {
+      setClaimOpen(false)
+      if (isCrowdfund) {
+        syncUrl('crowdfund', false)
+        return
+      }
+    }
     if (isCrowdfund || panelPhase !== 'idle') return
     startPanelTransition('crowdfund')
   }
+
+  const goToClaim = () => {
+    if (!claimReady || claimOpen) return
+    setParticipateOpen(false)
+    setParticipantsListOpen(false)
+    setClaimOpen(true)
+    syncUrl(view, true)
+  }
+
+  const closeClaimFlow = () => {
+    setClaimOpen(false)
+    syncUrl(view, false)
+  }
+
+  useEffect(() => {
+    if (claimOpen && !claimReady) {
+      setClaimOpen(false)
+      syncUrl(view, false)
+    }
+  }, [claimOpen, claimReady, view])
 
   const viewPositionFromParticipateFlow = () => {
     setParticipateOpen(false)
@@ -350,6 +445,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   }
 
   const openParticipateFlow = () => {
+    if (!participationEnabled) return
     if (isCrowdfund && panelPhase === 'idle') {
       setParticipateOpen(true)
       return
@@ -372,12 +468,11 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     }
   }, [isMyPosition, pendingParticipateOpen])
 
-  useEffect(() => {
-    if (!isMyPosition || walletConnected || panelPhase !== 'idle') return
-    setView('crowdfund')
-    setGraphMode('crowdfund')
-    syncUrl('crowdfund')
-  }, [isMyPosition, walletConnected, panelPhase])
+  const myPositionEmptyKind: 'disconnected' | 'no-position' | null = !walletConnected
+    ? 'disconnected'
+    : !hasParticipated
+      ? 'no-position'
+      : null
 
   const crowdfundPanelVisible = panelVisible(view, 'crowdfund', panelPhase)
   const myPositionPanelVisible = panelVisible(view, 'myposition', panelPhase)
@@ -438,7 +533,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     <div className={[mpStyles.page, shellStyles.page].join(' ')}>
       <Header
         layout="hero"
-        activeNav={isMyPosition ? 'myposition' : 'crowdfund'}
+        activeNav={claimOpen ? 'claim' : isMyPosition ? 'myposition' : 'crowdfund'}
+        claimAvailable={claimReady}
         walletConnected={walletConnected}
         walletAddress={wallet?.displayAddress ?? ''}
         walletCopyAddress={wallet?.address}
@@ -449,7 +545,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         className={[heroStyles.headerOverride, heroStyles.enter, heroStyles.enterHeader].join(' ')}
         onMyPosition={goToMyPosition}
         onCrowdfund={goToCrowdfund}
-        onParticipate={openParticipateFlow}
+        onClaim={goToClaim}
+        onParticipate={participationEnabled ? openParticipateFlow : undefined}
         onConnectWallet={() => setConnectOpen(true)}
       />
 
@@ -532,6 +629,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                   <Progress
                     participants={`${scenario.current!.participants} PARTICIPANTS`}
                     committedAmount={committedAmount}
+                    status={saleStatus.label}
+                    statusDot={saleStatus.dot}
+                    daysLeft={windowOpen ? '3 DAYS LEFT' : null}
                   />
                 }
                 list={
@@ -559,63 +659,80 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
               <div className={mpStyles.cardHeader}>
                 <div className={mpStyles.titleRow}>
                   <h1 className={mpStyles.pageTitle}>My Position</h1>
-                  <Button
-                    className={mpStyles.headerCta}
-                    variant="gradient"
-                    size="sm"
-                    label={
-                      !hasParticipated
-                        ? 'Participate'
-                        : fillPct >= 100
-                          ? 'Maxed out'
-                          : 'Commit again'
-                    }
-                    showIcon={fillPct < 100}
-                    icon="arrow-right-micro"
-                    disabled={fillPct >= 100}
-                    onClick={openParticipateFlow}
-                  />
+                  {participationEnabled ? (
+                    <Button
+                      className={mpStyles.headerCta}
+                      variant="gradient"
+                      size="sm"
+                      label={myPositionEmptyKind === null ? 'Commit again' : 'Participate'}
+                      showIcon
+                      icon="arrow-right-micro"
+                      onClick={openParticipateFlow}
+                    />
+                  ) : null}
                 </div>
                 <div className={mpStyles.metaTags}>
-                  {wallet && <Tag label={wallet.displayAddress} dot="lavender" />}
-                  <Tag label={hopLabel} dot="lavender" />
+                  {wallet ? <Tag label={wallet.displayAddress} dot="lavender" /> : null}
+                  {myPositionEmptyKind === null ? (
+                    <>
+                      <Tag label={hopLabel} dot="lavender" />
+                      {hasClaimed ? <Tag label="CLAIMED" dot="active" /> : null}
+                    </>
+                  ) : null}
                 </div>
               </div>
 
-              <div className={mpStyles.positionFooter}>
-                <div className={mpStyles.statsRow}>
-                  <div className={mpStyles.statBlock}>
-                    <p className={mpStyles.statLabel}>USDC committed</p>
-                    <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
-                  </div>
-
-                  <div className={mpStyles.statBlock}>
-                    <div className={mpStyles.statLabelRow}>
-                      <p className={mpStyles.statLabel}>ARM allocation</p>
-                      <Tooltip variant="centered" content="Estimated · pending finalization">
-                        <button
-                          type="button"
-                          className={mpStyles.infoTrigger}
-                          aria-label="ARM allocation info"
-                        >
-                          <InformationCircleIcon className={mpStyles.infoIcon} aria-hidden />
-                        </button>
-                      </Tooltip>
+              {myPositionEmptyKind !== null ? (
+                <MyPositionEmptyState
+                  kind={myPositionEmptyKind}
+                  onConnectWallet={() => setConnectOpen(true)}
+                  onParticipate={openParticipateFlow}
+                />
+              ) : (
+                <div className={mpStyles.positionFooter}>
+                  <div className={mpStyles.statsRow}>
+                    <div className={mpStyles.statBlock}>
+                      <p className={mpStyles.statLabel}>USDC committed</p>
+                      <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
                     </div>
-                    <p className={mpStyles.statAmountAccent}>{formatArmAllocation(committedUsdc)}</p>
-                  </div>
-                </div>
 
-                <div className={mpStyles.barSection}>
-                  <div className={mpStyles.barTrack}>
-                    <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
+                    <div className={mpStyles.statBlock}>
+                      <div className={mpStyles.statLabelRow}>
+                        <p className={mpStyles.statLabel}>
+                          {claimMode === 'refund' && (salePhase >= 1 || !windowOpen)
+                            ? 'USDC refund'
+                            : 'ARM allocation'}
+                        </p>
+                        <Tooltip variant="centered" content={armTooltip}>
+                          <button
+                            type="button"
+                            className={mpStyles.infoTrigger}
+                            aria-label="ARM allocation info"
+                          >
+                            <InformationCircleIcon className={mpStyles.infoIcon} aria-hidden />
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <p className={mpStyles.statAmountAccent}>{armAllocLabel}</p>
+                    </div>
                   </div>
-                  <div className={mpStyles.barLabels}>
-                    <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of cap</span>
-                    <span className={mpStyles.barCaption}>Cap ${CAP.toLocaleString()}</span>
+
+                  <div className={mpStyles.barSection}>
+                    <div className={mpStyles.barTrack}>
+                      <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
+                    </div>
+                    <div className={mpStyles.barLabels}>
+                      <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of hop cap</span>
+                      <span className={mpStyles.barCaption}>
+                        Cap ${capUsdc.toLocaleString()}
+                        {maxOutPlan.newCommitUsdc > remainingHopUsdc
+                          ? ` · Max out $${maxOutPlan.projectedCeilingUsdc.toLocaleString()}`
+                          : ''}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </section>
           </div>
         </div>
@@ -630,55 +747,76 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
               .join(' ')}
             aria-hidden={!crowdfundPanelVisible}
           >
-            <Participate
-              className={[heroStyles.enter, heroStyles.enterParticipate, shellStyles.mobileParticipateCard]
-                .filter(Boolean)
-                .join(' ')}
-              imageSrc="/fleet.png"
-              videoSrc="/fleet.mp4"
-              onCtaClick={openParticipateFlow}
-            />
+            {participationEnabled ? (
+              <Participate
+                className={[heroStyles.enter, heroStyles.enterParticipate, shellStyles.mobileParticipateCard]
+                  .filter(Boolean)
+                  .join(' ')}
+                imageSrc="/fleet.png"
+                videoSrc="/fleet.mp4"
+                onCtaClick={openParticipateFlow}
+              />
+            ) : null}
           </div>
 
-          <div
-            className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
-            aria-hidden={!myPositionPanelVisible}
-          >
-            <InvitesCard
-              variant="hero"
-              slots={slots}
-              allowance={inviteAllowance}
-              selfWalletAddress={wallet?.address}
-              onGenerateLink={generateInviteLink}
-              onCopy={handleCopy}
-              onRevoke={revokeSlot}
-              onConfirmCreated={revealInviteInList}
-              onDiscardCreated={discardDeferredInvite}
-              onFlushPending={flushPendingInvites}
-              onInviteOnchain={inviteOnchain}
-              copiedSlotId={copiedId}
-              loadingHop={loadingHop}
-              onInviteListOpenChange={handleInviteListOpenChange}
-              panelActive={isMyPosition}
-              onViewRedeemed={(address) =>
-                startPanelTransition('crowdfund', { selectAddress: address })
-              }
-            />
-          </div>
+          {/* Mirror POC: invites only while the commit window is open. */}
+          {participationEnabled && hasParticipated ? (
+            <div
+              className={layerClass(myPositionPanelVisible, motionReady, myPositionPanelAnimates)}
+              aria-hidden={!myPositionPanelVisible}
+            >
+              <InvitesCard
+                variant="hero"
+                slots={slots}
+                allowance={inviteAllowance}
+                selfWalletAddress={wallet?.address}
+                onGenerateLink={generateInviteLink}
+                onCopy={handleCopy}
+                onRevoke={revokeSlot}
+                onConfirmCreated={revealInviteInList}
+                onDiscardCreated={discardDeferredInvite}
+                onFlushPending={flushPendingInvites}
+                onInviteOnchain={inviteOnchain}
+                copiedSlotId={copiedId}
+                loadingHop={loadingHop}
+                onInviteListOpenChange={handleInviteListOpenChange}
+                panelActive={isMyPosition}
+                onViewRedeemed={(address) =>
+                  startPanelTransition('crowdfund', { selectAddress: address })
+                }
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
+      <div className={shellStyles.saleDebug} role="group" aria-label="Demo sale stage">
+        <span className={shellStyles.saleDebugLabel}>Demo sale</span>
+        {SALE_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className={shellStyles.saleDebugBtn}
+            onClick={() => setSalePreset(preset.id)}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
       <ParticipateFlowCrowdfund
-        open={participateOpen && isCrowdfund}
+        open={participateOpen && isCrowdfund && participationEnabled && !claimOpen}
         onClose={closeParticipateFlow}
         onViewPosition={viewPositionFromParticipateFlow}
         walletConnected={walletConnected}
         onConnectWallet={connectWallet}
         onCompleteParticipation={completeParticipation}
-        onConsumeSelfInvites={consumeSelfInvites}
+        onApplyMaxOutPlan={applyMaxOutPlan}
         hasParticipated={hasParticipated}
         committedUsdc={committedUsdc}
         capUsdc={capUsdc}
+        remainingHopUsdc={remainingHopUsdc}
+        maxOutPlan={maxOutPlan}
         hopVariant={hopVariant}
         slots={slots}
         inviteAllowance={inviteAllowance}
@@ -689,6 +827,30 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         loadingHop={loadingHop}
         copiedSlotId={copiedId}
       />
+
+      <ParticipateFlowModal
+        open={claimOpen && claimReady}
+        onClose={closeClaimFlow}
+        ariaLabel="Claim your allocation"
+        closeAriaLabel="Close claim flow"
+      >
+        <ClaimFlow
+          walletConnected={walletConnected}
+          walletDisplayAddress={wallet?.displayAddress}
+          claimAvailable={claimReady}
+          awaitingFinalize={awaitingFinalize}
+          mode={claimMode}
+          hasParticipated={hasParticipated}
+          hasClaimed={hasClaimed}
+          armAmount={Math.round(committedUsdc / 100) || 10}
+          refundUsdc={committedUsdc || 1000}
+          committedUsdc={committedUsdc}
+          onClaim={completeClaim}
+          onBackToCrowdfund={goToCrowdfund}
+          onViewPosition={goToMyPosition}
+          onConnectWallet={() => setConnectOpen(true)}
+        />
+      </ParticipateFlowModal>
 
       <ParticipateFlowModal
         open={connectOpen}

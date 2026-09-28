@@ -18,7 +18,18 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   maxArm?: number
   /** Already committed USDC — bar shows this before new input. */
   existingCommittedUsdc?: number
+  /** Prefill when returning from Review (parent-held amount). */
+  initialAmount?: number
+  /** Primary hop label for the bar — e.g. "Hop-0" → "Hop-0 commit". */
+  hopLabel?: string
   showBack?: boolean
+  /**
+   * Current hop(s) already at cap. Shows “You're fully committed” instead of
+   * the amount input (Max out banner may still sit above to unlock more).
+   */
+  fullyCommitted?: boolean
+  /** Optional secondary CTA on the fully-committed card. */
+  onViewPosition?: () => void
 }
 
 const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
@@ -30,13 +41,21 @@ export default function Step2Commit({
   availableBalance = 215154.14,
   maxArm: _maxArm = 4000,
   existingCommittedUsdc = 0,
+  initialAmount = 0,
+  hopLabel = 'Hop-0',
   showBack = true,
+  fullyCommitted = false,
+  onViewPosition,
   steps = DEFAULT_STEPS,
   stepIndex = 1,
 }: Step2CommitProps) {
-  const [amountInput, setAmountInput] = useState('')
-
   const remainingCap = Math.max(0, maxAmount - existingCommittedUsdc)
+  const [amountInput, setAmountInput] = useState(() => {
+    if (initialAmount <= 0) return ''
+    const capped = Math.min(initialAmount, remainingCap)
+    return hasActiveAmount(String(capped)) ? String(capped) : ''
+  })
+
   const showActiveAmount = hasActiveAmount(amountInput)
   const amount = parseActiveAmount(amountInput, remainingCap)
   const hasNewAmount = amount > 0
@@ -67,6 +86,42 @@ export default function Step2Commit({
 
   const formatBalance = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  if (fullyCommitted) {
+    return (
+      <div className={styles.shell} data-flow-shell>
+        <Steps steps={[...steps]} currentStep={stepIndex} />
+
+        <div className={styles.content}>
+          <div className={styles.inputBlock}>
+            <div className={styles.fullyCommittedGroup}>
+              <h2 className={styles.title}>You&apos;re fully committed</h2>
+              <p className={styles.maxLabel}>
+                You&apos;ve committed the maximum {maxAmount.toLocaleString('en-US')} USDC
+                for {hopLabel}. Use Max out above to unlock more via self-invites.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.buttonRow}>
+          {onViewPosition ? (
+            <Button
+              variant="secondary"
+              size="lg"
+              label="View your position"
+              showIcon={false}
+              onClick={onViewPosition}
+            />
+          ) : showBack ? (
+            <Button variant="secondary" size="lg" label="Back" showIcon={false} onClick={onBack} />
+          ) : (
+            <Button variant="secondary" size="lg" label="Close" showIcon={false} onClick={onBack} />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.shell} data-flow-shell>
@@ -121,6 +176,11 @@ export default function Step2Commit({
           newAmount={amount}
           existingCommittedUsdc={existingCommittedUsdc}
           estimatedArm={existingCommittedUsdc + amount}
+          commitLabel={`${hopLabel} commit`}
+          onFillMax={() => {
+            if (remainingCap <= 0) return
+            setAmountInput(String(remainingCap))
+          }}
           progressAriaLabel="Committed amount toward your maximum"
           tooltipDescription="Your estimated allocation based on the amount committed."
           tooltipBullets={[

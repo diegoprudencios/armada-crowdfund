@@ -2,7 +2,7 @@
   width: 480px;
   height: 500px;
   background: var(--semantic-color-surface-default);
-  border: 1px solid var(--semantic-color-border-lavender);
+  border: 1px solid var(--semantic-color-border-default);
   border-radius: calc(var(--semantic-borderRadius-modal) * 1px);
   padding: var(--primitives-spacing-8);
   display: flex;
@@ -35,7 +35,7 @@
 .txCard {
   width: 100%;
   background: var(--semantic-color-surface-raised);
-  border: 1px solid var(--semantic-color-border-default);
+  border: none;
   border-radius: calc(var(--semantic-borderRadius-item) * 1px);
   overflow: hidden;
 }

@@ -2,7 +2,7 @@
 
 .root {
   background: var(--semantic-color-surface-raised);
-  border: 1px solid var(--semantic-color-border-default);
+  border: none;
   border-radius: calc(var(--semantic-borderRadius-item) * 1px);
   padding: var(--primitives-spacing-5);
   display: flex;

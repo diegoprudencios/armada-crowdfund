@@ -370,10 +370,13 @@ Two orchestrators. Never mix their step bars or entry behavior.
 - Fixed inline slot: 480×500 (`ParticipateFlowInviteInline.module.css`).
 - Page footer (Crowdfund / My Position links) hidden while flow is active.
 - `Step0Invite` uses `variant="landing"` on the page card (lavender border,
-  `JoinButton` `size="lg"`, `HopPill` with `.landing` class).
+  `JoinButton` `size="lg"`, `HopPill` with `.landing` class). Modal splash uses
+  the same footer sizing so pill and Join CTA share height (`spacing-16`).
 
 **Path 2 layout notes**
-- Modal close (X) from **confirmation** navigates to My Position.
+- Modal close (X) is hidden during commit / review / approve — exit via Back
+  or step CTAs. On **confirmation** (and post-commit invites), the X is shown
+  and navigates to My Position.
 - Returning participants skip Step 0 and start at commit when reopening.
 
 ### Step 0 invite card (`Step0Invite`)
@@ -404,16 +407,17 @@ commit (`isAdditionalCommit`):
 - First: “You're in.” + amount committed + ARM reserved.
 - Additional: “Commitment updated.” + amount added + total committed.
 
-**View your position** (secondary, left) shows when `onViewPosition` is passed
-**and** (`showViewPositionButton` **or** `isAdditionalCommit`) — only when the
-user **can invite**:
-- Path 1: always pass `showViewPositionButton` on first commit; additional
-  commits also match via `isAdditionalCommit`.
-- Path 2 first commit: no secondary button; modal X still routes to My Position.
-- Path 2 additional commit: show secondary button; wire `onViewPosition` from
-  parent (closes modal + My Position panel).
+**View your position** (secondary, left) shows whenever `onViewPosition` is
+passed — on **first and additional** commits alike (Path 1 and Path 2).
+- Path 1 / Path 2: wire `onViewPosition` from the parent (closes flow + My
+  Position).
+- Path 2 modal X on confirmation still routes to My Position as a backup.
 
-Primary (right): **Invite participants** → in-flow invite slots step.
+Primary (right): **Whitelist a friend** → in-flow invite slots step — only when
+the user still has **empty invite capacity** (`availableInviteCount > 0` /
+remaining empty slots). Zero invites to send → hide Whitelist; secondary +
+primary become Back to crowdfund / View your position. My Position also hides
+the bottom-right Invites card when send capacity is zero.
 
 **No invite capacity** (`canInvite={false}`, e.g. Hop-2): hide Invite. Secondary
 (left) **Back to crowdfund** (`onBackToCrowdfund`); primary (right) **View your

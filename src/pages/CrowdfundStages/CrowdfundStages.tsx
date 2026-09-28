@@ -5,6 +5,7 @@ import { InvitesCard } from '../../components/MyPosition/InvitesCard'
 import { DEMO_INVITE_ALLOWANCE, DEMO_SLOTS } from '../../components/MyPosition/myPositionDemo'
 import {
   nextInviteId,
+  type InviteAllowance,
   type InviteeHop,
 } from '../../components/MyPosition/inviteModel'
 import { Participate } from '../../components/Participate'
@@ -60,38 +61,37 @@ type ParticipateStepId =
   | 'confirmation-max-out'
   | 'confirmation-no-invites'
 
-/** Demo self-fill plan with remaining invite slots (seed / hop-1). */
+/** Demo self-fill plan — hop-0 seed: MAX $15k current, Max out $33k / 9 self-invites. */
 const DEMO_MAX_OUT_WITH_INVITES: Omit<MaxOutBannerOption, 'onMaxOut'> = {
-  ceilingUsd: 10_000,
-  newCommitUsd: 6_000,
-  inviteCount: 2,
-}
-
-/** Demo max-out with no self-invites left — commit remaining cap only. */
-const DEMO_MAX_OUT_COMMIT_ONLY: Omit<MaxOutBannerOption, 'onMaxOut'> = {
-  ceilingUsd: 4_000,
-  newCommitUsd: 3_000,
-  inviteCount: 0,
+  ceilingUsd: 33_000,
+  newCommitUsd: 33_000,
+  inviteCount: 9,
 }
 
 const DEMO_MAX_OUT_HOP_COMMITS = [
   {
+    hop: 0 as const,
+    hopLabel: 'HOP-0',
+    hopColor: hopPillDotColor('seed'),
+    amount: 15_000,
+  },
+  {
     hop: 1 as const,
     hopLabel: 'HOP-1',
     hopColor: hopPillDotColor('hop-1'),
-    amount: 2_000,
+    amount: 12_000,
   },
   {
     hop: 2 as const,
     hopLabel: 'HOP-2',
     hopColor: hopPillDotColor('hop-2'),
-    amount: 4_000,
+    amount: 6_000,
   },
 ]
 
 const DEMO_MAX_OUT_NOTE = (
   <>
-    <strong>Self-invite bundle.</strong> Issues 2 self-invites to unlock your full ceiling,
+    <strong>Self-invite bundle.</strong> Issues 9 self-invites to unlock your full ceiling,
     then commits at every hop — all in one transaction. This spends your own invite slots
     on yourself, so they won&apos;t be available to invite others.
   </>
@@ -120,7 +120,7 @@ const PARTICIPATE_STEPS: { id: ParticipateStepId; label: string }[] = [
   { id: 'approve', label: 'Step 3 — Approve' },
   { id: 'confirmation', label: 'Step 4 — Confirmation' },
   { id: 'confirmation-again', label: 'Step 4 — Commit again' },
-  { id: 'confirmation-max-out', label: 'Step 4 — Confirmation + max out' },
+  { id: 'confirmation-max-out', label: 'Step 4 — Confirmation (full commit)' },
   { id: 'confirmation-no-invites', label: 'Step 4 — No invites (Hop-2)' },
 ]
 
@@ -234,10 +234,24 @@ function ParticipateStepContent({
         />
       )
     case 'commit':
-      return <Step2Commit onNext={onClose} onBack={onClose} showBack={false} />
+      return (
+        <Step2Commit
+          onNext={onClose}
+          onBack={onClose}
+          showBack={false}
+          maxAmount={15_000}
+          hopLabel="Hop-0"
+        />
+      )
     case 'commit-max-out':
       return withMaxOutBanner(DEMO_MAX_OUT_WITH_INVITES, onClose, (
-        <Step2Commit onNext={onClose} onBack={onClose} showBack={false} />
+        <Step2Commit
+          onNext={onClose}
+          onBack={onClose}
+          showBack={false}
+          maxAmount={15_000}
+          hopLabel="Hop-0"
+        />
       ))
     case 'review':
       return (
@@ -285,7 +299,7 @@ function ParticipateStepContent({
         />
       )
     case 'confirmation-max-out':
-      return withMaxOutBanner(DEMO_MAX_OUT_WITH_INVITES, onClose, (
+      return (
         <Step5Confirmation
           showViewPositionButton
           onViewPosition={onClose}
@@ -293,9 +307,9 @@ function ParticipateStepContent({
           amount={1000}
           estimatedArm={1000}
         />
-      ))
+      )
     case 'confirmation-no-invites':
-      return withMaxOutBanner(DEMO_MAX_OUT_COMMIT_ONLY, onClose, (
+      return (
         <Step5Confirmation
           canInvite={false}
           showViewPositionButton
@@ -304,7 +318,7 @@ function ParticipateStepContent({
           amount={1000}
           estimatedArm={1000}
         />
-      ))
+      )
   }
 }
 
@@ -316,6 +330,9 @@ export function CrowdfundStages() {
   const [modalSlots, setModalSlots] = useState<SlotData[]>(() =>
     EMPTY_INVITE_SLOTS.map((slot) => ({ ...slot })),
   )
+  const [modalInviteAllowance, setModalInviteAllowance] = useState<InviteAllowance>({
+    ...MODAL_INVITE_ALLOWANCE,
+  })
   const [copiedSlotId, setCopiedSlotId] = useState<number | null>(null)
   const [loadingSlotId, setLoadingSlotId] = useState<number | null>(null)
   const [loadingHop, setLoadingHop] = useState<InviteeHop | null>(null)
@@ -323,6 +340,7 @@ export function CrowdfundStages() {
 
   const openParticipateFlow = () => {
     setModalSlots(EMPTY_INVITE_SLOTS.map((slot) => ({ ...slot })))
+    setModalInviteAllowance({ ...MODAL_INVITE_ALLOWANCE })
     setCopiedSlotId(null)
     setLoadingSlotId(null)
     setModal({ kind: 'participate-flow' })
@@ -627,7 +645,7 @@ export function CrowdfundStages() {
               <div className={styles.flowStatic}>
                 <ParticipateFlowInviteSlots
                   slots={modalSlots}
-                  allowance={MODAL_INVITE_ALLOWANCE}
+                  allowance={modalInviteAllowance}
                   onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
                   onCopy={handleCopy}
                   onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
@@ -730,7 +748,7 @@ export function CrowdfundStages() {
           committedUsdc={0}
           hopVariant="hop-1"
           slots={modalSlots}
-          inviteAllowance={MODAL_INVITE_ALLOWANCE}
+          inviteAllowance={modalInviteAllowance}
           onConsumeSelfInvites={(inviteCount) => {
             if (inviteCount <= 0) return
             setModalSlots((prev) => {
@@ -745,12 +763,31 @@ export function CrowdfundStages() {
                   redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c',
                   joinedAt: now,
                   inviteeHop: 1,
+                  hideFromList: true,
                 })
                 remaining -= 1
               }
               return next
             })
+            setModalInviteAllowance({ hop1: 0, hop2: 0 })
           }}
+          maxOutPlan={{
+            eligible: true,
+            invites: [{ fromHop: 0, count: 3 }],
+            commits: [
+              { hop: 0, amount: 15_000, existingCommitted: 0, targetCap: 15_000 },
+              { hop: 1, amount: 12_000, existingCommitted: 0, targetCap: 12_000 },
+              { hop: 2, amount: 6_000, existingCommitted: 0, targetCap: 6_000 },
+            ],
+            totalInvites: 9,
+            newCommitUsdc: 33_000,
+            projectedCeilingUsdc: 33_000,
+            currentCeilingUsdc: 15_000,
+            totalCommittedAfterUsdc: 33_000,
+            projectedReceivedByHop: [1, 3, 6],
+          }}
+          capUsdc={15_000}
+          remainingHopUsdc={15_000}
           onGenerateInviteLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
           onCopySlotLink={handleCopy}
           onRevokeSlot={(slotId) => handleRevoke(setModalSlots, slotId)}
@@ -765,7 +802,11 @@ export function CrowdfundStages() {
           open={modal !== null}
           onClose={closeModal}
           ariaLabel={modalAria}
-          showClose={!(modal?.kind === 'participate-step' && modal.step === 'invite')}
+          showClose={
+            modal?.kind === 'participate-step'
+              ? modal.step.startsWith('confirmation')
+              : true
+          }
           footer={
             modal?.kind === 'participate-step' && modal.step === 'invite' ? (
               <Button
@@ -785,7 +826,7 @@ export function CrowdfundStages() {
           {modal?.kind === 'invite-slots' ? (
             <ParticipateFlowInviteSlots
               slots={modalSlots}
-              allowance={MODAL_INVITE_ALLOWANCE}
+              allowance={modalInviteAllowance}
               onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
               onCopy={handleCopy}
               onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}

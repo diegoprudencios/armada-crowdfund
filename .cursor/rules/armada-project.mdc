@@ -50,9 +50,9 @@ Exceptions: rare cases called out in the design system (e.g. gradient overlays o
 
 ## Confirmation (Step 5)
 
-- **View your position** when `onViewPosition` is set and (`showViewPositionButton` or `isAdditionalCommit`).
-- Path 1: use `showViewPositionButton` for first commit.
-- Path 2: additional commit only for secondary button; first commit uses modal X → My Position.
+- **View your position** whenever `onViewPosition` is set (first and additional commits).
+- Path 1 and Path 2: wire `onViewPosition` from the parent.
+- Path 2: modal X on confirmation still routes to My Position as a backup.
 
 ## Header & session
 

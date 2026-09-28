@@ -13,6 +13,8 @@ export interface ParticipateFlowModalProps {
   children: ReactNode
   /** Accessible name for the dialog (e.g. step headline). */
   ariaLabel: string
+  /** Accessible name for the close control. */
+  closeAriaLabel?: string
   /** When false, hides the top-right close control (e.g. invite uses “Do it later”). */
   showClose?: boolean
   /** Optional content below the step shell (e.g. “Do it later” text link). */
@@ -24,6 +26,7 @@ export function ParticipateFlowModal({
   onClose,
   children,
   ariaLabel,
+  closeAriaLabel = 'Close participate flow',
   showClose = true,
   footer,
 }: ParticipateFlowModalProps) {
@@ -106,7 +109,7 @@ export function ParticipateFlowModal({
             type="button"
             className={styles.close}
             onClick={onClose}
-            aria-label="Close participate flow"
+            aria-label={closeAriaLabel}
           >
             <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
           </button>

@@ -1,4 +1,4 @@
-/* ABOUTME: Self-fill “Commit the maximum” banner — sits above participate commit/confirmation shells. */
+/* ABOUTME: Self-fill “Commit the maximum” banner — sits above participate commit shells. */
 
 .banner {
   display: flex;
@@ -10,7 +10,7 @@
   box-sizing: border-box;
   padding: var(--primitives-spacing-3) var(--primitives-spacing-4);
   border-radius: calc(var(--primitives-borderRadius-2xl) * 1px);
-  border: 1px solid color-mix(in srgb, var(--semantic-color-brand-lavender) 45%, transparent);
+  border: none;
   /* Lavender wash — same media/overlay exception pattern as Step3Review warning. */
   background: linear-gradient(
     120deg,
@@ -57,7 +57,7 @@
   flex-shrink: 0;
 }
 
-/* Banner above the commit/confirmation shell (between modal X and card). */
+/* Banner above the commit shell (between modal X and card). */
 .stack {
   display: flex;
   flex-direction: column;

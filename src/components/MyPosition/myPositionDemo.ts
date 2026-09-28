@@ -9,7 +9,8 @@ import {
 } from './inviteModel'
 
 export const COMMITTED = 4000
-export const CAP = 10000
+/** @deprecated Prefer hop-aware caps from `demoSelfFill` — hop-0 single-slot mainnet cap. */
+export const CAP = 15_000
 /** ARM allocation is 1:1 with USDC committed. */
 export const ARM_ALLOCATION = COMMITTED
 export const FILL_PCT = (COMMITTED / CAP) * 100

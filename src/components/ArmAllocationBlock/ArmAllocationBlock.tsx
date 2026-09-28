@@ -12,6 +12,14 @@ export interface ArmAllocationBlockProps {
   tooltipBullets?: string[]
   /** When set, overrides the 1:1 existing+new ARM estimate. */
   estimatedArm?: number
+  /**
+   * Left scale label — e.g. "Hop-0 commit". When omitted, shows committed USDC.
+   */
+  commitLabel?: string
+  /**
+   * When set, the MAX label becomes a button that fills the remaining cap.
+   */
+  onFillMax?: () => void
 }
 
 const DEFAULT_BULLETS = [
@@ -28,6 +36,8 @@ export function ArmAllocationBlock({
   tooltipDescription = 'Your estimated allocation based on the amount entered.',
   tooltipBullets = DEFAULT_BULLETS,
   estimatedArm,
+  commitLabel,
+  onFillMax,
 }: ArmAllocationBlockProps) {
   const existingRatio = maxArm > 0 ? Math.min(existingCommittedUsdc / maxArm, 1) : 0
   const newRatio = maxArm > 0 ? Math.min(newAmount / maxArm, 1) : 0
@@ -41,6 +51,9 @@ export function ArmAllocationBlock({
   const maxLabel = maxArm.toLocaleString('en-US')
   const committedUsdc = existingCommittedUsdc + newAmount
   const committedLabel = committedUsdc.toLocaleString('en-US')
+  const remainingCap = Math.max(0, maxArm - existingCommittedUsdc)
+  const canFillMax = remainingCap > 0 && newAmount < remainingCap
+  const leftLabel = commitLabel ?? `${committedLabel} USDC`
 
   return (
     <div className={styles.block}>
@@ -61,8 +74,20 @@ export function ArmAllocationBlock({
           ) : null}
         </div>
         <div className={styles.barScale}>
-          <span className={styles.barScaleMin}>{committedLabel} USDC</span>
-          <span className={styles.barScaleMax}>MAX {maxLabel} USDC</span>
+          <span className={styles.barScaleMin}>{leftLabel}</span>
+          {onFillMax ? (
+            <button
+              type="button"
+              className={styles.barScaleMaxBtn}
+              onClick={onFillMax}
+              disabled={!canFillMax}
+              aria-label={`Fill maximum ${maxLabel} USDC`}
+            >
+              MAX {maxLabel} USDC
+            </button>
+          ) : (
+            <span className={styles.barScaleMax}>MAX {maxLabel} USDC</span>
+          )}
         </div>
       </div>
 

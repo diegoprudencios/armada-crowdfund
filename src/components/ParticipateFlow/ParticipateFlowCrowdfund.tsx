@@ -8,7 +8,6 @@ import {
 } from '../MyPosition/inviteModel'
 import { DEMO_INVITE_ALLOWANCE } from '../MyPosition/myPositionDemo'
 import { hopPillDotColor } from '../../constants/graphHopColors'
-import { CAP } from '../MyPosition/myPositionDemo'
 import { Button } from '../Button'
 import Step0Invite from './steps/Step0Invite/Step0Invite'
 import Step2Commit from './screens/Step2Commit'
@@ -21,12 +20,7 @@ import { ParticipateFlowModal } from './ParticipateFlowModal'
 import { ParticipateFlowInviteSlots } from './ParticipateFlowInviteSlots'
 import { CROWDFUND_MODAL_STEPS } from './participateFlowSteps'
 import stepStyles from './ParticipateFlowStepTransition.module.css'
-
-/**
- * Per-hop demo slice used when illustrating a multi-hop max-out review.
- * Position ceiling is `CAP` (My Position) — max-out always fills to that.
- */
-const DEMO_HOP_SLICE_USDC = 4_000
+import type { DemoSelfFillPlan } from '../../lib/demoSelfFill'
 
 const HOP_LABELS = ['HOP-0', 'HOP-1', 'HOP-2'] as const
 const HOP_DOT_KEYS = ['seed', 'hop-1', 'hop-2'] as const
@@ -40,12 +34,18 @@ export interface ParticipateFlowCrowdfundProps {
   /** @deprecated Unused — connect happens outside this flow. */
   onConnectWallet?: (provider: string) => void
   onCompleteParticipation?: (amountUsdc: number) => void
-  /** After a self-fill max-out, spend this many empty invite slots on yourself. */
+  /** Apply POC-style self-fill (invites on self + multi-hop commits). */
+  onApplyMaxOutPlan?: (plan: DemoSelfFillPlan) => void
+  /** @deprecated Prefer onApplyMaxOutPlan. */
   onConsumeSelfInvites?: (inviteCount: number) => void
   hasParticipated?: boolean
   committedUsdc?: number
-  /** Position ceiling — defaults to My Position `CAP`. */
+  /** Current-hop ceiling (no new self-invites) — Step2Commit MAX. */
   capUsdc?: number
+  /** Remaining USDC on currently held hops. */
+  remainingHopUsdc?: number
+  /** Live self-fill plan from session (POC computeSelfFillPlan mirror). */
+  maxOutPlan?: DemoSelfFillPlan | null
   hopVariant?: HopVariant
   daysLeft?: number
   slots?: SlotData[]
@@ -53,7 +53,6 @@ export interface ParticipateFlowCrowdfundProps {
   onGenerateInviteLink?: (
     hop: InviteeHop,
   ) => Promise<{ id: number; link: string; expiresAt: Date } | void>
-  /** @deprecated Prefer onGenerateInviteLink — kept for older callers. */
   onGenerateSlotLink?: (slotId: number) => Promise<void>
   onRevokeSlot?: (slotId: number) => void | Promise<void>
   onInviteOnchainHop?: (
@@ -61,7 +60,6 @@ export interface ParticipateFlowCrowdfundProps {
     address: string,
     ensName?: string,
   ) => Promise<{ id: number; address: string; ensName?: string } | void>
-  /** @deprecated Prefer onInviteOnchainHop. */
   onInviteSlotOnchain?: (slotId: number, address: string, ensName?: string) => Promise<void>
   onCopySlotLink?: (slotId: number, link: string) => void
   loadingHop?: InviteeHop | null
@@ -83,8 +81,8 @@ export interface ParticipateFlowCloseContext {
 
 const HOP_LEVEL_LABEL: Record<HopVariant, string> = {
   seed: 'Hop-0',
-  'hop-1': 'Hop 1',
-  'hop-2': 'Hop 2',
+  'hop-1': 'Hop-1',
+  'hop-2': 'Hop-2',
   'multi-hop': 'Multi-hop',
 }
 
@@ -100,12 +98,6 @@ const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
   invites: 'Whitelist a friend',
 }
 
-function hopIndexFromVariant(variant: HopVariant): 0 | 1 | 2 {
-  if (variant === 'seed') return 0
-  if (variant === 'hop-2') return 2
-  return 1
-}
-
 function hopCommitRow(hop: 0 | 1 | 2, amount: number): Step3ReviewHopCommit {
   return {
     hop,
@@ -113,60 +105,6 @@ function hopCommitRow(hop: 0 | 1 | 2, amount: number): Step3ReviewHopCommit {
     hopColor: hopPillDotColor(HOP_DOT_KEYS[hop]),
     amount,
   }
-}
-
-/**
- * Demo self-fill plan — always totals exactly `newCommitUsd` (fills to position CAP).
- * Multi-hop rows are illustrative; inviteCount drives the review note only.
- */
-function buildDemoMaxPlan(opts: {
-  hopVariant: HopVariant
-  inviteCount: number
-  newCommitUsd: number
-}): { hopCommits: Step3ReviewHopCommit[]; inviteCount: number; newCommitUsd: number } {
-  const { hopVariant, inviteCount, newCommitUsd } = opts
-  const primary = hopIndexFromVariant(hopVariant)
-
-  if (newCommitUsd <= 0) {
-    return { hopCommits: [hopCommitRow(primary, 0)], inviteCount: 0, newCommitUsd: 0 }
-  }
-
-  if (inviteCount <= 0) {
-    return {
-      hopCommits: [hopCommitRow(primary, newCommitUsd)],
-      inviteCount: 0,
-      newCommitUsd,
-    }
-  }
-
-  const hops: Array<0 | 1 | 2> = [primary]
-  for (let i = 1; i <= inviteCount; i++) {
-    const next = primary + i
-    if (next > 2) break
-    hops.push(next as 0 | 1 | 2)
-  }
-
-  const hopCommits: Step3ReviewHopCommit[] = []
-  let remaining = newCommitUsd
-  hops.forEach((hop, index) => {
-    if (remaining <= 0) return
-    const preferred =
-      index === 0
-        ? Math.min(DEMO_HOP_SLICE_USDC, remaining)
-        : index === hops.length - 1
-          ? remaining
-          : Math.min(DEMO_HOP_SLICE_USDC, remaining)
-    hopCommits.push(hopCommitRow(hop, preferred))
-    remaining -= preferred
-  })
-
-  if (remaining > 0 && hopCommits.length > 0) {
-    const last = hopCommits[hopCommits.length - 1]!
-    hopCommits[hopCommits.length - 1] = { ...last, amount: last.amount + remaining }
-  }
-
-  const total = hopCommits.reduce((sum, c) => sum + c.amount, 0)
-  return { hopCommits, inviteCount, newCommitUsd: total }
 }
 
 function MaxOutReviewNote({ inviteCount }: { inviteCount: number }) {
@@ -214,19 +152,21 @@ function StepTransition({
 
 /**
  * Path 2 — crowdfund modal entry.
- * Wallet connect is RainbowKit (outside this flow). Progress: Commit → Review → Confirm.
- * Max-out fills to the My Position ceiling (`capUsdc` / CAP), matching committer self-fill.
+ * Commit MAX = current-hop ceiling; Max out = self-fill projected ceiling (POC parity).
  */
 export function ParticipateFlowCrowdfund({
   open,
   onClose,
   onViewPosition,
   onCompleteParticipation,
+  onApplyMaxOutPlan,
   onConsumeSelfInvites,
   hasParticipated = false,
   committedUsdc = 0,
-  capUsdc = CAP,
-  hopVariant = 'hop-1',
+  capUsdc = 15_000,
+  remainingHopUsdc,
+  maxOutPlan = null,
+  hopVariant = 'seed',
   daysLeft = 3,
   slots = [],
   inviteAllowance = DEMO_INVITE_ALLOWANCE,
@@ -237,7 +177,6 @@ export function ParticipateFlowCrowdfund({
   onInviteSlotOnchain,
   onCopySlotLink,
   loadingHop = null,
-  loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowCrowdfundProps) {
   const [step, setStep] = useState<CrowdfundFlowStep>(() => initialStep(hasParticipated))
@@ -247,6 +186,7 @@ export function ParticipateFlowCrowdfund({
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
   const [maxMode, setMaxMode] = useState(false)
+  const [activeMaxPlan, setActiveMaxPlan] = useState<DemoSelfFillPlan | null>(null)
   const [maxHopCommits, setMaxHopCommits] = useState<Step3ReviewHopCommit[] | null>(null)
   const [maxInviteCount, setMaxInviteCount] = useState(0)
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -273,6 +213,7 @@ export function ParticipateFlowCrowdfund({
 
   const resetMax = useCallback(() => {
     setMaxMode(false)
+    setActiveMaxPlan(null)
     setMaxHopCommits(null)
     setMaxInviteCount(0)
   }, [])
@@ -281,12 +222,29 @@ export function ParticipateFlowCrowdfund({
     return () => clearTransitionTimer()
   }, [])
 
+  const remainingCap =
+    remainingHopUsdc != null ? remainingHopUsdc : Math.max(0, capUsdc - committedUsdc)
+
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current
     wasOpenRef.current = open
 
     if (justOpened) {
       wasReturningParticipantRef.current = hasParticipated
+      clearTransitionTimer()
+      setFading(false)
+      setAmount(0)
+      resetMax()
+      const atCurrentCap = hasParticipated && remainingCap <= 0
+      const canSelfFill = (maxOutPlan?.newCommitUsdc ?? 0) > 0
+      if (atCurrentCap && !canSelfFill) {
+        setStep('confirmation')
+        setRenderStep('confirmation')
+      } else {
+        const start = initialStep(hasParticipated)
+        setStep(start)
+        setRenderStep(start)
+      }
       return
     }
 
@@ -300,11 +258,12 @@ export function ParticipateFlowCrowdfund({
     setAmount(0)
     resetMax()
     wasReturningParticipantRef.current = false
-  }, [open, hasParticipated, resetMax])
+  }, [open, hasParticipated, remainingCap, maxOutPlan?.newCommitUsdc, resetMax])
 
   const hopLevel = HOP_LEVEL_LABEL[hopVariant]
   const estimatedArm = Math.round(amount)
-  const remainingCap = Math.max(0, capUsdc - committedUsdc)
+  const isFullyCommitted = hasParticipated && remainingCap <= 0
+  const canSelfFill = (maxOutPlan?.newCommitUsdc ?? 0) > 0
   const availableInviteCount = useMemo(
     () =>
       availableForHop(slots, inviteAllowance, 1) +
@@ -312,19 +271,8 @@ export function ParticipateFlowCrowdfund({
     [slots, inviteAllowance],
   )
 
-  const showMaxOutBanner =
-    (renderStep === 'commit' || renderStep === 'confirmation') && remainingCap > 0 && !maxMode
-
-  const demoMaxOut = useMemo(() => {
-    if (!showMaxOutBanner) return null
-    const inviteCount = hopVariant === 'hop-2' ? 0 : availableInviteCount
-    const newCommitUsd = remainingCap
-    return {
-      ceilingUsd: capUsdc,
-      newCommitUsd,
-      inviteCount,
-    }
-  }, [showMaxOutBanner, hopVariant, availableInviteCount, remainingCap, capUsdc])
+  // Banner when self-fill can unlock more (even if current hops are full).
+  const showMaxOutBanner = renderStep === 'commit' && !maxMode && canSelfFill
 
   const stepBar = {
     steps: MODAL_STEPS,
@@ -335,29 +283,63 @@ export function ParticipateFlowCrowdfund({
   }, [onClose, step])
 
   const handleDemoMaxOut = useCallback(() => {
-    if (!demoMaxOut) return
-    const plan = buildDemoMaxPlan({
-      hopVariant,
-      inviteCount: demoMaxOut.inviteCount,
-      newCommitUsd: demoMaxOut.newCommitUsd,
-    })
+    if (!maxOutPlan || maxOutPlan.newCommitUsdc <= 0) return
+    const hopCommits = maxOutPlan.commits.map((c) => hopCommitRow(c.hop, c.amount))
     setMaxMode(true)
-    setMaxHopCommits(plan.hopCommits)
-    setMaxInviteCount(plan.inviteCount)
-    setAmount(plan.newCommitUsd)
+    setActiveMaxPlan(maxOutPlan)
+    setMaxHopCommits(hopCommits)
+    setMaxInviteCount(maxOutPlan.totalInvites)
+    setAmount(maxOutPlan.newCommitUsdc)
     transitionTo('review')
-  }, [demoMaxOut, hopVariant, transitionTo])
+  }, [maxOutPlan, transitionTo])
 
   const finishCommit = useCallback(
     (commitAmount: number) => {
-      onCompleteParticipation?.(commitAmount)
-      if (maxMode && maxInviteCount > 0) {
-        onConsumeSelfInvites?.(maxInviteCount)
+      if (maxMode && activeMaxPlan) {
+        onApplyMaxOutPlan?.(activeMaxPlan)
+        if (!onApplyMaxOutPlan) {
+          onCompleteParticipation?.(commitAmount)
+          onConsumeSelfInvites?.(activeMaxPlan.totalInvites)
+        }
+      } else {
+        onCompleteParticipation?.(commitAmount)
       }
       resetMax()
       transitionTo('confirmation')
     },
-    [maxMode, maxInviteCount, onCompleteParticipation, onConsumeSelfInvites, resetMax, transitionTo],
+    [
+      maxMode,
+      activeMaxPlan,
+      onApplyMaxOutPlan,
+      onCompleteParticipation,
+      onConsumeSelfInvites,
+      resetMax,
+      transitionTo,
+    ],
+  )
+
+  const renderConfirmation = (maxedOut: boolean) => (
+    <Step5Confirmation
+      {...stepBar}
+      stepIndex={3}
+      stepsStatus="confirmed"
+      amount={maxedOut ? 0 : amount}
+      estimatedArm={
+        maxedOut
+          ? Math.round(committedUsdc)
+          : wasReturningParticipantRef.current
+            ? committedUsdc + amount
+            : estimatedArm
+      }
+      isAdditionalCommit={wasReturningParticipantRef.current && !maxedOut}
+      totalCommittedUsdc={maxedOut ? committedUsdc : committedUsdc + amount}
+      maxedOut={maxedOut}
+      daysLeft={daysLeft}
+      canInvite={availableInviteCount > 0}
+      onViewPosition={onViewPosition}
+      onBackToCrowdfund={handleClose}
+      onInvite={() => transitionTo('invites')}
+    />
   )
 
   const renderCurrentStep = () => {
@@ -373,12 +355,34 @@ export function ParticipateFlowCrowdfund({
         )
 
       case 'commit':
+        // Current hops full — only skip to confirmation when self-fill also has nothing left.
+        if (isFullyCommitted && !canSelfFill) {
+          return renderConfirmation(true)
+        }
+        if (isFullyCommitted && canSelfFill) {
+          return (
+            <Step2Commit
+              {...stepBar}
+              stepIndex={1}
+              existingCommittedUsdc={committedUsdc}
+              maxAmount={capUsdc}
+              hopLabel={hopLevel}
+              fullyCommitted
+              showBack={false}
+              onBack={handleClose}
+              onViewPosition={onViewPosition}
+              onNext={() => {}}
+            />
+          )
+        }
         return (
           <Step2Commit
             {...stepBar}
             stepIndex={1}
             existingCommittedUsdc={committedUsdc}
             maxAmount={capUsdc}
+            initialAmount={amount}
+            hopLabel={hopLevel}
             showBack={!hasParticipated}
             onBack={() => transitionTo('invite')}
             onNext={(nextAmount) => {
@@ -435,23 +439,7 @@ export function ParticipateFlowCrowdfund({
         )
 
       case 'confirmation':
-        return (
-          <Step5Confirmation
-            {...stepBar}
-            stepIndex={3}
-            stepsStatus="confirmed"
-            amount={amount}
-            estimatedArm={
-              wasReturningParticipantRef.current ? committedUsdc + amount : estimatedArm
-            }
-            isAdditionalCommit={wasReturningParticipantRef.current}
-            totalCommittedUsdc={committedUsdc + amount}
-            canInvite={hopVariant !== 'hop-2' && availableInviteCount > 0}
-            onViewPosition={onViewPosition}
-            onBackToCrowdfund={handleClose}
-            onInvite={() => transitionTo('invites')}
-          />
-        )
+        return renderConfirmation(isFullyCommitted && amount === 0 && !canSelfFill)
 
       case 'invites':
         return (
@@ -461,7 +449,6 @@ export function ParticipateFlowCrowdfund({
             onGenerateLink={
               onGenerateInviteLink ??
               (async (hop) => {
-                // Legacy slot-id path: map hop → first empty-ish id.
                 await onGenerateSlotLink?.(hop === 2 ? 2 : 1)
               })
             }
@@ -489,7 +476,7 @@ export function ParticipateFlowCrowdfund({
       open={open}
       onClose={handleClose}
       ariaLabel={DIALOG_LABEL[step]}
-      showClose={step !== 'invite'}
+      showClose={step === 'confirmation' || step === 'invites'}
       footer={
         step === 'invite' ? (
           <Button
@@ -503,10 +490,12 @@ export function ParticipateFlowCrowdfund({
       }
     >
       <div className={maxOutStyles.stack}>
-        {demoMaxOut ? (
+        {showMaxOutBanner && maxOutPlan ? (
           <MaxOutBanner
             maxOut={{
-              ...demoMaxOut,
+              ceilingUsd: maxOutPlan.projectedCeilingUsdc,
+              newCommitUsd: maxOutPlan.newCommitUsdc,
+              inviteCount: maxOutPlan.totalInvites,
               onMaxOut: handleDemoMaxOut,
             }}
           />

@@ -48,28 +48,24 @@
   box-sizing: border-box;
 }
 
-.meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--primitives-spacing-3);
-  min-width: 0;
-}
-
-.metaLabel {
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-sm) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  letter-spacing: var(--primitives-letterSpacing-widest);
-  text-transform: uppercase;
-  color: var(--semantic-color-text-primary);
-  flex-shrink: 0;
-}
-
-.bottom {
+.top {
   display: flex;
   flex-direction: column;
   gap: var(--primitives-spacing-6);
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Live HH:MM:SS under 48h — tabular figures so the tag width doesn't jump. */
+.timeCounter {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.02em;
 }
 
 .copy {
@@ -100,16 +96,11 @@
   width: 100%;
   min-width: 0;
   max-width: 480px;
-  border: 1px solid var(--semantic-color-border-lavender);
+  border: 1px solid var(--semantic-color-border-default);
 }
 
 .contentLanding {
-  justify-content: flex-start;
-}
-
-.contentLanding .bottom {
-  margin-top: auto;
-  gap: var(--primitives-spacing-11);
+  justify-content: space-between;
 }
 
 .contentLanding .copy {

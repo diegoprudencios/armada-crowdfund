@@ -198,7 +198,7 @@ export function Header({
               onClick={onConnectWallet}
             />
           )}
-          {!claimAvailable && (
+          {!claimAvailable && onParticipate && (
             <Button
               variant="gradient"
               size="md"

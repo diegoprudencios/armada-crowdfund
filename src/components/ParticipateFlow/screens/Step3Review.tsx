@@ -149,7 +149,9 @@ export default function Step3Review({
 
         <div className={styles.warningBlock}>
           <p className={styles.warningText}>
-            Commitments are final. You will not be able to withdraw during the 3-week window.
+            <strong className={styles.warningLead}>Commitments are final.</strong>
+            <br />
+            You will not be able to withdraw during the 3-week window.
           </p>
         </div>
       </div>

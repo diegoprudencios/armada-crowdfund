@@ -2,9 +2,11 @@ import type { HopVariant } from '../components/HopPill/HopPill'
 import type { SlotData } from '../components/InviteFlow/screens/SlotCard'
 import type { InviteAllowance } from '../components/MyPosition/inviteModel'
 import type { DemoWallet } from './DemoSessionContext'
+import type { DemoSalePhase } from '../lib/demoSaleLifecycle'
+import type { DemoSelfFillState } from '../lib/demoSelfFill'
 
 const STORAGE_KEY = 'armada-demo-session'
-const STORAGE_VERSION = 3
+const STORAGE_VERSION = 5
 
 type StoredSlot = Omit<SlotData, 'expiresAt' | 'joinedAt' | 'invitedAt' | 'closedAt'> & {
   expiresAt?: string
@@ -19,8 +21,14 @@ export type StoredDemoSession = {
   committedUsdc: number
   hasParticipated: boolean
   hopVariant: HopVariant
+  hopState?: DemoSelfFillState
   slots: StoredSlot[]
   inviteAllowance: InviteAllowance
+  salePhase: DemoSalePhase
+  windowOpen: boolean
+  saleBelowMin: boolean
+  armClaimed: boolean
+  refundClaimed: boolean
 }
 
 function serializeSlots(slots: SlotData[]): StoredSlot[] {
@@ -40,8 +48,7 @@ function reviveSlots(slots: StoredSlot[]): SlotData[] {
     joinedAt: slot.joinedAt ? new Date(slot.joinedAt) : undefined,
     invitedAt: slot.invitedAt ? new Date(slot.invitedAt) : undefined,
     closedAt: slot.closedAt ? new Date(slot.closedAt) : undefined,
-    // Deferred-list invites become visible if the confirmation was abandoned mid-session.
-    hideFromList: false,
+    hideFromList: slot.hideFromList ?? false,
   }))
 }
 
@@ -49,14 +56,26 @@ function isHopVariant(value: unknown): value is HopVariant {
   return value === 'seed' || value === 'hop-1' || value === 'hop-2' || value === 'multi-hop'
 }
 
-export function readDemoSession(): {
+function isSalePhase(value: unknown): value is DemoSalePhase {
+  return value === 0 || value === 1 || value === 2
+}
+
+export type DemoSessionFields = {
   wallet: DemoWallet | null
   committedUsdc: number
   hasParticipated: boolean
   hopVariant: HopVariant
+  hopState?: DemoSelfFillState
   slots: SlotData[]
   inviteAllowance: InviteAllowance
-} | null {
+  salePhase: DemoSalePhase
+  windowOpen: boolean
+  saleBelowMin: boolean
+  armClaimed: boolean
+  refundClaimed: boolean
+}
+
+export function readDemoSession(): DemoSessionFields | null {
   if (typeof window === 'undefined') return null
 
   try {
@@ -70,23 +89,22 @@ export function readDemoSession(): {
       wallet: parsed.wallet,
       committedUsdc: parsed.committedUsdc ?? 0,
       hasParticipated: parsed.hasParticipated ?? false,
-      hopVariant: isHopVariant(parsed.hopVariant) ? parsed.hopVariant : 'hop-1',
+      hopVariant: isHopVariant(parsed.hopVariant) ? parsed.hopVariant : 'seed',
+      hopState: parsed.hopState,
       slots: reviveSlots(parsed.slots ?? []),
       inviteAllowance: parsed.inviteAllowance ?? { hop1: 3, hop2: 0 },
+      salePhase: isSalePhase(parsed.salePhase) ? parsed.salePhase : 0,
+      windowOpen: parsed.windowOpen ?? true,
+      saleBelowMin: parsed.saleBelowMin ?? false,
+      armClaimed: parsed.armClaimed ?? false,
+      refundClaimed: parsed.refundClaimed ?? false,
     }
   } catch {
     return null
   }
 }
 
-export function writeDemoSession(session: {
-  wallet: DemoWallet | null
-  committedUsdc: number
-  hasParticipated: boolean
-  hopVariant: HopVariant
-  slots: SlotData[]
-  inviteAllowance: InviteAllowance
-}): void {
+export function writeDemoSession(session: DemoSessionFields): void {
   if (typeof window === 'undefined') return
 
   const payload: StoredDemoSession = {
@@ -95,8 +113,14 @@ export function writeDemoSession(session: {
     committedUsdc: session.committedUsdc,
     hasParticipated: session.hasParticipated,
     hopVariant: session.hopVariant,
+    hopState: session.hopState,
     slots: serializeSlots(session.slots),
     inviteAllowance: session.inviteAllowance,
+    salePhase: session.salePhase,
+    windowOpen: session.windowOpen,
+    saleBelowMin: session.saleBelowMin,
+    armClaimed: session.armClaimed,
+    refundClaimed: session.refundClaimed,
   }
 
   window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))

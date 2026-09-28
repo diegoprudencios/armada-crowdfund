@@ -1,15 +1,57 @@
 // ABOUTME: Confirmation “What happens next” carousel — scenarios after commit (window, under/over, refund, claim).
-// ABOUTME: Manual navigation via chevrons only (no dots / autoplay).
+// ABOUTME: Manual navigation via chevrons only (no dots / autoplay). Slide 1 embeds a live window countdown.
 
-import { useCallback, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import {
+  endsAtToRemainingSeconds,
+  formatTimeLeft,
+  TIME_LEFT_COUNTER_THRESHOLD_S,
+} from '../../../utils/timeLeft'
 import styles from './WhatHappensNextSlider.module.css'
 
-const SLIDES: ReadonlyArray<{ id: string; title: string; body: string }> = [
+export interface WhatHappensNextSliderProps {
+  /**
+   * Whole days remaining (demo / URL). Ignored when `endsAt` or `secondsLeft`
+   * is set. Converted to an absolute deadline so the copy can live-tick under 48h.
+   */
+  daysLeft?: number
+  /** Remaining seconds in the commit window. Prefer `endsAt` when available. */
+  secondsLeft?: number
+  /** Absolute end of the commit window (unix ms or Date). */
+  endsAt?: number | Date | null
+}
+
+type Slide = { id: string; title: string; body: string }
+
+function resolveEndMs(
+  endsAt: number | Date | null | undefined,
+  secondsLeft: number | undefined,
+  daysLeft: number,
+): number | null {
+  if (endsAt != null) {
+    return typeof endsAt === 'number' ? endsAt : endsAt.getTime()
+  }
+  if (secondsLeft != null && Number.isFinite(secondsLeft)) {
+    return Date.now() + Math.max(0, secondsLeft) * 1000
+  }
+  if (Number.isFinite(daysLeft) && daysLeft > 0) {
+    return Date.now() + daysLeft * 86400 * 1000
+  }
+  return null
+}
+
+function windowOpenBody(remainingLabel: string | null): string {
+  if (remainingLabel) {
+    return `The commitment window closes in ${remainingLabel}. Your USDC will be locked until then.`
+  }
+  return 'The commitment window is closing. Your USDC will be locked until then.'
+}
+
+const STATIC_SLIDES: ReadonlyArray<Omit<Slide, 'body'> & { body?: string }> = [
   {
     id: 'window',
     title: '1. While the window is open',
-    body: 'The commitment window stays open until it closes. Your USDC is locked; estimated ARM isn’t final until then.',
   },
   {
     id: 'under',
@@ -33,11 +75,57 @@ const SLIDES: ReadonlyArray<{ id: string; title: string; body: string }> = [
   },
 ]
 
-export function WhatHappensNextSlider() {
+export function WhatHappensNextSlider({
+  daysLeft = 3,
+  secondsLeft,
+  endsAt = null,
+}: WhatHappensNextSliderProps) {
   const labelId = useId()
   const [index, setIndex] = useState(0)
-  const count = SLIDES.length
-  const slide = SLIDES[index]!
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  const endMs = useMemo(
+    () => resolveEndMs(endsAt, secondsLeft, daysLeft),
+    // Re-anchor only when the source countdown inputs change — not every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Date.now() anchor for secondsLeft/daysLeft
+    [endsAt, secondsLeft, daysLeft],
+  )
+
+  useEffect(() => {
+    if (endMs == null) return
+    if (endsAtToRemainingSeconds(endMs, Date.now()) <= 0) return
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [endMs])
+
+  const remainingLabel = useMemo(() => {
+    if (endMs == null) return null
+    const remaining = endsAtToRemainingSeconds(endMs, nowMs)
+    const label = formatTimeLeft(remaining)
+    return label || null
+  }, [endMs, nowMs])
+
+  const isLiveCounter = useMemo(() => {
+    if (endMs == null) return false
+    const remaining = endsAtToRemainingSeconds(endMs, nowMs)
+    return remaining > 0 && remaining < TIME_LEFT_COUNTER_THRESHOLD_S
+  }, [endMs, nowMs])
+
+  const slides: ReadonlyArray<Slide> = useMemo(
+    () =>
+      STATIC_SLIDES.map((slide) =>
+        slide.id === 'window'
+          ? { id: slide.id, title: slide.title, body: windowOpenBody(remainingLabel) }
+          : { id: slide.id, title: slide.title, body: slide.body! },
+      ),
+    [remainingLabel],
+  )
+
+  const count = slides.length
+  const slide = slides[index]!
+  // Avoid announcing HH:MM:SS every second; still announce when the slide changes.
+  const slideLive =
+    slide.id === 'window' && isLiveCounter ? ('off' as const) : ('polite' as const)
 
   const go = useCallback(
     (next: number) => {
@@ -82,7 +170,7 @@ export function WhatHappensNextSlider() {
 
       <div
         className={styles.slide}
-        aria-live="polite"
+        aria-live={slideLive}
         aria-atomic="true"
         key={slide.id}
       >

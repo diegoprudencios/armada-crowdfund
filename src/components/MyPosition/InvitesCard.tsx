@@ -428,6 +428,12 @@ export function InvitesCard({
     return null
   }
 
+  // Zero invites left to send — hide the My Position corner container entirely
+  // (self-fill exhausted, or all slots already shared with others).
+  if (totalAvailable === 0 && !isActionView) {
+    return null
+  }
+
   if (!showWhitelistCard && !showInvitesList) {
     return null
   }
