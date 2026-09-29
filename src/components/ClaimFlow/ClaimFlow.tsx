@@ -1,4 +1,5 @@
 // ABOUTME: Interactive claim flow — Intro → Delegate → Review → Submit → Done (ARM), or Intro → Review for refunds.
+// ABOUTME: Mid-flow uses FlowChrome (back + title + close) to match the participate commit pattern.
 
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import {
@@ -7,10 +8,12 @@ import {
   InformationCircleIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline'
+import { CheckCircleIcon } from '@heroicons/react/24/solid'
 import { Button } from '../Button'
-import Steps from '../Steps/Steps'
 import Tooltip from '../Tooltip/Tooltip'
+import { FlowChrome } from '../ParticipateFlow/FlowChrome'
 import styles from '../../pages/CrowdfundStages/ClaimFlowDemo.module.css'
+import { WalletConfirmStep } from '../WalletConfirm'
 
 export type ClaimFlowMode = 'arm' | 'refund'
 
@@ -32,6 +35,8 @@ export interface ClaimFlowProps {
   onBackToCrowdfund: () => void
   onViewPosition: () => void
   onConnectWallet?: () => void
+  /** Close the claim modal (FlowChrome X). */
+  onClose?: () => void
 }
 
 type FlowStep = 'intro' | 'delegate' | 'review' | 'submit' | 'done'
@@ -44,9 +49,42 @@ type DelegateCandidate = {
   ens?: string
 }
 
-const ARM_FLOW_LABEL = 'Claim ARM tokens'
-const ARM_STEPS = ['Delegate', 'Review', 'Done'] as const
-const REFUND_STEPS = ['Review', 'Done'] as const
+const ARM_CLAIM_STEPS = [
+  { label: 'Delegate', hint: 'Select how to delegate your vote' },
+  { label: 'Review', hint: 'Confirm allocation and delegate' },
+  { label: 'Confirm', hint: 'Approve claim in your wallet' },
+] as const
+
+const REFUND_CLAIM_STEPS = [
+  { label: 'Review', hint: 'Confirm your USDC refund' },
+  { label: 'Confirm', hint: 'Approve claim in your wallet' },
+] as const
+
+const ARM_KNOW_ITEMS = [
+  'You’ll need a little ETH in this wallet for gas.',
+  'A single transaction delivers your ARM and sets your delegate.',
+  'Voting power starts once you claim and delegate.',
+  'Any USDC above your final allocation is refunded in the same transaction.',
+] as const
+
+const REFUND_KNOW_ITEMS = [
+  'You’ll need a little ETH in this wallet for gas.',
+  'The sale ended under the minimum fund, so no ARM was sold.',
+  'Your full committed USDC is returned in one transaction.',
+] as const
+
+/** Demo explorer base — Sepolia matches the committer’s public testnet. */
+const DEMO_EXPLORER_BASE = 'https://sepolia.etherscan.io'
+
+/** Stable demo tx hashes so Done → explorer works on revisit without a live RPC. */
+const DEMO_CLAIM_TX_HASH: Record<ClaimFlowMode, string> = {
+  arm: '0x7c3d8f2a1b9e4c6d5a0f8e7b6c5d4a3f2e1b0c9d8a7f6e5d4c3b2a1908171615',
+  refund: '0x1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80a',
+}
+
+function claimTxExplorerUrl(txHash: string): string {
+  return `${DEMO_EXPLORER_BASE}/tx/${txHash}`
+}
 
 /** Demo ARM token address — replace with deployment manifest when wired live. */
 const DEMO_ARM_TOKEN_ADDRESS = '0xA11Ada0000000000000000000000000000A11Ada'
@@ -89,15 +127,6 @@ const DELEGATE_CANDIDATES: ReadonlyArray<DelegateCandidate> = [
   },
 ]
 
-function formatUsd(value: number) {
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
-}
-
 function GateShell({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className={styles.gateShell}>
@@ -108,25 +137,29 @@ function GateShell({ title, children }: { title: string; children: ReactNode }) 
 }
 
 function FlowShell({
-  steps,
-  currentStep,
-  stepsStatus = 'default',
-  flowLabel,
+  title,
+  titleId,
+  onBack,
+  onClose,
+  showBack = true,
   children,
 }: {
-  steps: readonly string[]
-  currentStep: number
-  stepsStatus?: 'default' | 'confirmed'
-  flowLabel?: string
+  title?: ReactNode
+  titleId?: string
+  onBack?: () => void
+  onClose?: () => void
+  showBack?: boolean
   children: ReactNode
 }) {
   return (
     <div className={styles.cardShell}>
-      <Steps
-        steps={[...steps]}
-        currentStep={currentStep}
-        status={stepsStatus}
-        flowLabel={flowLabel}
+      <FlowChrome
+        title={title}
+        titleId={titleId}
+        showBack={showBack && !!onBack}
+        onBack={onBack}
+        onClose={onClose}
+        closeAriaLabel="Close claim flow"
       />
       {children}
     </div>
@@ -149,6 +182,7 @@ export function ClaimFlow({
   onBackToCrowdfund,
   onViewPosition,
   onConnectWallet,
+  onClose,
 }: ClaimFlowProps) {
   const selfRadioId = useId()
   const otherRadioId = useId()
@@ -161,11 +195,13 @@ export function ClaimFlow({
   const [selectedDelegate, setSelectedDelegate] = useState<DelegateCandidate | null>(null)
   const [delegateQuery, setDelegateQuery] = useState('')
   const [armAddressCopied, setArmAddressCopied] = useState(false)
+  const [claimTxHash, setClaimTxHash] = useState<string | null>(() =>
+    hasClaimed ? DEMO_CLAIM_TX_HASH[mode] : null,
+  )
 
   const refundAmount = refundUsdc ?? committedUsdc
-  const steps = mode === 'refund' ? REFUND_STEPS : ARM_STEPS
-  const armFlowLabel = mode === 'arm' ? ARM_FLOW_LABEL : undefined
   const armLabel = armAmount.toLocaleString()
+  const handleClose = onClose ?? onBackToCrowdfund
 
   const filteredDelegates = useMemo(() => {
     const q = delegateQuery.trim().toLowerCase()
@@ -191,16 +227,19 @@ export function ClaimFlow({
     setDelegateScreen('choice')
     setSelectedDelegate(null)
     setDelegateQuery('')
+    setClaimTxHash(hasClaimed ? DEMO_CLAIM_TX_HASH[mode] : null)
   }, [hasClaimed, mode])
 
   useEffect(() => {
     if (step !== 'submit') return
+    const hash = DEMO_CLAIM_TX_HASH[mode]
+    setClaimTxHash(hash)
     const id = window.setTimeout(() => {
       onClaim()
       setStep('done')
     }, 1600)
     return () => window.clearTimeout(id)
-  }, [step, onClaim])
+  }, [step, onClaim, mode])
 
   if (!walletConnected) {
     return (
@@ -266,7 +305,7 @@ export function ClaimFlow({
 
   if (!hasParticipated && step !== 'done') {
     return (
-      <FlowShell steps={steps} currentStep={steps.length} flowLabel={armFlowLabel}>
+      <FlowShell title="Claim" showBack={false} onClose={handleClose}>
         <div className={styles.cardContent}>
           <div className={styles.heroBlock}>
             <h2 className={styles.headline}>Nothing to claim.</h2>
@@ -286,14 +325,14 @@ export function ClaimFlow({
         <div className={styles.buttonRow}>
           <Button
             variant="secondary"
-            size="md"
+            size="lg"
             label="Back to crowdfund"
             showIcon={false}
             onClick={onBackToCrowdfund}
           />
           <Button
             variant="primary"
-            size="md"
+            size="lg"
             label="View position"
             showIcon={false}
             onClick={onViewPosition}
@@ -311,14 +350,10 @@ export function ClaimFlow({
     }
 
     return (
-      <FlowShell
-        steps={steps}
-        currentStep={steps.length}
-        stepsStatus="confirmed"
-        flowLabel={armFlowLabel}
-      >
+      <FlowShell showBack={false} onClose={handleClose}>
         <div className={styles.cardContent}>
           <div className={styles.heroBlock}>
+            <CheckCircleIcon className={styles.successIcon} aria-hidden />
             <h2 className={styles.headline}>
               {mode === 'refund' ? 'Refund claimed.' : 'ARM claimed.'}
             </h2>
@@ -354,9 +389,20 @@ export function ClaimFlow({
           ) : null}
         </div>
         <div className={styles.buttonRow}>
+          {claimTxHash ? (
+            <Button
+              variant="secondary"
+              size="lg"
+              label="View on explorer"
+              showIcon={false}
+              onClick={() =>
+                window.open(claimTxExplorerUrl(claimTxHash), '_blank', 'noopener,noreferrer')
+              }
+            />
+          ) : null}
           <Button
-            variant="secondary"
-            size="md"
+            variant="primary"
+            size="lg"
             label="Close"
             showIcon={false}
             onClick={onBackToCrowdfund}
@@ -367,65 +413,110 @@ export function ClaimFlow({
   }
 
   if (step === 'submit') {
-    const submitStepIndex = mode === 'refund' ? 1 : 2
     return (
-      <FlowShell steps={steps} currentStep={submitStepIndex} flowLabel={armFlowLabel}>
-        <div className={styles.submitContent}>
-          <h2 className={styles.submitTitle}>
-            Confirm transaction
-            <br />
-            on your wallet
-          </h2>
-          <div className={styles.txCard} aria-live="polite" aria-label="Transaction status">
-            <div className={styles.txRow}>
-              <span className={styles.txLabel}>
-                {mode === 'refund' ? `Claim $${refundAmount.toLocaleString()} refund` : 'Claim ARM'}
-              </span>
-              <div className={styles.txStatus} aria-label="Loading">
-                <div className={styles.spinner} role="status" aria-hidden />
-              </div>
-            </div>
-          </div>
-        </div>
+      <FlowShell
+        title="Confirm"
+        onBack={() => setStep('review')}
+        onClose={handleClose}
+      >
+        <WalletConfirmStep
+          transactions={[
+            {
+              label:
+                mode === 'refund'
+                  ? `Claim $${refundAmount.toLocaleString()} refund`
+                  : 'Claim ARM',
+              status: 'loading',
+            },
+          ]}
+        />
       </FlowShell>
     )
   }
 
   if (step === 'intro') {
-    return (
-      <div className={styles.cardShell}>
-        <div className={styles.cardContent}>
-          <div className={styles.introHero}>
-            <h2 className={styles.introTitle}>
-              {mode === 'arm' ? 'Claim your ARM tokens' : 'Claim your USDC refund'}
-            </h2>
-            <div className={styles.introAllocation}>
-              <p className={styles.introAllocEyebrow}>
-                {mode === 'arm' ? 'Your allocation' : 'Your USDC refund'}
-              </p>
-              <p className={styles.introAllocValue}>
-                {mode === 'arm' ? `${armLabel} ARM` : formatUsd(refundAmount || 1000)}
-              </p>
-            </div>
-          </div>
+    const claimSteps = mode === 'arm' ? ARM_CLAIM_STEPS : REFUND_CLAIM_STEPS
+    const knowList = mode === 'arm' ? ARM_KNOW_ITEMS : REFUND_KNOW_ITEMS
+    const finalCommit = committedUsdc || refundAmount || 1000
 
-          <div className={styles.howToClaim}>
-            <p className={styles.howToClaimTitle}>How to claim</p>
-            <ol className={styles.howToClaimList}>
+    return (
+      <FlowShell
+        title={mode === 'arm' ? 'Claim your ARM tokens' : 'Claim your USDC refund'}
+        titleId="claim-intro-title"
+        showBack={false}
+        onClose={handleClose}
+      >
+        <div className={styles.introWrap}>
+          <div className={styles.introScroll}>
+            <ol
+              className={[
+                styles.stepCards,
+                claimSteps.length === 2 ? styles.stepCardsTwo : undefined,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-labelledby="claim-intro-title"
+            >
+              {claimSteps.map((item, index) => (
+                <li key={item.label} className={styles.stepCard}>
+                  <span className={styles.stepNumber} aria-hidden>
+                    {index + 1}
+                  </span>
+                  <div className={styles.stepCopy}>
+                    <span className={styles.stepLabel}>{item.label}</span>
+                    <span className={styles.stepHint}>{item.hint}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className={styles.factsCard}>
               {mode === 'arm' ? (
                 <>
-                  <li>Select how to delegate your vote.</li>
-                  <li>Review your claim.</li>
-                  <li>Approve claim.</li>
+                  <div className={styles.factRow}>
+                    <span className={styles.factLabel}>ARM allocation</span>
+                    <span className={styles.factValueAccent}>{armLabel} ARM</span>
+                  </div>
+                  <div className={styles.divider} aria-hidden />
+                  <div className={styles.factRow}>
+                    <span className={styles.factLabel}>Final commit</span>
+                    <span className={styles.factValue}>${finalCommit.toLocaleString()}</span>
+                  </div>
                 </>
               ) : (
                 <>
-                  <li>Review your refund.</li>
-                  <li>Approve claim.</li>
+                  <div className={styles.factRow}>
+                    <span className={styles.factLabel}>USDC refund</span>
+                    <span className={styles.factValueAccent}>
+                      ${refundAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className={styles.divider} aria-hidden />
+                  <div className={styles.factRow}>
+                    <span className={styles.factLabel}>Final commit</span>
+                    <span className={styles.factValue}>${finalCommit.toLocaleString()}</span>
+                  </div>
                 </>
               )}
-            </ol>
+            </div>
+
+            <section className={styles.knowBlock} aria-labelledby="claim-intro-know">
+              <h3 id="claim-intro-know" className={styles.knowHeading}>
+                What to know
+              </h3>
+              <ul className={styles.knowList}>
+                {knowList.map((text) => (
+                  <li key={text} className={styles.knowItem}>
+                    <span className={styles.knowBullet} aria-hidden>
+                      ·
+                    </span>
+                    <span>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
+          <div className={styles.introFade} aria-hidden />
         </div>
         <div className={styles.buttonRow}>
           <Button
@@ -439,20 +530,20 @@ export function ClaimFlow({
             }}
           />
         </div>
-      </div>
+      </FlowShell>
     )
   }
 
   if (step === 'delegate' && mode === 'arm') {
     if (delegateScreen === 'picker') {
       return (
-        <FlowShell steps={steps} currentStep={1} flowLabel={armFlowLabel}>
-          <div className={styles.cardContent}>
-            <h2 className={styles.cardTitle}>Select a delegate</h2>
+        <FlowShell
+          title="Select a delegate"
+          onBack={() => setDelegateScreen('choice')}
+          onClose={handleClose}
+        >
+          <div className={[styles.cardContent, styles.cardContentFill].join(' ')}>
             <div className={styles.delegatePicker}>
-              <label className={styles.searchLabel} htmlFor={searchId}>
-                Search delegates
-              </label>
               <div className={styles.searchField}>
                 <MagnifyingGlassIcon className={styles.searchIcon} aria-hidden />
                 <input
@@ -464,6 +555,7 @@ export function ClaimFlow({
                   value={delegateQuery}
                   onChange={(e) => setDelegateQuery(e.target.value)}
                   className={styles.searchInput}
+                  aria-label="Search delegates"
                 />
               </div>
               <ul className={styles.delegateList} role="listbox" aria-label="Available delegates">
@@ -473,7 +565,7 @@ export function ClaimFlow({
                   filteredDelegates.map((candidate) => {
                     const selected = selectedDelegate?.address === candidate.address
                     return (
-                      <li key={candidate.address}>
+                      <li key={candidate.address} className={styles.delegateListItem}>
                         <button
                           type="button"
                           role="option"
@@ -489,11 +581,9 @@ export function ClaimFlow({
                           <span className={styles.delegateItemPrimary}>
                             {candidate.ens ?? candidate.display}
                           </span>
-                          {candidate.ens ? (
-                            <span className={styles.delegateItemSecondary}>
-                              {candidate.display}
-                            </span>
-                          ) : null}
+                          <span className={styles.delegateItemSecondary}>
+                            {candidate.ens ? candidate.display : '\u00a0'}
+                          </span>
                         </button>
                       </li>
                     )
@@ -503,13 +593,6 @@ export function ClaimFlow({
             </div>
           </div>
           <div className={styles.buttonRow}>
-            <Button
-              variant="secondary"
-              size="lg"
-              label="Back"
-              showIcon={false}
-              onClick={() => setDelegateScreen('choice')}
-            />
             <Button
               variant="primary"
               size="lg"
@@ -528,9 +611,15 @@ export function ClaimFlow({
     }
 
     return (
-      <FlowShell steps={steps} currentStep={1} flowLabel={armFlowLabel}>
+      <FlowShell
+        title="Choose your delegate"
+        onBack={() => {
+          setDelegateScreen('choice')
+          setStep('intro')
+        }}
+        onClose={handleClose}
+      >
         <div className={styles.cardContent}>
-          <h2 className={styles.cardTitle}>Choose your delegate</h2>
           <fieldset className={styles.radioGroup}>
             <legend className={styles.visuallyHidden}>Delegation preference</legend>
 
@@ -590,16 +679,6 @@ export function ClaimFlow({
         </div>
         <div className={styles.buttonRow}>
           <Button
-            variant="secondary"
-            size="lg"
-            label="Back"
-            showIcon={false}
-            onClick={() => {
-              setDelegateScreen('choice')
-              setStep('intro')
-            }}
-          />
-          <Button
             variant="primary"
             size="lg"
             label={delegateChoice === 'other' ? 'Continue' : 'Review'}
@@ -620,9 +699,8 @@ export function ClaimFlow({
   // Review
   if (mode === 'refund') {
     return (
-      <FlowShell steps={steps} currentStep={1}>
+      <FlowShell title="Review" onBack={() => setStep('intro')} onClose={handleClose}>
         <div className={styles.cardContent}>
-          <h2 className={styles.cardTitle}>Claim your refund</h2>
           <div className={styles.summaryCard}>
             <div className={styles.summaryRow}>
               <span className={styles.summaryLabel}>USDC refund</span>
@@ -640,13 +718,6 @@ export function ClaimFlow({
         </div>
         <div className={styles.buttonRow}>
           <Button
-            variant="secondary"
-            size="lg"
-            label="Back"
-            showIcon={false}
-            onClick={() => setStep('intro')}
-          />
-          <Button
             variant="primary"
             size="lg"
             label={`Claim $${refundAmount.toLocaleString()} refund`}
@@ -659,9 +730,15 @@ export function ClaimFlow({
   }
 
   return (
-    <FlowShell steps={steps} currentStep={2} flowLabel={armFlowLabel}>
+    <FlowShell
+      title="Review claim"
+      onBack={() => {
+        setDelegateScreen(delegateChoice === 'other' ? 'picker' : 'choice')
+        setStep('delegate')
+      }}
+      onClose={handleClose}
+    >
       <div className={styles.cardContent}>
-        <h2 className={styles.cardTitle}>Review claim</h2>
         <div className={styles.summaryCard}>
           <div className={styles.summaryRow}>
             <div className={styles.summaryLabelGroup}>
@@ -713,16 +790,6 @@ export function ClaimFlow({
         </div>
       </div>
       <div className={styles.buttonRow}>
-        <Button
-          variant="secondary"
-          size="lg"
-          label="Back"
-          showIcon={false}
-          onClick={() => {
-            setDelegateScreen(delegateChoice === 'other' ? 'picker' : 'choice')
-            setStep('delegate')
-          }}
-        />
         <Button
           variant="primary"
           size="lg"

@@ -8,7 +8,7 @@ import { HeaderMobileMenu } from './HeaderMobileMenu'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
-  /** Crowdfund · My position · Claim (Claim gated until claimAvailable). */
+  /** Crowdfund · Your position · Claim (Claim gated until claimAvailable). */
   activeNav?: 'crowdfund' | 'myposition' | 'claim'
   walletAddress?: string
   /** Full address for clipboard copy in the wallet menu. */
@@ -106,7 +106,7 @@ export function Header({
         onClick: activeNav !== 'crowdfund' ? handleCrowdfund : undefined,
       },
       {
-        label: 'My position',
+        label: 'Your position',
         active: activeNav === 'myposition',
         onClick: activeNav !== 'myposition' ? handleMyPosition : undefined,
       },

@@ -10,6 +10,7 @@ import {
   type InviteeHop,
 } from '../MyPosition/inviteModel'
 import { hopPillDotColor } from '../../constants/graphHopColors'
+import StepBeforeYouStart from './screens/StepBeforeYouStart'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review, { type Step3ReviewHopCommit } from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
@@ -55,6 +56,7 @@ function MaxOutReviewNote({ inviteCount }: { inviteCount: number }) {
 }
 
 export type InviteLinkFlowStep =
+  | 'beforeYouStart'
   | 'commit'
   | 'review'
   | 'approve'
@@ -87,6 +89,12 @@ export interface ParticipateFlowInviteLinkProps {
   /** Live self-fill plan from session (POC computeSelfFillPlan mirror). */
   maxOutPlan?: DemoSelfFillPlan | null
   hopVariant?: HopVariant
+  /** Connected wallet address (copy target on Before you start). */
+  walletAddress?: string
+  /** Truncated wallet label for Before you start. */
+  walletDisplayAddress?: string
+  /** Absolute window-close copy for Before you start. */
+  windowClosesLabel?: string
   slots?: SlotData[]
   inviteAllowance?: InviteAllowance
   onGenerateInviteLink?: (
@@ -119,6 +127,7 @@ const STEP_TRANSITION_MS = 240
 const MY_POSITION_URL = `${import.meta.env.BASE_URL}?view=myposition`
 
 const DIALOG_LABEL: Record<InviteLinkFlowStep, string> = {
+  beforeYouStart: 'How to participate',
   commit: 'How much USDC?',
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
@@ -164,6 +173,9 @@ export function ParticipateFlowInviteLink({
   remainingHopUsdc,
   maxOutPlan = null,
   hopVariant = 'hop-1',
+  walletAddress,
+  walletDisplayAddress,
+  windowClosesLabel,
   slots = [],
   inviteAllowance = DEMO_INVITE_ALLOWANCE,
   onGenerateInviteLink,
@@ -176,8 +188,13 @@ export function ParticipateFlowInviteLink({
   loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowInviteLinkProps) {
-  const [step, setStep] = useState<InviteLinkFlowStep>('commit')
-  const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>('commit')
+  const entryStep = (participated: boolean): InviteLinkFlowStep =>
+    participated ? 'commit' : 'beforeYouStart'
+
+  const [step, setStep] = useState<InviteLinkFlowStep>(() => entryStep(hasParticipated))
+  const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>(() =>
+    entryStep(hasParticipated),
+  )
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
   const [maxMode, setMaxMode] = useState(false)
@@ -243,8 +260,9 @@ export function ParticipateFlowInviteLink({
         setStep('confirmation')
         setRenderStep('confirmation')
       } else {
-        setStep('commit')
-        setRenderStep('commit')
+        const start = entryStep(hasParticipated)
+        setStep(start)
+        setRenderStep(start)
       }
       return
     }
@@ -252,8 +270,9 @@ export function ParticipateFlowInviteLink({
     if (open) return
 
     clearTransitionTimer()
-    setStep('commit')
-    setRenderStep('commit')
+    const start = entryStep(hasParticipated)
+    setStep(start)
+    setRenderStep(start)
     setFading(false)
     setAmount(0)
     resetMax()
@@ -318,6 +337,22 @@ export function ParticipateFlowInviteLink({
 
   const renderCurrentStep = () => {
     switch (renderStep) {
+      case 'beforeYouStart':
+        return (
+          <StepBeforeYouStart
+            hopVariant={hopVariant}
+            capUsdc={capUsdc}
+            inviteCount={availableInviteCount}
+            maxOutCeilingUsdc={maxOutPlan?.projectedCeilingUsdc}
+            walletAddress={walletAddress}
+            walletDisplayAddress={walletDisplayAddress}
+            windowClosesLabel={windowClosesLabel}
+            onBack={handleClose}
+            onContinue={() => transitionTo('commit')}
+            onClose={handleClose}
+          />
+        )
+
       case 'commit':
         if (isFullyCommitted && !canSelfFill) {
           return (
@@ -334,6 +369,7 @@ export function ParticipateFlowInviteLink({
               canInvite={availableInviteCount > 0}
               onViewPosition={handleViewPosition}
               onBackToCrowdfund={handleClose}
+              onClose={handleClose}
               onInvite={() => transitionTo('invites')}
             />
           )
@@ -349,6 +385,7 @@ export function ParticipateFlowInviteLink({
               fullyCommitted
               showBack={false}
               onBack={handleClose}
+              onClose={handleClose}
               onViewPosition={handleViewPosition}
               onNext={() => {}}
             />
@@ -362,8 +399,11 @@ export function ParticipateFlowInviteLink({
             maxAmount={capUsdc}
             initialAmount={amount}
             hopLabel={hopLevel}
-            showBack={false}
-            onBack={handleClose}
+            showBack={!hasParticipated}
+            onBack={() =>
+              hasParticipated ? handleClose() : transitionTo('beforeYouStart')
+            }
+            onClose={handleClose}
             onNext={(nextAmount) => {
               resetMax()
               setAmount(nextAmount)
@@ -391,6 +431,7 @@ export function ParticipateFlowInviteLink({
                 resetMax()
                 transitionTo('commit')
               }}
+              onClose={handleClose}
               onNext={() => transitionTo('approve')}
             />
           )
@@ -403,6 +444,7 @@ export function ParticipateFlowInviteLink({
             amount={amount}
             estimatedArm={estimatedArm}
             onBack={() => transitionTo('commit')}
+            onClose={handleClose}
             onNext={() => transitionTo('approve')}
           />
         )
@@ -413,6 +455,9 @@ export function ParticipateFlowInviteLink({
             {...stepBar}
             stepIndex={3}
             amount={amount}
+            showcase
+            onBack={() => transitionTo('review')}
+            onClose={handleClose}
             onDone={() => finishCommit(amount)}
           />
         )
@@ -433,6 +478,7 @@ export function ParticipateFlowInviteLink({
             canInvite={availableInviteCount > 0}
             onViewPosition={handleViewPosition}
             onBackToCrowdfund={handleClose}
+            onClose={handleClose}
             onInvite={() => transitionTo('invites')}
           />
         )
@@ -506,7 +552,12 @@ export function ParticipateFlowInviteLink({
   }
 
   return (
-    <ParticipateFlowModal open={open} onClose={handleClose} ariaLabel={DIALOG_LABEL[step]}>
+    <ParticipateFlowModal
+      open={open}
+      onClose={handleClose}
+      ariaLabel={DIALOG_LABEL[step]}
+      showClose={step === 'invites'}
+    >
       {stepContent}
     </ParticipateFlowModal>
   )

@@ -658,7 +658,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
             <section className={mpStyles.positionCard} aria-label="Your position">
               <div className={mpStyles.cardHeader}>
                 <div className={mpStyles.titleRow}>
-                  <h1 className={mpStyles.pageTitle}>My Position</h1>
+                  <h1 className={mpStyles.pageTitle}>Your Position</h1>
                   {participationEnabled ? (
                     <Button
                       className={mpStyles.headerCta}
@@ -673,7 +673,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                 </div>
                 <div className={mpStyles.metaTags}>
                   {wallet ? <Tag label={wallet.displayAddress} dot="lavender" /> : null}
-                  {myPositionEmptyKind === null ? (
+                  {myPositionEmptyKind !== 'disconnected' ? (
                     <>
                       <Tag label={hopLabel} dot="lavender" />
                       {hasClaimed ? <Tag label="CLAIMED" dot="active" /> : null}
@@ -682,18 +682,19 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                 </div>
               </div>
 
-              {myPositionEmptyKind !== null ? (
+              {myPositionEmptyKind === 'disconnected' ? (
                 <MyPositionEmptyState
-                  kind={myPositionEmptyKind}
+                  kind="disconnected"
                   onConnectWallet={() => setConnectOpen(true)}
-                  onParticipate={openParticipateFlow}
                 />
               ) : (
                 <div className={mpStyles.positionFooter}>
                   <div className={mpStyles.statsRow}>
                     <div className={mpStyles.statBlock}>
                       <p className={mpStyles.statLabel}>USDC committed</p>
-                      <p className={mpStyles.statAmount}>{formatUsdcCommitted(committedUsdc)}</p>
+                      <p className={mpStyles.statAmount}>
+                        {formatUsdcCommitted(hasParticipated ? committedUsdc : 0)}
+                      </p>
                     </div>
 
                     <div className={mpStyles.statBlock}>
@@ -713,16 +714,23 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                           </button>
                         </Tooltip>
                       </div>
-                      <p className={mpStyles.statAmountAccent}>{armAllocLabel}</p>
+                      <p className={mpStyles.statAmountAccent}>
+                        {hasParticipated ? armAllocLabel : formatArmAllocation(0)}
+                      </p>
                     </div>
                   </div>
 
                   <div className={mpStyles.barSection}>
                     <div className={mpStyles.barTrack}>
-                      <div className={mpStyles.barFill} style={{ width: `${fillPct}%` }} />
+                      <div
+                        className={mpStyles.barFill}
+                        style={{ width: `${hasParticipated ? fillPct : 0}%` }}
+                      />
                     </div>
                     <div className={mpStyles.barLabels}>
-                      <span className={mpStyles.barCaption}>{Math.round(fillPct)}% of hop cap</span>
+                      <span className={mpStyles.barCaption}>
+                        {Math.round(hasParticipated ? fillPct : 0)}% of hop cap
+                      </span>
                       <span className={mpStyles.barCaption}>
                         Cap ${capUsdc.toLocaleString()}
                         {maxOutPlan.newCommitUsdc > remainingHopUsdc
@@ -818,6 +826,9 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         remainingHopUsdc={remainingHopUsdc}
         maxOutPlan={maxOutPlan}
         hopVariant={hopVariant}
+        walletAddress={wallet?.address}
+        walletDisplayAddress={wallet?.displayAddress}
+        windowClosesLabel="14 Oct, 18:00 CET"
         slots={slots}
         inviteAllowance={inviteAllowance}
         onGenerateInviteLink={generateInviteLink}
@@ -833,6 +844,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         onClose={closeClaimFlow}
         ariaLabel="Claim your allocation"
         closeAriaLabel="Close claim flow"
+        showClose={false}
       >
         <ClaimFlow
           walletConnected={walletConnected}
@@ -849,6 +861,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           onBackToCrowdfund={goToCrowdfund}
           onViewPosition={goToMyPosition}
           onConnectWallet={() => setConnectOpen(true)}
+          onClose={closeClaimFlow}
         />
       </ParticipateFlowModal>
 

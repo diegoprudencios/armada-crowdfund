@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react'
 import styles from './Step3Review.module.css'
-import Steps from '../../Steps/Steps'
+import { FlowChrome } from '../FlowChrome'
 import { Button } from '../../Button'
 import Tooltip from '../../Tooltip/Tooltip'
 import { InformationCircleIcon } from '@heroicons/react/24/solid'
@@ -21,6 +21,7 @@ export interface Step3ReviewHopCommit {
 interface Step3ReviewProps extends ParticipateStepBarProps {
   onNext: () => void
   onBack: () => void
+  onClose?: () => void
   /** Disables the "Approve and commit" CTA. */
   disabled?: boolean
   /** Single-hop label (e.g. 'Hop 1'). Ignored when multi-hop `hopCommits`. */
@@ -34,8 +35,6 @@ interface Step3ReviewProps extends ParticipateStepBarProps {
   note?: ReactNode
 }
 
-const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
-
 function formatUsd(value: number): string {
   return value.toLocaleString('en-US', {
     style: 'currency',
@@ -48,12 +47,11 @@ function formatUsd(value: number): string {
 export default function Step3Review({
   onNext,
   onBack,
+  onClose,
   disabled = false,
   hopLevel = 'Hop 1',
   amount = 1000,
   estimatedArm = 1000,
-  steps = DEFAULT_STEPS,
-  stepIndex = 2,
   hopCommits,
   note,
 }: Step3ReviewProps) {
@@ -68,10 +66,9 @@ export default function Step3Review({
       data-flow-shell
       className={[styles.shell, isMulti ? styles.shellMultiHop : ''].filter(Boolean).join(' ')}
     >
-      <Steps steps={[...steps]} currentStep={stepIndex} />
+      <FlowChrome title="Review" onBack={onBack} onClose={onClose} />
 
       <div className={styles.content}>
-        <h2 className={styles.title}>Review</h2>
         <div className={styles.summaryCard}>
           {isMulti ? (
             <>
@@ -157,13 +154,6 @@ export default function Step3Review({
       </div>
 
       <div className={styles.buttonRow}>
-        <Button
-          variant="secondary"
-          size="lg"
-          label="Back"
-          showIcon={false}
-          onClick={onBack}
-        />
         <Button
           variant="gradient"
           size="lg"

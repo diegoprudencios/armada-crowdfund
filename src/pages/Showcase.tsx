@@ -20,6 +20,7 @@ import WalletItem from '../components/WalletItem/WalletItem'
 import { Participate } from '../components/Participate'
 import { Progress } from '../components/Progress'
 import Step0Invite from '../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
+import StepBeforeYouStart from '../components/ParticipateFlow/screens/StepBeforeYouStart'
 import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
 import Step2Commit from '../components/ParticipateFlow/screens/Step2Commit.tsx'
 import Step3Review from '../components/ParticipateFlow/screens/Step3Review.tsx'
@@ -49,7 +50,7 @@ const eyebrow = {
 
 const NAV_ITEMS = [
   { label: 'Crowdfund', active: true },
-  { label: 'My position' },
+  { label: 'Your position' },
   { label: 'Claim', disabled: true },
 ]
 
@@ -321,6 +322,21 @@ export function Showcase() {
             />
           </div>
           <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>Before you start</div>
+            <StepBeforeYouStart
+              hopVariant="seed"
+              capUsdc={15_000}
+              inviteCount={3}
+              maxOutCeilingUsdc={33_000}
+              walletAddress="0x3f8a1b2c3d4e5f60718293a4b5c6d7e8f9a0a91c"
+              walletDisplayAddress="0x3f…a91c"
+              windowClosesLabel="14 Oct, 18:00 CET"
+              onBack={() => console.log('back')}
+              onContinue={() => console.log('continue')}
+              onClose={() => console.log('close')}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
             <div style={{ ...eyebrow, marginBottom: 12 }}>Step 1 (Wallet)</div>
             <Step1Wallet onNext={(wallet) => console.log('wallet:', wallet)} />
           </div>
@@ -329,6 +345,7 @@ export function Showcase() {
             <Step2Commit
               onNext={(amount: number) => console.log('amount:', amount)}
               onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
             />
           </div>
           <div style={{ flexShrink: 0 }}>
@@ -336,6 +353,7 @@ export function Showcase() {
             <Step3Review
               onNext={() => console.log('approve')}
               onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
               hopLevel="Hop 1"
               amount={1000}
               estimatedArm={1000}
@@ -345,6 +363,9 @@ export function Showcase() {
             <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 4 (APPROVE)</div>
             <Step4Approve
               onDone={() => console.log('approve done')}
+              onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
+              showcase
               amount={1000}
             />
           </div>
@@ -354,6 +375,7 @@ export function Showcase() {
               showViewPositionButton
               onViewPosition={() => console.log('view position')}
               onInvite={() => console.log('invite')}
+              onClose={() => console.log('close')}
               amount={1000}
               estimatedArm={1000}
             />

@@ -1,116 +1,101 @@
-import { useEffect, useState, useRef } from 'react'
+// ABOUTME: Confirm approve + commit txs — FlowChrome + WalletConfirmStep.
+// ABOUTME: Showcase auto-animates success; pass `txs` to drive real/error states.
+
+import { useEffect, useState } from 'react'
 import styles from './Step4Approve.module.css'
-import Steps from '../../Steps/Steps'
+import { FlowChrome } from '../FlowChrome'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
-interface Transaction {
-  label: string
-  status: 'pending' | 'loading' | 'done'
-}
+import {
+  WalletConfirmStep,
+  type WalletTransactionItem,
+} from '../../WalletConfirm'
 
-interface Step4ApproveProps extends ParticipateStepBarProps {
+export type { WalletTransactionItem as Step4ApproveTransaction }
+
+export interface Step4ApproveProps extends ParticipateStepBarProps {
   onDone: () => void
+  onClose?: () => void
+  /** Returns to Review (chrome back, or error footer Back). */
+  onBack?: () => void
+  /** Re-run the pipeline when a tx row errored. */
+  onRetry?: () => void
   amount?: number
-}
-
-const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
-
-const STATUS_LABEL: Record<Transaction['status'], string> = {
-  loading: 'Loading',
-  pending: 'Pending',
-  done: 'Complete',
+  /**
+   * Controlled transactions. When set, the consumer drives status (including
+   * `error`) and decides when to call `onDone`.
+   */
+  txs?: readonly WalletTransactionItem[]
+  /**
+   * Design/demo auto-animation (approve → commit → onDone). Omit or false when
+   * driving `txs` from a real flow.
+   */
+  showcase?: boolean
 }
 
 export default function Step4Approve({
   onDone,
+  onClose,
+  onBack,
+  onRetry,
   amount = 1000,
-  steps = DEFAULT_STEPS,
-  stepIndex = 3,
+  txs: controlledTxs,
+  showcase = false,
 }: Step4ApproveProps) {
-  const [txs, setTxs] = useState<Transaction[]>([
+  const [internalTxs, setInternalTxs] = useState<WalletTransactionItem[]>([
     { label: `Approve ${amount.toLocaleString()} USDC`, status: 'loading' },
     { label: 'Commit participation', status: 'pending' },
   ])
-  const liveRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!showcase || controlledTxs) return
     const t1 = setTimeout(() => {
-      setTxs([
+      setInternalTxs([
         { label: `Approve ${amount.toLocaleString()} USDC`, status: 'done' },
         { label: 'Commit participation', status: 'loading' },
       ])
     }, 2000)
     const t2 = setTimeout(() => {
-      setTxs([
+      setInternalTxs([
         { label: `Approve ${amount.toLocaleString()} USDC`, status: 'done' },
         { label: 'Commit participation', status: 'done' },
       ])
       setTimeout(onDone, 400)
     }, 4000)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [amount, onDone])
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [amount, onDone, showcase, controlledTxs])
+
+  const txs: readonly WalletTransactionItem[] =
+    controlledTxs ??
+    (showcase
+      ? internalTxs
+      : [{ label: 'Preparing transaction…', status: 'loading' }])
+
+  const hasError = txs.some((t) => t.status === 'error')
 
   return (
     <div className={styles.shell} data-flow-shell>
-      <Steps steps={[...steps]} currentStep={stepIndex} />
+      <FlowChrome
+        title="Confirm"
+        showBack={!!onBack && !hasError}
+        onBack={onBack}
+        onClose={onClose}
+      />
 
-      <div className={styles.content}>
-        <h2 className={styles.title}>
-          Confirm transactions<br />on your wallet
-        </h2>
-
-        {/* aria-live announces status changes to screen readers */}
-        <div
-          className={styles.txCard}
-          aria-live="polite"
-          aria-label="Transaction status"
-          ref={liveRef}
-        >
-          {txs.map((tx, i) => (
-            <div key={i} role="listitem">
-              {i > 0 && <div className={styles.divider} aria-hidden="true" />}
-              <div className={styles.txRow}>
-                <span className={styles.txLabel}>{tx.label}</span>
-                <div
-                  className={styles.txStatus}
-                  aria-label={STATUS_LABEL[tx.status]}
-                >
-                  {tx.status === 'loading' && (
-                    <div
-                      className={styles.spinner}
-                      role="status"
-                      aria-label="Loading"
-                    />
-                  )}
-                  {tx.status === 'pending' && (
-                    <div className={styles.circle} aria-hidden="true" />
-                  )}
-                  {tx.status === 'done' && (
-                    <div className={styles.check} aria-hidden="true">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  )}
-                  {/* Visually hidden status text for AT */}
-                  <span className={styles.visuallyHidden}>
-                    {STATUS_LABEL[tx.status]}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.footer}>
-        <p
-          className={styles.footerText}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          Waiting for wallet confirmation
-        </p>
-      </div>
+      <WalletConfirmStep
+        transactions={txs}
+        onBack={hasError ? onBack : undefined}
+        onRetry={hasError ? onRetry : undefined}
+        footerText={
+          hasError
+            ? 'Transaction failed. Go back to retry.'
+            : showcase || controlledTxs
+              ? 'Waiting for wallet confirmation'
+              : 'Preparing transaction…'
+        }
+      />
     </div>
   )
 }

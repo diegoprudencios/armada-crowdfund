@@ -2,7 +2,7 @@
   Figma: 480x500px, 32px padding, space-between
   Summary card: surface-raised bg, border-default, 20px padding, 8px radius
   Warning block: amber border, 12px text, centered
-  Button row: Back (secondary) + Approve and commit (gradient), 48px, gap 12px
+  Button row: Approve and commit (gradient), 48px
 */
 
 .shell {
@@ -32,18 +32,8 @@
   flex-direction: column;
   gap: var(--primitives-spacing-5);
   flex: 1;
-  padding-top: var(--primitives-spacing-8);
-}
-
-.title {
-  font-family: var(--primitives-fontFamily-ui);
-  font-size: calc(var(--primitives-fontSize-xl) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  color: var(--semantic-color-text-primary);
-  margin: 0;
-  text-align: center;
-  line-height: 1.4;
-  width: 100%;
+  min-height: 0;
+  padding-top: var(--primitives-spacing-6);
 }
 
 /* ── Summary card ── */

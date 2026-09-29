@@ -1,8 +1,8 @@
-// ABOUTME: Confirmation “What happens next” carousel — scenarios after commit (window, under/over, refund, claim).
-// ABOUTME: Manual navigation via chevrons only (no dots / autoplay). Slide 1 embeds a live window countdown.
+// ABOUTME: Confirmation “What happens next” FAQ accordion — one topic per row.
+// ABOUTME: Exclusive expand; window-open copy embeds a live countdown when open.
 
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import {
   endsAtToRemainingSeconds,
   formatTimeLeft,
@@ -22,7 +22,7 @@ export interface WhatHappensNextSliderProps {
   endsAt?: number | Date | null
 }
 
-type Slide = { id: string; title: string; body: string }
+type Item = { id: string; title: string; body: string }
 
 function resolveEndMs(
   endsAt: number | Date | null | undefined,
@@ -48,40 +48,41 @@ function windowOpenBody(remainingLabel: string | null): string {
   return 'The commitment window is closing. Your USDC will be locked until then.'
 }
 
-const STATIC_SLIDES: ReadonlyArray<Omit<Slide, 'body'> & { body?: string }> = [
+const STATIC_ITEMS: ReadonlyArray<Omit<Item, 'body'> & { body?: string }> = [
   {
     id: 'window',
-    title: '1. While the window is open',
+    title: 'While the window is open',
   },
   {
     id: 'under',
-    title: '2. If undersubscribed',
+    title: 'If undersubscribed',
     body: 'If total demand misses the minimum raise, the sale refunds. You reclaim your full USDC — no ARM is issued.',
   },
   {
     id: 'over',
-    title: '3. If oversubscribed',
+    title: 'If oversubscribed',
     body: 'If demand exceeds supply, ARM is allocated pro-rata. You may receive less than “up to” your estimate; unused USDC is refunded when you claim.',
   },
   {
     id: 'refund',
-    title: '4. If the sale refunds after allocation',
+    title: 'If the sale refunds after allocation',
     body: 'Sometimes demand qualifies but net proceeds still fall short. In that case everyone can reclaim their full USDC — no ARM is issued.',
   },
   {
     id: 'claim',
-    title: '5. Claim & delegate',
+    title: 'Claim & delegate',
     body: 'After a successful finalization, claim your ARM and choose a delegate in one step. Any refund USDC comes back in the same flow.',
   },
 ]
 
+/** @deprecated Name kept for import stability — renders as a FAQ accordion. */
 export function WhatHappensNextSlider({
   daysLeft = 3,
   secondsLeft,
   endsAt = null,
 }: WhatHappensNextSliderProps) {
-  const labelId = useId()
-  const [index, setIndex] = useState(0)
+  const baseId = useId()
+  const [openId, setOpenId] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
   const endMs = useMemo(
@@ -91,12 +92,14 @@ export function WhatHappensNextSlider({
     [endsAt, secondsLeft, daysLeft],
   )
 
+  const windowOpen = openId === 'window'
+
   useEffect(() => {
-    if (endMs == null) return
+    if (endMs == null || !windowOpen) return
     if (endsAtToRemainingSeconds(endMs, Date.now()) <= 0) return
     const id = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(id)
-  }, [endMs])
+  }, [endMs, windowOpen])
 
   const remainingLabel = useMemo(() => {
     if (endMs == null) return null
@@ -111,72 +114,61 @@ export function WhatHappensNextSlider({
     return remaining > 0 && remaining < TIME_LEFT_COUNTER_THRESHOLD_S
   }, [endMs, nowMs])
 
-  const slides: ReadonlyArray<Slide> = useMemo(
+  const items: ReadonlyArray<Item> = useMemo(
     () =>
-      STATIC_SLIDES.map((slide) =>
-        slide.id === 'window'
-          ? { id: slide.id, title: slide.title, body: windowOpenBody(remainingLabel) }
-          : { id: slide.id, title: slide.title, body: slide.body! },
+      STATIC_ITEMS.map((item) =>
+        item.id === 'window'
+          ? { id: item.id, title: item.title, body: windowOpenBody(remainingLabel) }
+          : { id: item.id, title: item.title, body: item.body! },
       ),
     [remainingLabel],
   )
 
-  const count = slides.length
-  const slide = slides[index]!
-  // Avoid announcing HH:MM:SS every second; still announce when the slide changes.
-  const slideLive =
-    slide.id === 'window' && isLiveCounter ? ('off' as const) : ('polite' as const)
-
-  const go = useCallback(
-    (next: number) => {
-      setIndex(((next % count) + count) % count)
-    },
-    [count],
-  )
-
-  const goPrev = useCallback(() => go(index - 1), [go, index])
-  const goNext = useCallback(() => go(index + 1), [go, index])
-
   return (
-    <div
-      className={styles.root}
-      role="region"
-      aria-roledescription="carousel"
-      aria-labelledby={labelId}
-    >
-      <div className={styles.header}>
-        <span id={labelId} className={styles.eyebrow}>
-          WHAT HAPPENS NEXT
-        </span>
-        <div className={styles.chevronGroup}>
-          <button
-            type="button"
-            className={styles.chevronBtn}
-            aria-label="Previous slide"
-            onClick={goPrev}
-          >
-            <ChevronLeftIcon className={styles.chevronIcon} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={styles.chevronBtn}
-            aria-label="Next slide"
-            onClick={goNext}
-          >
-            <ChevronRightIcon className={styles.chevronIcon} aria-hidden />
-          </button>
-        </div>
-      </div>
-
-      <div
-        className={styles.slide}
-        aria-live={slideLive}
-        aria-atomic="true"
-        key={slide.id}
-      >
-        <p className={styles.slideTitle}>{slide.title}</p>
-        <p className={styles.slideBody}>{slide.body}</p>
-      </div>
+    <div className={styles.root}>
+      <p className={styles.sectionLabel} id={`${baseId}-label`}>
+        What happens next
+      </p>
+      <ul className={styles.faqList} aria-labelledby={`${baseId}-label`}>
+        {items.map((item) => {
+          const expanded = openId === item.id
+          const panelId = `${baseId}-${item.id}-panel`
+          const buttonId = `${baseId}-${item.id}-btn`
+          return (
+            <li key={item.id} className={styles.faqItem}>
+              <button
+                type="button"
+                id={buttonId}
+                className={styles.faqToggle}
+                aria-expanded={expanded}
+                aria-controls={panelId}
+                onClick={() => setOpenId(expanded ? null : item.id)}
+              >
+                <span className={styles.faqTitle}>{item.title}</span>
+                <ChevronDownIcon
+                  className={[styles.chevron, expanded && styles.chevronOpen]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-hidden
+                />
+              </button>
+              {expanded ? (
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={buttonId}
+                  className={styles.faqPanel}
+                  aria-live={
+                    item.id === 'window' && isLiveCounter ? 'off' : 'polite'
+                  }
+                >
+                  <p className={styles.faqBody}>{item.body}</p>
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

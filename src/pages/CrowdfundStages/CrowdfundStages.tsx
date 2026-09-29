@@ -16,6 +16,7 @@ import {
 } from '../../components/ParticipateFlow'
 import { ParticipateFlowInviteSlots } from '../../components/ParticipateFlow/ParticipateFlowInviteSlots'
 import Step0Invite from '../../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
+import StepBeforeYouStart from '../../components/ParticipateFlow/screens/StepBeforeYouStart'
 import Step1WalletNotWhitelisted from '../../components/ParticipateFlow/screens/Step1WalletNotWhitelisted'
 import Step2Commit from '../../components/ParticipateFlow/screens/Step2Commit'
 import Step3Review from '../../components/ParticipateFlow/screens/Step3Review'
@@ -50,12 +51,15 @@ const MODAL_INVITE_ALLOWANCE = { hop1: 3, hop2: 0 } as const
 
 type ParticipateStepId =
   | 'invite'
+  | 'before-you-start'
   | 'not-whitelisted'
   | 'commit'
   | 'commit-max-out'
   | 'review'
   | 'review-max-out'
   | 'approve'
+  | 'approve-error'
+  | 'approve-rejected'
   | 'confirmation'
   | 'confirmation-again'
   | 'confirmation-max-out'
@@ -112,12 +116,15 @@ function withMaxOutBanner(
 
 const PARTICIPATE_STEPS: { id: ParticipateStepId; label: string }[] = [
   { id: 'invite', label: 'Step 0 — Invite' },
+  { id: 'before-you-start', label: 'Before you start' },
   { id: 'not-whitelisted', label: 'Not allowlisted' },
   { id: 'commit', label: 'Step 1 — Commit' },
   { id: 'commit-max-out', label: 'Step 1 — Commit + max out' },
   { id: 'review', label: 'Step 2 — Review' },
   { id: 'review-max-out', label: 'Step 2 — Review max out' },
   { id: 'approve', label: 'Step 3 — Approve' },
+  { id: 'approve-error', label: 'Step 3 — Approve error' },
+  { id: 'approve-rejected', label: 'Step 3 — Wallet rejected' },
   { id: 'confirmation', label: 'Step 4 — Confirmation' },
   { id: 'confirmation-again', label: 'Step 4 — Commit again' },
   { id: 'confirmation-max-out', label: 'Step 4 — Confirmation (full commit)' },
@@ -226,6 +233,21 @@ function ParticipateStepContent({
           variant="landing"
         />
       )
+    case 'before-you-start':
+      return (
+        <StepBeforeYouStart
+          hopVariant="seed"
+          capUsdc={15_000}
+          inviteCount={3}
+          maxOutCeilingUsdc={33_000}
+          walletAddress="0x3f8a1b2c3d4e5f60718293a4b5c6d7e8f9a0a91c"
+          walletDisplayAddress="0x3f…a91c"
+          windowClosesLabel="14 Oct, 18:00 CET"
+          onBack={onClose}
+          onContinue={onClose}
+          onClose={onClose}
+        />
+      )
     case 'not-whitelisted':
       return (
         <Step1WalletNotWhitelisted
@@ -238,7 +260,8 @@ function ParticipateStepContent({
         <Step2Commit
           onNext={onClose}
           onBack={onClose}
-          showBack={false}
+          onClose={onClose}
+          showBack
           maxAmount={15_000}
           hopLabel="Hop-0"
         />
@@ -248,6 +271,7 @@ function ParticipateStepContent({
         <Step2Commit
           onNext={onClose}
           onBack={onClose}
+          onClose={onClose}
           showBack={false}
           maxAmount={15_000}
           hopLabel="Hop-0"
@@ -258,6 +282,7 @@ function ParticipateStepContent({
         <Step3Review
           onNext={onClose}
           onBack={onClose}
+          onClose={onClose}
           hopLevel="Hop 1"
           amount={1000}
           estimatedArm={1000}
@@ -268,6 +293,7 @@ function ParticipateStepContent({
         <Step3Review
           onNext={onClose}
           onBack={onClose}
+          onClose={onClose}
           hopCommits={DEMO_MAX_OUT_HOP_COMMITS}
           amount={6_000}
           estimatedArm={6_000}
@@ -275,13 +301,67 @@ function ParticipateStepContent({
         />
       )
     case 'approve':
-      return <Step4Approve onDone={onClose} amount={1000} />
+      return (
+        <Step4Approve
+          showcase
+          onDone={onClose}
+          onBack={onClose}
+          onClose={onClose}
+          amount={1000}
+        />
+      )
+    case 'approve-error':
+      return (
+        <Step4Approve
+          onDone={onClose}
+          onBack={onClose}
+          onClose={onClose}
+          onRetry={onClose}
+          amount={1000}
+          txs={[
+            {
+              label: 'Approve 1,000 USDC',
+              status: 'done',
+              hash: '0xabc123def4567890abc123def4567890abc123def4567890abc123def4567890',
+            },
+            {
+              label: 'Commit participation',
+              status: 'error',
+              errorMessage: 'Transaction reverted',
+              errorDetails:
+                'Error: execution reverted: Crowdfund: amount exceeds hop cap\n\ncallException: "execution reverted"\ncode: CALL_EXCEPTION',
+            },
+          ]}
+        />
+      )
+    case 'approve-rejected':
+      return (
+        <Step4Approve
+          onDone={onClose}
+          onBack={onClose}
+          onClose={onClose}
+          onRetry={onClose}
+          amount={1000}
+          txs={[
+            {
+              label: 'Approve 1,000 USDC',
+              status: 'error',
+              errorMessage: 'Request rejected in wallet',
+            },
+            {
+              label: 'Commit participation',
+              status: 'pending',
+            },
+          ]}
+        />
+      )
     case 'confirmation':
       return (
         <Step5Confirmation
           showViewPositionButton
           onViewPosition={onClose}
           onInvite={onClose}
+          onClose={onClose}
           amount={1000}
           estimatedArm={1000}
         />
@@ -293,6 +373,7 @@ function ParticipateStepContent({
           showViewPositionButton
           onViewPosition={onClose}
           onInvite={onClose}
+          onClose={onClose}
           amount={500}
           estimatedArm={500}
           totalCommittedUsdc={1500}
@@ -304,6 +385,7 @@ function ParticipateStepContent({
           showViewPositionButton
           onViewPosition={onClose}
           onInvite={onClose}
+          onClose={onClose}
           amount={1000}
           estimatedArm={1000}
         />
@@ -314,6 +396,7 @@ function ParticipateStepContent({
           canInvite={false}
           showViewPositionButton
           onViewPosition={onClose}
+          onClose={onClose}
           onBackToCrowdfund={onClose}
           amount={1000}
           estimatedArm={1000}
@@ -712,7 +795,7 @@ export function CrowdfundStages() {
         <Section
           id="claim-flow"
           title="Claim flow"
-          description="Provisional claim screens (no designer mockup yet) — mirrors the committer ClaimFlowV2 states for ARM and refund paths."
+          description="Claim intro + FlowChrome mid-flow (delegate → review → confirm) matching the participate commit pattern."
         >
           <div className={styles.actionRow}>
             {CLAIM_DEMO_SCREENS.map((screen) => (
@@ -805,7 +888,9 @@ export function CrowdfundStages() {
           showClose={
             modal?.kind === 'participate-step'
               ? modal.step.startsWith('confirmation')
-              : true
+              : modal?.kind === 'claim'
+                ? false
+                : true
           }
           footer={
             modal?.kind === 'participate-step' && modal.step === 'invite' ? (

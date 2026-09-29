@@ -10,6 +10,7 @@ import { DEMO_INVITE_ALLOWANCE } from '../MyPosition/myPositionDemo'
 import { hopPillDotColor } from '../../constants/graphHopColors'
 import { Button } from '../Button'
 import Step0Invite from './steps/Step0Invite/Step0Invite'
+import StepBeforeYouStart from './screens/StepBeforeYouStart'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review, { type Step3ReviewHopCommit } from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
@@ -48,6 +49,12 @@ export interface ParticipateFlowCrowdfundProps {
   maxOutPlan?: DemoSelfFillPlan | null
   hopVariant?: HopVariant
   daysLeft?: number
+  /** Connected wallet address (copy target on Before you start). */
+  walletAddress?: string
+  /** Truncated wallet label for Before you start. */
+  walletDisplayAddress?: string
+  /** Absolute window-close copy for Before you start. */
+  windowClosesLabel?: string
   slots?: SlotData[]
   inviteAllowance?: InviteAllowance
   onGenerateInviteLink?: (
@@ -69,6 +76,7 @@ export interface ParticipateFlowCrowdfundProps {
 
 export type CrowdfundFlowStep =
   | 'invite'
+  | 'beforeYouStart'
   | 'commit'
   | 'review'
   | 'approve'
@@ -91,6 +99,7 @@ const STEP_TRANSITION_MS = 240
 
 const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
   invite: 'You are invited to join the fleet',
+  beforeYouStart: 'How to participate',
   commit: 'How much USDC?',
   review: 'Review your commitment',
   approve: 'Confirm transactions on your wallet',
@@ -168,6 +177,9 @@ export function ParticipateFlowCrowdfund({
   maxOutPlan = null,
   hopVariant = 'seed',
   daysLeft = 3,
+  walletAddress,
+  walletDisplayAddress,
+  windowClosesLabel,
   slots = [],
   inviteAllowance = DEMO_INVITE_ALLOWANCE,
   onGenerateInviteLink,
@@ -338,6 +350,7 @@ export function ParticipateFlowCrowdfund({
       canInvite={availableInviteCount > 0}
       onViewPosition={onViewPosition}
       onBackToCrowdfund={handleClose}
+      onClose={handleClose}
       onInvite={() => transitionTo('invites')}
     />
   )
@@ -350,7 +363,23 @@ export function ParticipateFlowCrowdfund({
             hopVariant={hopVariant}
             daysLeft={daysLeft}
             hideConnectEyebrow
-            onJoin={() => transitionTo('commit')}
+            onJoin={() => transitionTo('beforeYouStart')}
+          />
+        )
+
+      case 'beforeYouStart':
+        return (
+          <StepBeforeYouStart
+            hopVariant={hopVariant}
+            capUsdc={capUsdc}
+            inviteCount={availableInviteCount}
+            maxOutCeilingUsdc={maxOutPlan?.projectedCeilingUsdc}
+            walletAddress={walletAddress}
+            walletDisplayAddress={walletDisplayAddress}
+            windowClosesLabel={windowClosesLabel}
+            onBack={() => transitionTo('invite')}
+            onContinue={() => transitionTo('commit')}
+            onClose={handleClose}
           />
         )
 
@@ -370,6 +399,7 @@ export function ParticipateFlowCrowdfund({
               fullyCommitted
               showBack={false}
               onBack={handleClose}
+              onClose={handleClose}
               onViewPosition={onViewPosition}
               onNext={() => {}}
             />
@@ -384,7 +414,10 @@ export function ParticipateFlowCrowdfund({
             initialAmount={amount}
             hopLabel={hopLevel}
             showBack={!hasParticipated}
-            onBack={() => transitionTo('invite')}
+            onBack={() =>
+              hasParticipated ? handleClose() : transitionTo('beforeYouStart')
+            }
+            onClose={handleClose}
             onNext={(nextAmount) => {
               resetMax()
               setAmount(nextAmount)
@@ -412,6 +445,7 @@ export function ParticipateFlowCrowdfund({
                 resetMax()
                 transitionTo('commit')
               }}
+              onClose={handleClose}
               onNext={() => transitionTo('approve')}
             />
           )
@@ -424,6 +458,7 @@ export function ParticipateFlowCrowdfund({
             amount={amount}
             estimatedArm={estimatedArm}
             onBack={() => transitionTo('commit')}
+            onClose={handleClose}
             onNext={() => transitionTo('approve')}
           />
         )
@@ -434,6 +469,9 @@ export function ParticipateFlowCrowdfund({
             {...stepBar}
             stepIndex={3}
             amount={amount}
+            showcase
+            onBack={() => transitionTo('review')}
+            onClose={handleClose}
             onDone={() => finishCommit(amount)}
           />
         )
@@ -476,7 +514,7 @@ export function ParticipateFlowCrowdfund({
       open={open}
       onClose={handleClose}
       ariaLabel={DIALOG_LABEL[step]}
-      showClose={step === 'confirmation' || step === 'invites'}
+      showClose={step === 'invites'}
       footer={
         step === 'invite' ? (
           <Button

@@ -129,6 +129,9 @@ function InviteLandingInner() {
             remainingHopUsdc={remainingHopUsdc}
             maxOutPlan={maxOutPlan}
             hopVariant={hopVariant}
+            walletAddress={wallet?.address}
+            walletDisplayAddress={wallet?.displayAddress}
+            windowClosesLabel="14 Oct, 18:00 CET"
             slots={slots}
             inviteAllowance={inviteAllowance}
             onGenerateInviteLink={generateInviteLink}

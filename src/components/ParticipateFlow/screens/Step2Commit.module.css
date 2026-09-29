@@ -1,8 +1,8 @@
 /*
   Figma: 480x500px, 32px padding all sides
-  gap 44px between Steps / content / button row (space-between)
+  gap 44px between chrome / content / button row (space-between)
   Content: title + amount/balance cluster + USDC progress + ARM card
-  Button row: two flex buttons, gap 12px
+  Button row: primary CTA (full width)
 */
 
 .shell {
@@ -25,7 +25,7 @@
   flex-direction: column;
   width: 100%;
   /* No gap: inputBlock flexes to fill space above the bar so title/amount/balance
-     can center evenly between Steps and the progress section. */
+     can center evenly between chrome and the progress section. */
 }
 
 .inputBlock {
@@ -37,7 +37,7 @@
   width: 100%;
 }
 
-/* Vertically centers title + amount + balance between Steps and the progress bar. */
+/* Vertically centers title + amount + balance between chrome and the progress bar. */
 .amountGroup {
   display: flex;
   flex-direction: column;
@@ -46,15 +46,6 @@
   width: 100%;
   margin-top: auto;
   margin-bottom: auto;
-}
-
-.title {
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-xl) * 1px);
-  font-weight: var(--primitives-fontWeight-medium);
-  color: var(--semantic-color-text-primary);
-  margin: 0;
-  text-align: center;
 }
 
 .fullyCommittedGroup {

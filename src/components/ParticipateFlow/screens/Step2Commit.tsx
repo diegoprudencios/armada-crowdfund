@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import styles from './Step2Commit.module.css'
-import Steps from '../../Steps/Steps'
+import { FlowChrome } from '../FlowChrome'
 import { Button } from '../../Button'
 import { ArmAllocationBlock } from '../../ArmAllocationBlock/ArmAllocationBlock'
 import type { ParticipateStepBarProps } from '../participateFlowSteps'
@@ -13,6 +13,7 @@ import {
 interface Step2CommitProps extends ParticipateStepBarProps {
   onNext: (amount: number) => void
   onBack: () => void
+  onClose?: () => void
   maxAmount?: number
   availableBalance?: number
   maxArm?: number
@@ -22,6 +23,7 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   initialAmount?: number
   /** Primary hop label for the bar — e.g. "Hop-0" → "Hop-0 commit". */
   hopLabel?: string
+  /** Show back arrow in top chrome (hidden for returning participants). */
   showBack?: boolean
   /**
    * Current hop(s) already at cap. Shows “You're fully committed” instead of
@@ -32,11 +34,10 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   onViewPosition?: () => void
 }
 
-const DEFAULT_STEPS = ['Commit', 'Review', 'Confirm']
-
 export default function Step2Commit({
   onNext,
   onBack,
+  onClose,
   maxAmount = 4000,
   availableBalance = 215154.14,
   maxArm: _maxArm = 4000,
@@ -46,8 +47,6 @@ export default function Step2Commit({
   showBack = true,
   fullyCommitted = false,
   onViewPosition,
-  steps = DEFAULT_STEPS,
-  stepIndex = 1,
 }: Step2CommitProps) {
   const remainingCap = Math.max(0, maxAmount - existingCommittedUsdc)
   const [amountInput, setAmountInput] = useState(() => {
@@ -90,12 +89,16 @@ export default function Step2Commit({
   if (fullyCommitted) {
     return (
       <div className={styles.shell} data-flow-shell>
-        <Steps steps={[...steps]} currentStep={stepIndex} />
+        <FlowChrome
+          title="Fully committed"
+          showBack={showBack}
+          onBack={onBack}
+          onClose={onClose}
+        />
 
         <div className={styles.content}>
           <div className={styles.inputBlock}>
             <div className={styles.fullyCommittedGroup}>
-              <h2 className={styles.title}>You&apos;re fully committed</h2>
               <p className={styles.maxLabel}>
                 You&apos;ve committed the maximum {maxAmount.toLocaleString('en-US')} USDC
                 for {hopLabel}. Use Max out above to unlock more via self-invites.
@@ -113,8 +116,6 @@ export default function Step2Commit({
               showIcon={false}
               onClick={onViewPosition}
             />
-          ) : showBack ? (
-            <Button variant="secondary" size="lg" label="Back" showIcon={false} onClick={onBack} />
           ) : (
             <Button variant="secondary" size="lg" label="Close" showIcon={false} onClick={onBack} />
           )}
@@ -125,15 +126,17 @@ export default function Step2Commit({
 
   return (
     <div className={styles.shell} data-flow-shell>
-      <Steps steps={[...steps]} currentStep={stepIndex} />
+      <FlowChrome
+        title="How much USDC?"
+        titleId="commit-title"
+        showBack={showBack}
+        onBack={onBack}
+        onClose={onClose}
+      />
 
       <div className={styles.content}>
         <div className={styles.inputBlock}>
           <div className={styles.amountGroup}>
-            <h2 className={styles.title} id="commit-title">
-              How much USDC?
-            </h2>
-
             <div className={styles.amountCluster}>
               <label className={styles.amountWrapper} htmlFor="commit-amount">
                 <span className={styles.visuallyHidden}>Amount in USDC</span>
@@ -192,9 +195,6 @@ export default function Step2Commit({
       </div>
 
       <div className={styles.buttonRow}>
-        {showBack && (
-          <Button variant="secondary" size="lg" label="Back" showIcon={false} onClick={onBack} />
-        )}
         <Button
           variant="primary"
           size="lg"

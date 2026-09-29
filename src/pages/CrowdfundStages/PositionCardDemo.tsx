@@ -119,7 +119,7 @@ export function PositionCardDemo({ variant, onCta, onClaim, className }: Positio
     >
       <div className={styles.cardHeader}>
         <div className={styles.titleRow}>
-          <h2 className={styles.pageTitle}>My Position</h2>
+          <h2 className={styles.pageTitle}>Your Position</h2>
           {showParticipateCta && (
             <Button
               className={styles.headerCta}
