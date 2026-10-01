@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import type { SlotData } from '../../components/InviteFlow/screens/SlotCard'
 import { InvitesCard } from '../../components/MyPosition/InvitesCard'
-import { DEMO_INVITE_ALLOWANCE, DEMO_SLOTS } from '../../components/MyPosition/myPositionDemo'
+import { DEMO_INVITE_ALLOWANCE, DEMO_SLOTS, DEMO_WALLET } from '../../components/MyPosition/myPositionDemo'
 import {
   nextInviteId,
   type InviteAllowance,
@@ -647,7 +647,7 @@ export function CrowdfundStages() {
                     size="sm"
                     label="Claim refund"
                     showIcon={false}
-                    onClick={() => setModal({ kind: 'claim', screen: 'review-refund' })}
+                    onClick={() => setModal({ kind: 'claim', screen: 'intro-refund' })}
                   />
                 }
               />
@@ -681,7 +681,7 @@ export function CrowdfundStages() {
                     variant === 'finalized-arm'
                       ? () => setModal({ kind: 'claim', screen: 'review-arm' })
                       : variant === 'finalized-refund'
-                        ? () => setModal({ kind: 'claim', screen: 'review-refund' })
+                        ? () => setModal({ kind: 'claim', screen: 'intro-refund' })
                         : undefined
                   }
                 />
@@ -704,6 +704,7 @@ export function CrowdfundStages() {
                 <InvitesCard
                   slots={positionSlots}
                   allowance={DEMO_INVITE_ALLOWANCE}
+                  selfWalletAddress={DEMO_WALLET}
                   onGenerateLink={(hop) => handleGenerateLinkForHop(setPositionSlots, hop)}
                   onCopy={handleCopy}
                   onRevoke={(slotId) => handleRevoke(setPositionSlots, slotId)}
@@ -729,6 +730,7 @@ export function CrowdfundStages() {
                 <ParticipateFlowInviteSlots
                   slots={modalSlots}
                   allowance={modalInviteAllowance}
+                  selfWalletAddress={DEMO_WALLET}
                   onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
                   onCopy={handleCopy}
                   onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}
@@ -912,6 +914,7 @@ export function CrowdfundStages() {
             <ParticipateFlowInviteSlots
               slots={modalSlots}
               allowance={modalInviteAllowance}
+              selfWalletAddress={DEMO_WALLET}
               onGenerateLink={(hop) => handleGenerateLinkForHop(setModalSlots, hop)}
               onCopy={handleCopy}
               onRevoke={(slotId) => handleRevoke(setModalSlots, slotId)}

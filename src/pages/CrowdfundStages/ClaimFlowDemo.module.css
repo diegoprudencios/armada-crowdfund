@@ -53,6 +53,7 @@
 
 /* Same chrome as participate Step3 / Step5: 480×500, spacing-8 inset, steps / content / CTAs. */
 .cardShell {
+  position: relative;
   width: 480px;
   max-width: 100%;
   height: 500px;
@@ -75,7 +76,43 @@
   min-height: 0;
   justify-content: flex-start;
   overflow-y: auto;
-  padding-top: var(--primitives-spacing-6);
+  scrollbar-width: none;
+  /* Title→content gap lives on FlowChrome.barWithTitle when a title is present. */
+  padding-top: 0;
+}
+
+.cardContent::-webkit-scrollbar {
+  display: none;
+}
+
+/* Done screens — vertically center the success stack in the shell. */
+.cardContentCentered {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.cardContentCentered::-webkit-scrollbar {
+  display: none;
+}
+
+.doneStack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--primitives-spacing-6);
+  width: 100%;
+}
+
+.metaStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
 }
 
 /* Picker / list screens: pin content to the top and let the list fill remaining height.
@@ -258,9 +295,29 @@
   align-items: center;
 }
 
+/* Success confirmations — check left of title, left-aligned (matches commit Step 5). */
+.confirmHero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--primitives-spacing-3);
+  text-align: left;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.confirmHeroTitle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--primitives-spacing-3);
+  width: 100%;
+  min-width: 0;
+}
+
 .successIcon {
-  width: var(--primitives-spacing-10);
-  height: var(--primitives-spacing-10);
+  width: var(--primitives-spacing-8);
+  height: var(--primitives-spacing-8);
   flex-shrink: 0;
   color: var(--semantic-color-status-success);
 }
@@ -315,6 +372,8 @@
   background: transparent;
   color: var(--semantic-color-text-secondary);
   cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
 .contractCopyBtn:hover {
@@ -338,6 +397,16 @@
   font-size: calc(var(--primitives-fontSize-2xl) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
   color: var(--semantic-color-text-primary);
+}
+
+.confirmHeroTitle .headline {
+  text-align: left;
+  min-width: 0;
+  line-height: var(--primitives-lineHeight-snug);
+}
+
+.confirmHero .subline {
+  text-align: left;
 }
 
 .subline {
@@ -379,8 +448,59 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-top: var(--primitives-spacing-6);
+  /* Title→content gap lives on FlowChrome.barWithTitle so it stays while scrolling. */
+  padding-top: 0;
   padding-bottom: var(--primitives-spacing-8);
+  scrollbar-width: none;
+}
+
+.introScroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Overlay-chrome intros: title starts at the shell padding edge. */
+.introScrollFlush {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitives-spacing-6);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 0;
+  padding-right: var(--primitives-spacing-8);
+  padding-bottom: var(--primitives-spacing-8);
+  scrollbar-width: none;
+}
+
+.introScrollFlush::-webkit-scrollbar {
+  display: none;
+}
+
+.introLead {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  color: var(--semantic-color-text-secondary);
+  line-height: 1.5;
+  text-align: left;
+}
+
+.introStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--primitives-spacing-3);
+  text-align: left;
+}
+
+.introTitle {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xl) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+  line-height: 1.4;
+  text-align: left;
 }
 
 .introFade {
@@ -489,6 +609,30 @@
   font-weight: var(--primitives-fontWeight-medium);
   color: var(--semantic-color-text-primary);
   text-align: right;
+}
+
+.factValueLink {
+  font-family: var(--primitives-fontFamily-mono), monospace;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  color: var(--semantic-color-text-primary);
+  text-align: right;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factValueLink:hover {
+  color: var(--semantic-color-text-lavender);
+}
+
+.factValueLink:focus-visible {
+  outline: 2px solid var(--semantic-color-border-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .factValueAccent {
@@ -687,6 +831,11 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.delegateList::-webkit-scrollbar {
+  display: none;
 }
 
 .delegateListItem {

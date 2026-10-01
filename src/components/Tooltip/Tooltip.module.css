@@ -4,13 +4,12 @@
   align-items: center;
 }
 
-/* ── Tooltip base ── */
+/* ── Tooltip base (portaled to body; top/left set inline from trigger rect) ── */
 .tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+  position: fixed;
+  /* Sit above the trigger: translate up by full height + spacing-2 gap. */
+  transform: translate(-50%, calc(-100% - var(--primitives-spacing-2)));
+  z-index: 300;
   padding: var(--primitives-spacing-5);
   background: var(--semantic-color-surface-raised);
   border: 1px solid var(--semantic-color-border-default);

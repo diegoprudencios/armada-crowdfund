@@ -484,6 +484,7 @@ export function ParticipateFlowCrowdfund({
           <ParticipateFlowInviteSlots
             slots={slots}
             allowance={inviteAllowance}
+            selfWalletAddress={walletAddress}
             onGenerateLink={
               onGenerateInviteLink ??
               (async (hop) => {

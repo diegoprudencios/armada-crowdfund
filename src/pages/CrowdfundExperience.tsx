@@ -25,6 +25,7 @@ import { ClaimFlow } from '../components/ClaimFlow/ClaimFlow'
 import { DemoSessionProvider, useDemoSession } from '../context/DemoSessionContext'
 import {
   formatSaleStatusLabel,
+  presetFromSale,
   type DemoSalePreset,
 } from '../lib/demoSaleLifecycle'
 import {
@@ -229,6 +230,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
     { id: 'finalized-refund', label: 'Finalized · refund' },
     { id: 'cancelled', label: 'Cancelled' },
   ]
+  const activeSalePreset = presetFromSale(salePhase, windowOpen, saleBelowMin)
 
   useEffect(() => {
     if (isMobileLayout()) {
@@ -542,7 +544,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         usdcBalance={0}
         onDisconnect={handleDisconnectWallet}
         autoHideOnScroll={false}
-        className={[heroStyles.headerOverride, heroStyles.enter, heroStyles.enterHeader].join(' ')}
+        className={[
+          heroStyles.headerOverride,
+          shellStyles.headerBelowDemoSale,
+          heroStyles.enter,
+          heroStyles.enterHeader,
+        ].join(' ')}
         onMyPosition={goToMyPosition}
         onCrowdfund={goToCrowdfund}
         onClaim={goToClaim}
@@ -550,6 +557,28 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         onConnectWallet={() => setConnectOpen(true)}
       />
 
+      <div className={shellStyles.saleDebug} role="group" aria-label="Crowdfund stage">
+        <span className={shellStyles.saleDebugLabel}>Crowdfund stage</span>
+        {SALE_PRESETS.map((preset) => {
+          const selected = preset.id === activeSalePreset
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              className={[
+                shellStyles.saleDebugBtn,
+                selected && shellStyles.saleDebugBtnActive,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-pressed={selected}
+              onClick={() => setSalePreset(preset.id)}
+            >
+              {preset.label}
+            </button>
+          )
+        })}
+      </div>
       <div
         className={[
           shellStyles.experienceLayout,
@@ -798,20 +827,6 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         </div>
       </div>
 
-      <div className={shellStyles.saleDebug} role="group" aria-label="Demo sale stage">
-        <span className={shellStyles.saleDebugLabel}>Demo sale</span>
-        {SALE_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            className={shellStyles.saleDebugBtn}
-            onClick={() => setSalePreset(preset.id)}
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-
       <ParticipateFlowCrowdfund
         open={participateOpen && isCrowdfund && participationEnabled && !claimOpen}
         onClose={closeParticipateFlow}
@@ -849,6 +864,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         <ClaimFlow
           walletConnected={walletConnected}
           walletDisplayAddress={wallet?.displayAddress}
+          walletAddress={wallet?.address}
           claimAvailable={claimReady}
           awaitingFinalize={awaitingFinalize}
           mode={claimMode}

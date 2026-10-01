@@ -114,17 +114,16 @@ export default function Step0Invite({
       <div className={styles.overlay} />
       <div className={[styles.content, isLanding && styles.contentLanding].filter(Boolean).join(' ')}>
         <div className={styles.top}>
+          <p className={styles.brandEyebrow}>Armada Crowdfund</p>
+          <h1 className={styles.headline}>You are invited to join the fleet</h1>
           {timeLeftLabel != null ? (
-            <div className={styles.meta}>
+            <div className={styles.metaTag}>
               <Tag
                 label={timeLeftLabel}
                 className={isLiveCounter ? styles.timeCounter : undefined}
               />
             </div>
           ) : null}
-          <div className={styles.copy}>
-            <h1 className={styles.headline}>You are invited to join the fleet</h1>
-          </div>
         </div>
         <div className={[styles.footer, isLanding && styles.footerLanding].filter(Boolean).join(' ')}>
           <HopPill

@@ -26,6 +26,8 @@ export interface ParticipateFlowInviteSlotsProps {
   /** Issued invites (pending / waiting / joined / closed). Empty slots are not rows. */
   slots: SlotData[]
   allowance: InviteAllowance
+  /** Connected wallet — self-invite CTA when address matches. */
+  selfWalletAddress?: string
   onGenerateLink: (
     hop: InviteeHop,
   ) => Promise<{ id: number; link: string; expiresAt: Date } | void>
@@ -44,6 +46,7 @@ export interface ParticipateFlowInviteSlotsProps {
 export function ParticipateFlowInviteSlots({
   slots,
   allowance,
+  selfWalletAddress,
   onGenerateLink,
   onCopy,
   onRevoke,
@@ -158,6 +161,7 @@ export function ParticipateFlowInviteSlots({
             onInviteOnchain={onInviteOnchain}
             onCopy={onCopy}
             onRevoke={onRevoke}
+            selfWalletAddress={selfWalletAddress}
             copiedInviteId={copiedId}
             list={listFrame}
           />

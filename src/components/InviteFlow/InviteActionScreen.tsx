@@ -40,6 +40,10 @@ function isPasteableAddress(val: string): boolean {
   return isValidAddress(trimmed) || isEns(trimmed)
 }
 
+function sameAddress(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 function inviteLinkPath(url: string): string {
   try {
     const parsed = new URL(url)
@@ -75,6 +79,8 @@ export interface InviteActionScreenProps {
   onConfirmCreated?: (id: number) => void
   /** Drop deferred invite revoked from confirmation (never shown in list). */
   onDiscardCreated?: (id: number) => void
+  /** Connected wallet — when the pasted address matches, CTA / confirm become self-invite. */
+  selfWalletAddress?: string
   copiedInviteId?: number | null
 }
 
@@ -91,6 +97,7 @@ export function InviteActionScreen({
   onRevoke,
   onConfirmCreated,
   onDiscardCreated,
+  selfWalletAddress,
   copiedInviteId = null,
 }: InviteActionScreenProps) {
   const [addressInput, setAddressInput] = useState('')
@@ -117,10 +124,24 @@ export function InviteActionScreen({
   const hopLabel = hop != null ? formatInviteeHop(hop) : `Slot ${slotId}`
   const hopColor =
     hop != null ? hopPillDotColor(hopVariantForInvitee(hop)) : null
+
+  const resolvedInviteAddress =
+    resolvedAddress || (isValidAddress(addressInput) ? addressInput.trim() : '')
+  const isSelfInviteForm =
+    selfWalletAddress != null &&
+    resolvedInviteAddress !== '' &&
+    sameAddress(resolvedInviteAddress, selfWalletAddress)
+  const isSelfInviteConfirm =
+    createdOnchain != null &&
+    selfWalletAddress != null &&
+    sameAddress(createdOnchain.address, selfWalletAddress)
+
   const title = createdLink
     ? 'Link ready to share'
     : createdOnchain
-      ? 'Invite sent on-chain'
+      ? isSelfInviteConfirm
+        ? 'Self invite sent on-chain'
+        : 'Invite sent on-chain'
       : method === 'link'
         ? 'Create and share an invite link'
         : method === 'onchain'
@@ -145,7 +166,9 @@ export function InviteActionScreen({
         ? loading
           ? 'Inviting…'
           : hasAddressInput
-            ? 'Send invite'
+            ? isSelfInviteForm
+              ? 'Self invite'
+              : 'Send invite'
             : 'Insert address'
         : 'Continue'
 
@@ -443,8 +466,9 @@ export function InviteActionScreen({
 
         <div className={styles.body}>
           <p className={styles.hint} role="status">
-            They can visit armada.wtf, connect this wallet, and commit USDC anytime before
-            the deadline.
+            {isSelfInviteConfirm
+              ? 'You invited yourself. Connect this wallet on armada.wtf and commit USDC anytime before the deadline.'
+              : 'They can visit armada.wtf, connect this wallet, and commit USDC anytime before the deadline.'}
           </p>
           <div className={styles.createdLinkBox}>
             <div className={styles.createdLinkMain}>

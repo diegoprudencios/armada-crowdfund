@@ -114,6 +114,7 @@ export function Header({
         label: 'Claim',
         active: claimAvailable && activeNav === 'claim',
         disabled: !claimAvailable,
+        accent: claimAvailable ? 'brand' : undefined,
         onClick: claimAvailable ? handleClaim : undefined,
       },
     ],

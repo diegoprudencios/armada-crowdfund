@@ -160,6 +160,8 @@ export interface InviteHopFocusChromeProps {
   onRevoke?: (id: number) => void | Promise<void>
   onConfirmCreated?: (id: number) => void
   onDiscardCreated?: (id: number) => void
+  /** Connected wallet — enables self-invite CTA / confirmation copy. */
+  selfWalletAddress?: string
   copiedInviteId?: number | null
   list: ReactNode
 }
@@ -174,6 +176,7 @@ export function InviteHopFocusChrome({
   onRevoke,
   onConfirmCreated,
   onDiscardCreated,
+  selfWalletAddress,
   copiedInviteId = null,
   list,
 }: InviteHopFocusChromeProps) {
@@ -239,6 +242,7 @@ export function InviteHopFocusChrome({
             onRevoke={onRevoke}
             onConfirmCreated={onConfirmCreated}
             onDiscardCreated={onDiscardCreated}
+            selfWalletAddress={selfWalletAddress}
             copiedInviteId={copiedInviteId}
           />
         )}

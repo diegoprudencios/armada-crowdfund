@@ -3,8 +3,10 @@
   --panel-transition-duration: 480ms;
   --panel-transition-gap: 180ms;
   --panel-transition-ease: cubic-bezier(0.32, 0, 0.15, 1);
+  --demo-sale-bar-height: 44px;
   --hero-corner-max-height: calc(
-    100vh - var(--primitives-spacing-6) - var(--primitives-spacing-6) - 56px - var(--primitives-spacing-6)
+    100vh - var(--primitives-spacing-6) - var(--primitives-spacing-6) - 56px -
+      var(--primitives-spacing-6) - var(--demo-sale-bar-height)
   );
 }
 
@@ -252,21 +254,36 @@
 }
 
 .saleDebug {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 120;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--primitives-spacing-2);
-  padding: var(--primitives-spacing-2) var(--primitives-spacing-3);
-  border: 1px solid var(--semantic-color-border-default);
-  border-radius: calc(var(--primitives-borderRadius-md) * 1px);
+  min-height: var(--demo-sale-bar-height);
+  padding: var(--primitives-spacing-2) var(--primitives-spacing-4);
+  border: none;
+  border-bottom: 1px solid var(--semantic-color-border-default);
+  border-radius: 0;
   background: var(--semantic-color-surface-raised);
+  box-sizing: border-box;
+}
+
+/* Keep floating app header below the demo strip. */
+.headerBelowDemoSale {
+  top: calc(var(--demo-sale-bar-height) + var(--primitives-spacing-6)) !important;
 }
 
 .saleDebugLabel {
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-xs) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
+  letter-spacing: var(--primitives-letterSpacing-widest);
+  text-transform: uppercase;
   color: var(--semantic-color-text-muted);
   margin-right: var(--primitives-spacing-1);
 }
@@ -276,17 +293,20 @@
   margin: 0;
   padding: var(--primitives-spacing-1) var(--primitives-spacing-3);
   border: 1px solid var(--semantic-color-border-default);
-  border-radius: calc(var(--primitives-borderRadius-sm) * 1px);
+  border-radius: calc(var(--primitives-borderRadius-full) * 1px);
   background: var(--semantic-color-surface-default);
-  color: var(--semantic-color-text-primary);
+  color: var(--semantic-color-text-secondary);
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
   line-height: 1.4;
   cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 
 .saleDebugBtn:hover {
   background: var(--semantic-color-surface-hover);
+  color: var(--semantic-color-text-primary);
 }
 
 .saleDebugBtn:focus-visible {
@@ -294,11 +314,23 @@
   outline-offset: 2px;
 }
 
-/* Non-claim: pin demo sale controls above the graph corners */
-.experienceLayout ~ .saleDebug {
-  position: fixed;
-  left: 50%;
-  bottom: var(--primitives-spacing-4);
-  z-index: 20;
-  transform: translateX(-50%);
+.saleDebugBtnActive {
+  background: var(--semantic-color-brand-lavender);
+  border-color: var(--semantic-color-brand-lavender);
+  color: var(--semantic-component-button-gradient-text);
+}
+
+.saleDebugBtnActive:hover {
+  background: var(--semantic-color-brand-lavender);
+  color: var(--semantic-component-button-gradient-text);
+}
+
+@media (max-width: 767px) {
+  .headerBelowDemoSale {
+    top: auto !important;
+  }
+
+  .page {
+    padding-top: var(--demo-sale-bar-height);
+  }
 }

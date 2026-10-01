@@ -138,6 +138,7 @@ export function MyPositionSplit() {
               variant="split"
               slots={DEMO_SLOTS}
               allowance={DEMO_INVITE_ALLOWANCE}
+              selfWalletAddress={DEMO_WALLET}
               onGenerateLink={handleGenerateLink}
               onCopy={handleCopy}
               onRevoke={handleRevoke}

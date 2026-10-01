@@ -79,6 +79,18 @@ export function saleFromPreset(preset: DemoSalePreset): DemoSaleSnapshot {
   }
 }
 
+/** Inverse of `saleFromPreset` for highlighting the demo stage control. */
+export function presetFromSale(
+  phase: DemoSalePhase,
+  windowOpen: boolean,
+  saleBelowMin: boolean,
+): DemoSalePreset {
+  if (phase === 2) return 'cancelled'
+  if (phase === 1) return saleBelowMin ? 'finalized-refund' : 'finalized'
+  if (windowOpen) return 'active'
+  return saleBelowMin ? 'below-min' : 'closed'
+}
+
 export function readSalePresetFromUrl(): DemoSalePreset | null {
   if (typeof window === 'undefined') return null
   const raw = new URLSearchParams(window.location.search).get('sale')

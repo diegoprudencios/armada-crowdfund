@@ -51,14 +51,25 @@
 .top {
   display: flex;
   flex-direction: column;
-  gap: var(--primitives-spacing-6);
+  align-items: flex-start;
+  gap: var(--primitives-spacing-4);
   min-width: 0;
 }
 
-.meta {
-  display: flex;
-  align-items: center;
+.brandEyebrow {
+  margin: 0;
   min-width: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
+  font-weight: var(--primitives-fontWeight-medium);
+  letter-spacing: var(--primitives-letterSpacing-widest);
+  text-transform: uppercase;
+  color: var(--semantic-color-text-primary);
+  line-height: 1.2;
+}
+
+.metaTag {
+  flex-shrink: 0;
 }
 
 /* Live HH:MM:SS under 48h — tabular figures so the tag width doesn't jump. */
@@ -66,12 +77,6 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   letter-spacing: 0.02em;
-}
-
-.copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-2);
 }
 
 .headline {
@@ -101,10 +106,6 @@
 
 .contentLanding {
   justify-content: space-between;
-}
-
-.contentLanding .copy {
-  gap: var(--primitives-spacing-3);
 }
 
 .footerLanding {
