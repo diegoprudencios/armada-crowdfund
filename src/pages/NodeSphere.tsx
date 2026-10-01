@@ -141,6 +141,8 @@ export interface NodeSphereProps {
   lockOnWallet?: boolean
   /** Wire wallet to Hop-1 invitees instead of crowdfund hop layers. */
   inviteGraph?: boolean
+  /** Hide hover / selection tooltips (e.g. when an overlay list is expanded). */
+  hideNodePopover?: boolean
 }
 
 export function NodeSphere({
@@ -154,6 +156,7 @@ export function NodeSphere({
   walletAddress,
   lockOnWallet = false,
   inviteGraph = false,
+  hideNodePopover = false,
 }: NodeSphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
@@ -378,8 +381,16 @@ export function NodeSphere({
     addShell('Multi-hop', shellRadii[3].radius, scenarioCounts.real.multi, scenarioCounts.ghost.multi)
 
     // Wallet node when there are participants or a connected demo wallet.
+    // Prefer an explicit “Your wallet” pin; else any pin matching walletAddress
+    // (so multi-hop / max-out totals still surface on this node).
     if (scenario.participants > 0 || walletAddress) {
-      const walletPinned = pinnedByKind.get('Your wallet')?.[0]
+      const walletPinned =
+        pinnedByKind.get('Your wallet')?.[0] ??
+        layoutPinnedNodes?.find(
+          (p) =>
+            !!walletAddress &&
+            p.address.toLowerCase() === walletAddress.toLowerCase(),
+        )
       const walletPos = randomUnitVector(rand).multiplyScalar(5.8)
       pushNode(walletPos, {
         kind: 'Your wallet',
@@ -531,6 +542,8 @@ export function NodeSphere({
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
+    const _dragUp = new THREE.Vector3(0, 1, 0)
+    const _dragRight = new THREE.Vector3(1, 0, 0)
     let hovered: THREE.Mesh | null = null
     let hoveredAddress: string | undefined
     let dragLastX = 0
@@ -568,9 +581,9 @@ export function NodeSphere({
         dragLastX = e.clientX
         dragLastY = e.clientY
 
-        // Drag rotation: right-drag rotates around Y, up/down rotates around X.
-        root.rotation.y += dx * 0.006
-        root.rotation.x += dy * 0.004
+        // Screen-space spin on world axes.
+        root.rotateOnWorldAxis(_dragUp, dx * 0.006)
+        root.rotateOnWorldAxis(_dragRight, dy * 0.004)
         return
       }
 
@@ -924,7 +937,9 @@ export function NodeSphere({
       }}
     >
       {/* Hover tooltip (hidden when pinned selection tip is showing for the same node) */}
-      {hover?.visible && (!selectedTip?.visible || hover.address !== selectedTip.address) && (
+      {!hideNodePopover &&
+        hover?.visible &&
+        (!selectedTip?.visible || hover.address !== selectedTip.address) && (
         <div
           style={{
             position: 'fixed',
@@ -988,7 +1003,7 @@ export function NodeSphere({
       )}
 
       {/* Selected tooltip (pinned) */}
-      {selectedTip?.visible && (
+      {!hideNodePopover && selectedTip?.visible && (
         <div
           style={{
             position: 'fixed',

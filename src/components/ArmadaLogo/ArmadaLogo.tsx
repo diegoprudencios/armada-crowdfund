@@ -12,34 +12,21 @@ const LIGHT_LOGO_SRC = `${import.meta.env.BASE_URL}armada-logo-light.png`
 
 const GRADIENT_DEFS = (
   <defs>
-    <linearGradient id="armada-lg0" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg1" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg2" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg3" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg4" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg5" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
-    <linearGradient id="armada-lg6" x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#F8D197" />
-      <stop offset="1" stopColor="#CA8AEA" />
-    </linearGradient>
+    {[
+      'armada-lg0',
+      'armada-lg1',
+      'armada-lg2',
+      'armada-lg3',
+      'armada-lg4',
+      'armada-lg5',
+      'armada-lg6',
+    ].map((id) => (
+      <linearGradient key={id} id={id} x1="16" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
+        <stop stopColor="var(--semantic-color-brand-amber)" />
+        <stop offset="0.48" stopColor="var(--semantic-color-brand-gradient-rose)" />
+        <stop offset="1" stopColor="var(--semantic-color-brand-lavender)" />
+      </linearGradient>
+    ))}
   </defs>
 )
 

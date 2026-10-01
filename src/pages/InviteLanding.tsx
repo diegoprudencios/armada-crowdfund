@@ -36,13 +36,24 @@ function InviteLandingInner() {
     hasParticipated,
     committedUsdc,
     hopVariant: sessionHop,
+    hopState,
+    capUsdc,
+    remainingHopUsdc,
+    maxOutPlan,
     slots,
+    inviteAllowance,
     connectWallet,
     completeParticipation,
-    generateSlotLink,
+    applyMaxOutPlan,
+    generateInviteLink,
     revokeSlot,
-    inviteSlotOnchain,
-    loadingSlotId,
+    inviteOnchain,
+    loadingHop,
+    salePhase,
+    windowOpen,
+    saleBelowMin,
+    armClaimed,
+    refundClaimed,
   } = useDemoSession()
 
   const [flowActive, setFlowActive] = useState(false)
@@ -70,7 +81,20 @@ function InviteLandingInner() {
   const openFlow = () => setFlowActive(true)
 
   const goToMyPosition = () => {
-    writeDemoSession({ wallet, committedUsdc, hasParticipated, slots })
+    writeDemoSession({
+      wallet,
+      committedUsdc,
+      hasParticipated,
+      hopVariant: sessionHop,
+      hopState,
+      slots,
+      inviteAllowance,
+      salePhase,
+      windowOpen,
+      saleBelowMin,
+      armClaimed,
+      refundClaimed,
+    })
     window.location.assign(MY_POSITION_URL)
   }
 
@@ -97,16 +121,24 @@ function InviteLandingInner() {
             walletConnected={walletConnected}
             onConnectWallet={connectWallet}
             onCompleteParticipation={completeParticipation}
+            onApplyMaxOutPlan={applyMaxOutPlan}
             onViewPosition={goToMyPosition}
             hasParticipated={hasParticipated}
             committedUsdc={committedUsdc}
+            capUsdc={capUsdc}
+            remainingHopUsdc={remainingHopUsdc}
+            maxOutPlan={maxOutPlan}
             hopVariant={hopVariant}
+            walletAddress={wallet?.address}
+            walletDisplayAddress={wallet?.displayAddress}
+            windowClosesLabel="14 Oct, 18:00 CET"
             slots={slots}
-            onGenerateSlotLink={generateSlotLink}
+            inviteAllowance={inviteAllowance}
+            onGenerateInviteLink={generateInviteLink}
             onRevokeSlot={revokeSlot}
-            onInviteSlotOnchain={inviteSlotOnchain}
+            onInviteOnchainHop={inviteOnchain}
             onCopySlotLink={handleCopy}
-            loadingSlotId={loadingSlotId}
+            loadingHop={loadingHop}
             copiedSlotId={copiedId}
           />
         ) : (

@@ -9,6 +9,7 @@ import { NodeSphere } from '../../pages/NodeSphere'
 import {
   buildInvitePinnedNodes,
   COMMITTED,
+  DEMO_INVITE_ALLOWANCE,
   DEMO_SLOTS,
   DEMO_WALLET,
   DEMO_WALLET_DISPLAY,
@@ -18,33 +19,40 @@ import {
   GRAPH_PARTICIPANTS,
   GRAPH_SEED,
 } from './myPositionDemo'
+import type { InviteeHop } from './inviteModel'
 
 export function MyPositionSplit() {
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [loadingId, setLoadingId] = useState<number | null>(null)
+  const [loadingHop, setLoadingHop] = useState<InviteeHop | null>(null)
 
   const invitePinnedNodes = useMemo(
     () => buildInvitePinnedNodes(DEMO_SLOTS, DEMO_WALLET, COMMITTED),
     [],
   )
 
-  const handleGenerateLink = async (slotId: number) => {
-    setLoadingId(slotId)
+  const handleGenerateLink = async (hop: InviteeHop) => {
+    setLoadingHop(hop)
     await new Promise((r) => setTimeout(r, 800))
-    setLoadingId(null)
+    setLoadingHop(null)
+    const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    return {
+      id: Date.now(),
+      link: `https://armada.wtf/join?invite=demo&hop=hop-${hop}`,
+      expiresAt,
+    }
   }
 
   const handleCopy = (slotId: number, link: string) => {
-    navigator.clipboard.writeText(link)
+    void navigator.clipboard.writeText(link)
     setCopiedId(slotId)
-    setTimeout(() => setCopiedId(null), 2000)
+    setTimeout(() => setCopiedId(null), 1200)
   }
 
   const handleRevoke = async () => {}
-  const handleInviteOnchain = async (slotId: number) => {
-    setLoadingId(slotId)
+  const handleInviteOnchain = async (hop: InviteeHop) => {
+    setLoadingHop(hop)
     await new Promise((r) => setTimeout(r, 800))
-    setLoadingId(null)
+    setLoadingHop(null)
   }
 
   return (
@@ -77,7 +85,7 @@ export function MyPositionSplit() {
           <div className={styles.sidebarStack}>
             <section className={styles.positionCard} aria-label="Your position">
               <div className={styles.cardHeader}>
-                <h1 className={styles.pageTitle}>My Position</h1>
+                <h1 className={styles.pageTitle}>Your Position</h1>
                 <div className={styles.metaTags}>
                   <Tag label={DEMO_WALLET_DISPLAY} dot="lavender" />
                   <Tag label="HOP-1" dot="lavender" />
@@ -129,12 +137,20 @@ export function MyPositionSplit() {
             <InvitesCard
               variant="split"
               slots={DEMO_SLOTS}
+              allowance={DEMO_INVITE_ALLOWANCE}
+              selfWalletAddress={DEMO_WALLET}
               onGenerateLink={handleGenerateLink}
               onCopy={handleCopy}
               onRevoke={handleRevoke}
               onInviteOnchain={handleInviteOnchain}
               copiedSlotId={copiedId}
-              loadingSlotId={loadingId}
+              loadingHop={loadingHop}
+              onViewRedeemed={(address) => {
+                const url = new URL('/', window.location.origin)
+                url.searchParams.set('view', 'crowdfund')
+                url.searchParams.set('select', address)
+                window.location.assign(url.toString())
+              }}
             />
           </div>
         </aside>

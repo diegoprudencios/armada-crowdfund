@@ -4,7 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import styles from './ParticipateFlowModal.module.css'
 
 const EXIT_MS = 280
-const CLOSE_ICON_PX = 20
+const CLOSE_ICON_PX = 14
 const ARMADA_SYMBOL_SRC = `${import.meta.env.BASE_URL}armada-symbol-color.png`
 
 export interface ParticipateFlowModalProps {
@@ -13,6 +13,12 @@ export interface ParticipateFlowModalProps {
   children: ReactNode
   /** Accessible name for the dialog (e.g. step headline). */
   ariaLabel: string
+  /** Accessible name for the close control. */
+  closeAriaLabel?: string
+  /** When false, hides the top-right close control (e.g. invite uses “Do it later”). */
+  showClose?: boolean
+  /** Optional content below the step shell (e.g. “Do it later” text link). */
+  footer?: ReactNode
 }
 
 export function ParticipateFlowModal({
@@ -20,8 +26,12 @@ export function ParticipateFlowModal({
   onClose,
   children,
   ariaLabel,
+  closeAriaLabel = 'Close participate flow',
+  showClose = true,
+  footer,
 }: ParticipateFlowModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(open)
   const [exiting, setExiting] = useState(false)
 
@@ -45,7 +55,15 @@ export function ParticipateFlowModal({
 
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    closeRef.current?.focus()
+
+    if (showClose) {
+      closeRef.current?.focus()
+    } else {
+      const focusable = footerRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      focusable?.focus()
+    }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -56,7 +74,7 @@ export function ParticipateFlowModal({
       document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [mounted, exiting, onClose])
+  }, [mounted, exiting, onClose, showClose])
 
   if (!mounted) return null
 
@@ -74,21 +92,36 @@ export function ParticipateFlowModal({
         aria-hidden
       />
       <div
-        className={[styles.panel, exiting && styles.panelExit].join(' ')}
+        className={[
+          styles.panel,
+          !showClose && styles.panelNoClose,
+          exiting && styles.panelExit,
+        ]
+          .filter(Boolean)
+          .join(' ')}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
       >
-        <button
-          ref={closeRef}
-          type="button"
-          className={styles.close}
-          onClick={onClose}
-          aria-label="Close participate flow"
-        >
-          <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
-        </button>
-        <div className={[styles.step, exiting && styles.stepExit].join(' ')}>{children}</div>
+        {showClose ? (
+          <button
+            ref={closeRef}
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label={closeAriaLabel}
+          >
+            <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
+          </button>
+        ) : null}
+        <div className={[styles.step, exiting && styles.stepExit].filter(Boolean).join(' ')}>
+          {children}
+        </div>
+        {footer ? (
+          <div ref={footerRef} className={styles.footer}>
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body,

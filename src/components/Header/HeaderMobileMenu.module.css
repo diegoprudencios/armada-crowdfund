@@ -7,6 +7,7 @@
   background: linear-gradient(
     180deg,
     var(--semantic-color-brand-lavender) 0%,
+    var(--semantic-color-brand-gradient-rose) 52%,
     var(--semantic-color-brand-amber) 100%
   );
   box-sizing: border-box;
@@ -219,6 +220,17 @@
 
 .navItemActive:hover {
   color: var(--semantic-color-surface-bg);
+}
+
+.navItemDisabled,
+.navItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.navItemDisabled:hover,
+.navItem:disabled:hover {
+  color: var(--primitives-color-white-full);
 }
 
 .participateCard {

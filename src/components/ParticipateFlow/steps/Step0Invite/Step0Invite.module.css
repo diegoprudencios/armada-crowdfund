@@ -11,7 +11,7 @@
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
-  /* Fixed brand cover — copy stays white on video regardless of data-theme */
+  /* Fixed brand cover — copy stays white on media regardless of data-theme */
   --semantic-color-text-primary: #ffffff;
   --semantic-color-text-secondary: rgba(255, 255, 255, 0.7);
 }
@@ -48,42 +48,35 @@
   box-sizing: border-box;
 }
 
-.meta {
+.top {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--primitives-spacing-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--primitives-spacing-4);
   min-width: 0;
 }
 
-.metaLabel {
+.brandEyebrow {
+  margin: 0;
+  min-width: 0;
   font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-sm) * 1px);
+  font-size: calc(var(--primitives-fontSize-xs) * 1px);
   font-weight: var(--primitives-fontWeight-medium);
   letter-spacing: var(--primitives-letterSpacing-widest);
   text-transform: uppercase;
   color: var(--semantic-color-text-primary);
+  line-height: 1.2;
+}
+
+.metaTag {
   flex-shrink: 0;
 }
 
-.bottom {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-6);
-}
-
-.copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--primitives-spacing-2);
-}
-
-.eyebrow {
-  margin: 0;
-  font-family: var(--primitives-fontFamily-ui), sans-serif;
-  font-size: calc(var(--primitives-fontSize-base) * 1px);
-  font-weight: var(--primitives-fontWeight-regular);
-  color: var(--semantic-color-text-secondary);
+/* Live HH:MM:SS under 48h — tabular figures so the tag width doesn't jump. */
+.timeCounter {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.02em;
 }
 
 .headline {
@@ -108,20 +101,11 @@
   width: 100%;
   min-width: 0;
   max-width: 480px;
-  border: 1px solid var(--semantic-color-border-lavender);
+  border: 1px solid var(--semantic-color-border-default);
 }
 
 .contentLanding {
-  justify-content: flex-start;
-}
-
-.contentLanding .bottom {
-  margin-top: auto;
-  gap: var(--primitives-spacing-11);
-}
-
-.contentLanding .copy {
-  gap: var(--primitives-spacing-3);
+  justify-content: space-between;
 }
 
 .footerLanding {

@@ -20,6 +20,7 @@ import WalletItem from '../components/WalletItem/WalletItem'
 import { Participate } from '../components/Participate'
 import { Progress } from '../components/Progress'
 import Step0Invite from '../components/ParticipateFlow/steps/Step0Invite/Step0Invite'
+import StepBeforeYouStart from '../components/ParticipateFlow/screens/StepBeforeYouStart'
 import Step1Wallet from '../components/ParticipateFlow/screens/Step1Wallet'
 import Step2Commit from '../components/ParticipateFlow/screens/Step2Commit.tsx'
 import Step3Review from '../components/ParticipateFlow/screens/Step3Review.tsx'
@@ -48,10 +49,9 @@ const eyebrow = {
 }
 
 const NAV_ITEMS = [
-  { label: 'The project' },
   { label: 'Crowdfund', active: true },
-  { label: 'My position' },
-  { label: 'Claim' },
+  { label: 'Your position' },
+  { label: 'Claim', disabled: true },
 ]
 
 function DepositAmountCardShowcase() {
@@ -99,6 +99,24 @@ export function Showcase() {
         walletCopyAddress="0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c"
         walletProvider="metamask"
       />
+
+      <section style={sectionStyle}>
+        <div style={eyebrow}>Crowdfund stages</div>
+        <p style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 16, maxWidth: 560 }}>
+          Lifecycle gallery for Progress / My Position cards, Participate modals, and Claim screens.
+        </p>
+        <a
+          href="/crowdfund-stages.html"
+          style={{
+            color: 'rgba(196,145,229,0.95)',
+            fontFamily: '"Geist", sans-serif',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          Open crowdfund stages →
+        </a>
+      </section>
 
       {/* DepositAmountCard */}
       <section style={sectionStyle}>
@@ -304,6 +322,21 @@ export function Showcase() {
             />
           </div>
           <div style={{ flexShrink: 0 }}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>Before you start</div>
+            <StepBeforeYouStart
+              hopVariant="seed"
+              capUsdc={15_000}
+              inviteCount={3}
+              maxOutCeilingUsdc={33_000}
+              walletAddress="0x3f8a1b2c3d4e5f60718293a4b5c6d7e8f9a0a91c"
+              walletDisplayAddress="0x3f…a91c"
+              windowClosesLabel="14 Oct, 18:00 CET"
+              onBack={() => console.log('back')}
+              onContinue={() => console.log('continue')}
+              onClose={() => console.log('close')}
+            />
+          </div>
+          <div style={{ flexShrink: 0 }}>
             <div style={{ ...eyebrow, marginBottom: 12 }}>Step 1 (Wallet)</div>
             <Step1Wallet onNext={(wallet) => console.log('wallet:', wallet)} />
           </div>
@@ -312,6 +345,7 @@ export function Showcase() {
             <Step2Commit
               onNext={(amount: number) => console.log('amount:', amount)}
               onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
             />
           </div>
           <div style={{ flexShrink: 0 }}>
@@ -319,6 +353,7 @@ export function Showcase() {
             <Step3Review
               onNext={() => console.log('approve')}
               onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
               hopLevel="Hop 1"
               amount={1000}
               estimatedArm={1000}
@@ -328,6 +363,9 @@ export function Showcase() {
             <div style={{ ...eyebrow, marginBottom: 12 }}>STEP 4 (APPROVE)</div>
             <Step4Approve
               onDone={() => console.log('approve done')}
+              onBack={() => console.log('back')}
+              onClose={() => console.log('close')}
+              showcase
               amount={1000}
             />
           </div>
@@ -337,6 +375,7 @@ export function Showcase() {
               showViewPositionButton
               onViewPosition={() => console.log('view position')}
               onInvite={() => console.log('invite')}
+              onClose={() => console.log('close')}
               amount={1000}
               estimatedArm={1000}
             />
@@ -418,7 +457,13 @@ export function Showcase() {
                 onInviteOnchain={async () => {}}
               />
               <SlotCard
-                slot={{ id: 6, status: 'redeemed', redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c' }}
+                slot={{
+                  id: 6,
+                  status: 'redeemed',
+                  redeemedBy: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3c',
+                  joinedAt: new Date('2026-03-12T14:00:00Z'),
+                  inviteeHop: 1,
+                }}
                 onGenerateLink={async () => {}}
                 onCopy={() => {}}
                 onRevoke={() => {}}

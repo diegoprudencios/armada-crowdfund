@@ -45,11 +45,11 @@
   white-space: nowrap;
 }
 
-/* Invite landing card — match JoinButton height */
+/* Invite card footer — match JoinButton height exactly */
 .landing {
   gap: var(--primitives-spacing-3);
   padding: var(--primitives-spacing-4) var(--primitives-spacing-5);
-  min-height: var(--primitives-spacing-16);
+  height: var(--primitives-spacing-16);
   box-sizing: border-box;
 }
 

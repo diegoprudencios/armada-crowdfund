@@ -9,10 +9,9 @@
 .shell {
   width: 100%;
   height: auto;
-  max-height: min(70vh, 520px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .footer {
@@ -24,6 +23,5 @@
 .scroll {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: var(--primitives-spacing-1);
+  overflow: visible;
 }

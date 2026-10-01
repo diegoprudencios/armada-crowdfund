@@ -45,9 +45,9 @@
   -webkit-backdrop-filter: none !important;
   border-bottom: none !important;
   position: fixed !important;
-  top: var(--primitives-spacing-6);
-  left: var(--primitives-spacing-6);
-  right: var(--primitives-spacing-6);
+  top: var(--primitives-spacing-6) !important;
+  left: var(--primitives-spacing-6) !important;
+  right: var(--primitives-spacing-6) !important;
   width: auto !important;
   z-index: 100 !important;
   --header-concealed-extra: var(--primitives-spacing-6);

@@ -44,7 +44,7 @@ Generic crypto aesthetics. Anything that reads as underground or dangerous.
 - **Build:** `tsc && vite build`. Always run `npm run build` locally before
   pushing. `npm run dev` skips TypeScript, so type errors only surface on build.
 - **Deploy:** Vercel. Entry points include `hero.html`, `invite.html`,
-  `dashboard.html`, `showcase.html`, `myposition.html`, `myposition-hero.html`.
+  `dashboard.html`, `showcase.html`, `crowdfund-stages.html`, `myposition.html`, `myposition-hero.html`.
   Add matching routes in `vercel.json` when introducing a new HTML entry.
 - **Demo session:** `DemoSessionProvider` persists wallet, commit amount, and slots
   to `sessionStorage` so state survives navigation between Vite entries (e.g.
@@ -88,7 +88,7 @@ Common patterns:
 - Spacing: `--primitives-spacing-4` (resolves to `16px`)
 - Font size: `--primitives-fontSize-md` (resolves to `15`, unitless)
 - Font family: `--primitives-fontFamily-ui` (Geist), `--primitives-fontFamily-display` (Charis SIL)
-- Border radius: `--semantic-borderRadius-card`, `--primitives-borderRadius-sm`
+- Border radius: `--semantic-borderRadius-card`, `--primitives-borderRadius-sm` through `--primitives-borderRadius-3xl` (4px scale; `md` is a 6px exception)
 - Button tokens: use `-padding-x` and `-padding-x-icon`, NOT `-padding-left` / `-padding-right`
 
 ### Key token values (for reference only — always use var names in code)
@@ -110,6 +110,18 @@ Common patterns:
 | `--semantic-color-border-lavender` | `rgba(196,145,229,0.14)` |
 | `--semantic-color-status-success` | `#34D399` |
 | `--semantic-color-status-error` | `#F87171` |
+
+Radius primitives (unitless; wrap with `calc(var(--…) * 1px)`):
+
+| Token | Value |
+|---|---|
+| `--primitives-borderRadius-sm` | `4` |
+| `--primitives-borderRadius-md` | `6` (legacy; not on the 4px scale) |
+| `--primitives-borderRadius-lg` | `8` |
+| `--primitives-borderRadius-xl` | `12` |
+| `--primitives-borderRadius-2xl` | `16` |
+| `--primitives-borderRadius-3xl` | `20` |
+| `--primitives-borderRadius-full` | `999` |
 
 ### Brand colors are never used as surfaces
 
@@ -188,7 +200,7 @@ Marketing site spacing (fluid 767→1536px, same range as title):
 | `--semantic-spacing-site-title-to-body` | `0.5 ×` site title size | Title→body, or title→CTA when no body |
 | `--semantic-spacing-site-body-to-cta` | `1.6 ×` site body size | Body→CTA |
 
-Apply via `.armada-site-stack` on title/body/CTA columns (Hero, WhatIsArmada, feature panels).
+Apply via `.armada-site-stack` on title/body/CTA columns (Hero, HomepageFeatures, feature panels).
 
 Display composites (`display/hero-lg`, etc.) use **Charis SIL** — see `semantic.typography.display` in the token JSON. Full reference: `packages/ui/TYPOGRAPHY.md` in armada-poc.
 
@@ -358,10 +370,13 @@ Two orchestrators. Never mix their step bars or entry behavior.
 - Fixed inline slot: 480×500 (`ParticipateFlowInviteInline.module.css`).
 - Page footer (Crowdfund / My Position links) hidden while flow is active.
 - `Step0Invite` uses `variant="landing"` on the page card (lavender border,
-  `JoinButton` `size="lg"`, `HopPill` with `.landing` class).
+  `JoinButton` `size="lg"`, `HopPill` with `.landing` class). Modal splash uses
+  the same footer sizing so pill and Join CTA share height (`spacing-16`).
 
 **Path 2 layout notes**
-- Modal close (X) from **confirmation** navigates to My Position.
+- Modal close (X) is hidden during commit / review / approve — exit via Back
+  or step CTAs. On **confirmation** (and post-commit invites), the X is shown
+  and navigates to My Position.
 - Returning participants skip Step 0 and start at commit when reopening.
 
 ### Step 0 invite card (`Step0Invite`)
@@ -392,15 +407,27 @@ commit (`isAdditionalCommit`):
 - First: “You're in.” + amount committed + ARM reserved.
 - Additional: “Commitment updated.” + amount added + total committed.
 
-**View your position** (secondary, left) shows when `onViewPosition` is passed
-**and** (`showViewPositionButton` **or** `isAdditionalCommit`):
-- Path 1: always pass `showViewPositionButton` on first commit; additional
-  commits also match via `isAdditionalCommit`.
-- Path 2 first commit: no secondary button; modal X still routes to My Position.
-- Path 2 additional commit: show secondary button; wire `onViewPosition` from
-  parent (closes modal + My Position panel).
+**View your position** (secondary, left) shows whenever `onViewPosition` is
+passed — on **first and additional** commits alike (Path 1 and Path 2).
+- Path 1 / Path 2: wire `onViewPosition` from the parent (closes flow + My
+  Position).
+- Path 2 modal X on confirmation still routes to My Position as a backup.
 
-Primary (right): **Invite participants** → in-flow invite slots step.
+Primary (right): **Whitelist a friend** → in-flow invite slots step — only when
+the user still has **empty invite capacity** (`availableInviteCount > 0` /
+remaining empty slots). Zero invites to send → hide Whitelist; secondary +
+primary become Back to crowdfund / View your position. My Position also hides
+the bottom-right Invites card when send capacity is zero.
+
+**No invite capacity** (`canInvite={false}`, e.g. Hop-2): hide Invite. Secondary
+(left) **Back to crowdfund** (`onBackToCrowdfund`); primary (right) **View your
+position**. Mockup flows set `canInvite={hopVariant !== 'hop-2'}`; live committer
+uses empty invite-slot sections.
+
+**Max out banner** (`MaxOutBanner`): when self-fill / commit-to-cap still applies,
+hoist above the commit (and sometimes confirmation) shell — between the modal
+close control and the 480px card. Stages gallery: “Commit + max out” /
+“Confirmation + max out”.
 
 ### Onboarding modal flow (Armada Interface)
 
@@ -500,8 +527,8 @@ card so pill height aligns with `JoinButton` `lg`.
 
 ### Progress (crowdfund card)
 
-Fill to the min-raise threshold uses solid brand color. Amount **above** min
-raise uses a looping darker lavender sweep on the committed portion (see
+Fill to the min-fund threshold uses solid brand color. Amount **above** min
+fund uses a looping darker lavender sweep on the committed portion (see
 `Progress` component). Keep wheel zoom on the graph when no node is selected.
 
 ### Warning/notice blocks
@@ -580,7 +607,7 @@ Before building anything, check if it already exists:
 | `NavBar` / `NavItem` | `src/components/NavBar/` | |
 | `Header` | `src/components/Header/` | `activeNav`, `WalletPillMenu` when connected |
 | `ArmadaLogo` | `src/components/ArmadaLogo/` | Shared logo mark |
-| `Progress` | `src/components/Progress/` | Crowdfund raise bar + min-raise animation |
+| `Progress` | `src/components/Progress/` | Crowdfund fund bar + min-fund animation |
 | `Participate` | `src/components/Participate/` | Fleet card (image/video) |
 | `Steps` | `src/components/Steps/` | Flow step indicator |
 | `WalletItem` | `src/components/WalletItem/` | Wallet selection row |
@@ -663,3 +690,6 @@ Token name mapping (Figma value → CSS var):
   `vercel.json` when the URL should be clean (e.g. `/invite` → `invite.html`).
 - Showcase (`/showcase.html`) is the component gallery. Every new component
   or flow variant gets added there after being built.
+- Crowdfund stages (`/crowdfund-stages.html`) is the lifecycle gallery —
+  Progress / My Position cards, Participate modals, and Claim screens across
+  open → closed → finalized → claim.

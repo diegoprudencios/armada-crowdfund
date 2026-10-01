@@ -21,6 +21,13 @@ const BRAND_COLORS: BrandColor[] = [
     swatchVar: 'var(--semantic-color-brand-lavender)',
   },
   {
+    name: 'Rose',
+    hex: '#F39DB0',
+    token: '--semantic-color-brand-gradient-rose',
+    role: 'Gem gradient mid',
+    swatchVar: 'var(--semantic-color-brand-gradient-rose)',
+  },
+  {
     name: 'Amber',
     hex: '#F3D0A0',
     token: '--semantic-color-brand-amber',
@@ -284,10 +291,10 @@ export function Brand() {
             <div className={styles.colorMeta}>
               <p className={styles.colorName}>Brand gradient</p>
               <p className={styles.colorRole}>
-                Purple-300 → amber-300 at 135°. Text on the gradient uses near-black.
+                Lavender → rose → amber at 135°. Text on the gradient uses near-black.
               </p>
               <p className={styles.colorToken}>
-                <code>purple-300 → amber-300</code>
+                <code>lavender → rose → amber</code>
               </p>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { forwardRef, type CSSProperties, type MouseEvent } from 'react'
 import { ArrowRightIcon as ArrowRightMicroIcon } from '@heroicons/react/16/solid'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import styles from './Button.module.css'
@@ -14,10 +15,14 @@ export interface ButtonProps {
   /** Default `arrow-right`, or `arrow-right-micro` for Participate CTAs (Heroicons 16/solid). */
   icon?: ButtonIcon
   disabled?: boolean
-  onClick?: () => void
-  style?: React.CSSProperties
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void
+  style?: CSSProperties
   className?: string
   type?: 'button' | 'submit' | 'reset'
+  'aria-haspopup'?: boolean | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'
+  'aria-expanded'?: boolean
+  'aria-label'?: string
+  'aria-disabled'?: boolean
 }
 
 const ICON_PX: Record<ButtonSize, number> = { sm: 14, md: 16, lg: 18 }
@@ -30,18 +35,25 @@ function resolveIcon(label: string, icon: ButtonIcon | undefined, showIcon: bool
   return 'arrow-right'
 }
 
-export function Button({
-  variant = 'primary',
-  size = 'md',
-  label = 'Button',
-  showIcon = true,
-  icon,
-  disabled = false,
-  onClick,
-  className,
-  type = 'button',
-  style,
-}: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = 'primary',
+    size = 'md',
+    label = 'Button',
+    showIcon = true,
+    icon,
+    disabled = false,
+    onClick,
+    className,
+    type = 'button',
+    style,
+    'aria-haspopup': ariaHasPopup,
+    'aria-expanded': ariaExpanded,
+    'aria-label': ariaLabel,
+    'aria-disabled': ariaDisabled,
+  },
+  ref,
+) {
   const resolvedIcon = resolveIcon(label, icon, showIcon)
   const iconPx = resolvedIcon === 'arrow-right-micro' ? MICRO_ICON_PX : ICON_PX[size]
 
@@ -50,7 +62,18 @@ export function Button({
     .join(' ')
 
   return (
-    <button type={type} className={cls} disabled={disabled} onClick={onClick} style={style}>
+    <button
+      ref={ref}
+      type={type}
+      className={cls}
+      disabled={disabled}
+      onClick={onClick}
+      style={style}
+      aria-haspopup={ariaHasPopup}
+      aria-expanded={ariaExpanded}
+      aria-label={ariaLabel}
+      aria-disabled={ariaDisabled}
+    >
       <span>{label}</span>
       {showIcon && (
         <span className={styles.iconWrap} aria-hidden>
@@ -63,4 +86,4 @@ export function Button({
       )}
     </button>
   )
-}
+})

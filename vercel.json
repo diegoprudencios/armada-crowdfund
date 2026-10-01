@@ -6,7 +6,9 @@
     { "src": "^/hero/?$", "dest": "/hero.html" },
     { "src": "^/dashboard/?$", "dest": "/dashboard.html" },
     { "src": "^/$", "dest": "/hero.html" },
-    { "src": "^/brand/?$", "dest": "/brand.html" }
+    { "src": "^/brand/?$", "dest": "/brand.html" },
+    { "src": "^/crowdfund-stages/?$", "dest": "/crowdfund-stages.html" },
+    { "src": "^/showcase/?$", "dest": "/showcase.html" }
   ]
 }
 

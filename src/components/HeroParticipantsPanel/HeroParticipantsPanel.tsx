@@ -9,14 +9,14 @@ export type HeroHopFilter = 'all' | 'seed' | 'hop1' | 'hop2' | 'multihop'
 
 export type HeroParticipant = {
   address: string
-  hop: 'SEED' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
+  hop: 'HOP-0' | 'HOP-1' | 'HOP-2' | 'MULTI-HOP'
   amountUsd: number
   isSelf?: boolean
 }
 
 const FILTERS: Array<{ id: HeroHopFilter; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'seed', label: 'Seed' },
+  { id: 'seed', label: 'Hop-0' },
   { id: 'hop1', label: 'Hop 1' },
   { id: 'hop2', label: 'Hop 2' },
   { id: 'multihop', label: 'Multi' },
@@ -83,7 +83,7 @@ export function HeroParticipantList({
       const matchesQuery = !q || p.address.toLowerCase().includes(q)
       const matchesFilter =
         filter === 'all' ||
-        (filter === 'seed' && p.hop === 'SEED') ||
+        (filter === 'seed' && p.hop === 'HOP-0') ||
         (filter === 'hop1' && p.hop === 'HOP-1') ||
         (filter === 'hop2' && p.hop === 'HOP-2') ||
         (filter === 'multihop' && p.hop === 'MULTI-HOP')
@@ -237,7 +237,7 @@ export function HeroParticipantsMobileStack({
       const matchesQuery = !q || p.address.toLowerCase().includes(q)
       const matchesFilter =
         filter === 'all' ||
-        (filter === 'seed' && p.hop === 'SEED') ||
+        (filter === 'seed' && p.hop === 'HOP-0') ||
         (filter === 'hop1' && p.hop === 'HOP-1') ||
         (filter === 'hop2' && p.hop === 'HOP-2') ||
         (filter === 'multihop' && p.hop === 'MULTI-HOP')
