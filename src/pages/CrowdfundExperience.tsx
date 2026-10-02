@@ -164,6 +164,28 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [motionReady, setMotionReady] = useState(() => isMobileLayout())
   const [mountGraph, setMountGraph] = useState(() => !isMobileLayout())
   const panelTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
+  const saleDebugRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const page = pageRef.current
+    const bar = saleDebugRef.current
+    if (!page || !bar) return
+
+    const syncHeight = () => {
+      page.style.setProperty('--demo-sale-bar-height', `${bar.offsetHeight}px`)
+    }
+    syncHeight()
+
+    const ro =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncHeight) : null
+    ro?.observe(bar)
+    window.addEventListener('resize', syncHeight)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', syncHeight)
+    }
+  }, [])
 
   const committedAmount = saleBelowMin ? 800_000 : 1_700_000
   const saleStatus = formatSaleStatusLabel(salePhase, windowOpen)
@@ -211,6 +233,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const [participateOpen, setParticipateOpen] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
   const [pendingParticipateOpen, setPendingParticipateOpen] = useState(false)
+  /** When Participate was opened from Your position, restore that view on close. */
+  const [participateReturnView, setParticipateReturnView] = useState<CrowdfundView | null>(null)
 
   const participantsPanelRef = useRef<HTMLDivElement | null>(null)
   const mobileParticipantsRef = useRef<HTMLDivElement | null>(null)
@@ -426,19 +450,24 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const viewPositionFromParticipateFlow = () => {
     setParticipateOpen(false)
     setPendingParticipateOpen(false)
+    setParticipateReturnView(null)
     goToMyPosition()
   }
 
   const closeParticipateFlow = ({ step }: ParticipateFlowCloseContext) => {
+    const returnToMyPosition =
+      step === 'confirmation' || participateReturnView === 'myposition'
     setParticipateOpen(false)
     setPendingParticipateOpen(false)
-    if (step === 'confirmation') goToMyPosition()
+    setParticipateReturnView(null)
+    if (returnToMyPosition) goToMyPosition()
   }
 
   const handleDisconnectWallet = () => {
     setParticipateOpen(false)
     setConnectOpen(false)
     setPendingParticipateOpen(false)
+    setParticipateReturnView(null)
     disconnectWallet()
   }
 
@@ -449,10 +478,12 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   const openParticipateFlow = () => {
     if (!participationEnabled) return
     if (isCrowdfund && panelPhase === 'idle') {
+      setParticipateReturnView(null)
       setParticipateOpen(true)
       return
     }
     if (!isCrowdfund) {
+      setParticipateReturnView('myposition')
       setPendingParticipateOpen(true)
       goToCrowdfund()
     }
@@ -532,32 +563,13 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
   }, [walletConnected, hasParticipated, committedUsdc])
 
   return (
-    <div className={[mpStyles.page, shellStyles.page].join(' ')}>
-      <Header
-        layout="hero"
-        activeNav={claimOpen ? 'claim' : isMyPosition ? 'myposition' : 'crowdfund'}
-        claimAvailable={claimReady}
-        walletConnected={walletConnected}
-        walletAddress={wallet?.displayAddress ?? ''}
-        walletCopyAddress={wallet?.address}
-        walletProvider={wallet?.provider}
-        usdcBalance={0}
-        onDisconnect={handleDisconnectWallet}
-        autoHideOnScroll={false}
-        className={[
-          heroStyles.headerOverride,
-          shellStyles.headerBelowDemoSale,
-          heroStyles.enter,
-          heroStyles.enterHeader,
-        ].join(' ')}
-        onMyPosition={goToMyPosition}
-        onCrowdfund={goToCrowdfund}
-        onClaim={goToClaim}
-        onParticipate={participationEnabled ? openParticipateFlow : undefined}
-        onConnectWallet={() => setConnectOpen(true)}
-      />
-
-      <div className={shellStyles.saleDebug} role="group" aria-label="Crowdfund stage">
+    <div ref={pageRef} className={[mpStyles.page, shellStyles.page].join(' ')}>
+      <div
+        ref={saleDebugRef}
+        className={shellStyles.saleDebug}
+        role="group"
+        aria-label="Crowdfund stage"
+      >
         <span className={shellStyles.saleDebugLabel}>Crowdfund stage</span>
         {SALE_PRESETS.map((preset) => {
           const selected = preset.id === activeSalePreset
@@ -579,6 +591,31 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           )
         })}
       </div>
+
+      <Header
+        layout="hero"
+        activeNav={isMyPosition ? 'myposition' : 'crowdfund'}
+        claimAvailable={claimReady}
+        walletConnected={walletConnected}
+        walletAddress={wallet?.displayAddress ?? ''}
+        walletCopyAddress={wallet?.address}
+        walletProvider={wallet?.provider}
+        usdcBalance={0}
+        onDisconnect={handleDisconnectWallet}
+        autoHideOnScroll={false}
+        className={[
+          heroStyles.headerOverride,
+          shellStyles.headerBelowDemoSale,
+          heroStyles.enter,
+          heroStyles.enterHeader,
+        ].join(' ')}
+        onMyPosition={goToMyPosition}
+        onCrowdfund={goToCrowdfund}
+        onClaim={goToClaim}
+        onParticipate={participationEnabled ? openParticipateFlow : undefined}
+        onConnectWallet={() => setConnectOpen(true)}
+      />
+
       <div
         className={[
           shellStyles.experienceLayout,
@@ -588,7 +625,7 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
           .join(' ')}
       >
         <div ref={graphHostRef} className={shellStyles.graphHost} data-theme="dark">
-          {mountGraph && !(isMyPosition && isMobileLayout()) ? (
+          {mountGraph ? (
             <NodeSphere
               key={graphLayoutKey}
               highlightAddress={
@@ -661,6 +698,17 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                     status={saleStatus.label}
                     statusDot={saleStatus.dot}
                     daysLeft={windowOpen ? '3 DAYS LEFT' : null}
+                    headerAction={
+                      claimReady && !hasClaimed ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          label={claimMode === 'refund' ? 'Claim refund' : 'Claim'}
+                          showIcon={false}
+                          onClick={goToClaim}
+                        />
+                      ) : undefined
+                    }
                   />
                 }
                 list={
@@ -697,6 +745,16 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                       showIcon
                       icon="arrow-right-micro"
                       onClick={openParticipateFlow}
+                    />
+                  ) : null}
+                  {claimReady && !hasClaimed && hasParticipated ? (
+                    <Button
+                      className={mpStyles.headerCta}
+                      variant="primary"
+                      size="sm"
+                      label={claimMode === 'refund' ? 'Claim refund' : 'Claim'}
+                      showIcon={false}
+                      onClick={goToClaim}
                     />
                   ) : null}
                 </div>
@@ -762,12 +820,31 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
                       </span>
                       <span className={mpStyles.barCaption}>
                         Cap ${capUsdc.toLocaleString()}
-                        {maxOutPlan.newCommitUsdc > remainingHopUsdc
-                          ? ` · Max out $${maxOutPlan.projectedCeilingUsdc.toLocaleString()}`
-                          : ''}
                       </span>
                     </div>
                   </div>
+
+                  {participationEnabled ? (
+                    <Button
+                      className={mpStyles.footerCta}
+                      variant="gradient"
+                      size="sm"
+                      label={myPositionEmptyKind === null ? 'Commit again' : 'Participate'}
+                      showIcon
+                      icon="arrow-right-micro"
+                      onClick={openParticipateFlow}
+                    />
+                  ) : null}
+                  {claimReady && !hasClaimed && hasParticipated ? (
+                    <Button
+                      className={mpStyles.footerCta}
+                      variant="primary"
+                      size="sm"
+                      label={claimMode === 'refund' ? 'Claim refund' : 'Claim'}
+                      showIcon={false}
+                      onClick={goToClaim}
+                    />
+                  ) : null}
                 </div>
               )}
             </section>
@@ -850,6 +927,8 @@ function CrowdfundExperienceInner({ initialView }: CrowdfundExperienceProps) {
         onRevokeSlot={revokeSlot}
         onInviteOnchainHop={inviteOnchain}
         onCopySlotLink={handleCopy}
+        onConfirmCreated={revealInviteInList}
+        onDiscardCreated={discardDeferredInvite}
         loadingHop={loadingHop}
         copiedSlotId={copiedId}
       />

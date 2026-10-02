@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
 import { BarTrackTicks } from '../BarTrackTicks'
 import { Tag, type TagDot } from '../Tag'
 import Tooltip from '../Tooltip/Tooltip'
@@ -223,6 +223,12 @@ export function Progress({
             </div>
           </div>
         </div>
+
+        {headerAction && isValidElement(headerAction) ? (
+          <div className={styles.footerAction}>
+            {cloneElement(headerAction as ReactElement)}
+          </div>
+        ) : null}
       </div>
     </div>
   )

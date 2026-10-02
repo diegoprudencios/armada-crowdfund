@@ -22,7 +22,8 @@ import {
   CROWDFUND_LIST_EXPAND_MS,
 } from '../CrowdfundLeftColumn'
 import { hopPillDotColor } from '../../constants/graphHopColors'
-import { SHORT_VIEWPORT_MAX_HEIGHT_PX } from '../../constants/viewportBreakpoints'
+import { SHORT_VIEWPORT_MAX_HEIGHT_PX, MOBILE_LAYOUT_MAX_WIDTH_PX } from '../../constants/viewportBreakpoints'
+import { useIsMobileLayout } from '../../hooks/useIsMobileLayout'
 import { truncateAddress, type SlotData } from '../InviteFlow/screens/SlotCard'
 import {
   INVITE_COUNT_ROLL_DELAY_MS,
@@ -49,6 +50,13 @@ import styles from './InvitesCard.module.css'
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/** Short laptop height — hide whitelist while the invites list is open. Not used on mobile. */
+function matchesShortDesktopViewport(): boolean {
+  return window.matchMedia(
+    `(max-height: ${SHORT_VIEWPORT_MAX_HEIGHT_PX}px) and (min-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX + 1}px)`,
+  ).matches
 }
 
 type StatusFilter = InviteListKind | 'all'
@@ -199,10 +207,13 @@ export function InvitesCard({
   const timersRef = useRef<number[]>([])
   const shortCardRafRef = useRef(0)
   const focusApi = useInviteHopFocus()
+  const isMobile = useIsMobileLayout()
   const listId = useId()
   const listBodyId = useId()
 
   const isActionView = focusApi.view === 'action'
+  /** Mobile keeps the hop list under the action sheet. */
+  const isInPlaceAction = isActionView && !isMobile
   /** Snapshot of per-hop available counts when the invite action opened (pre-commit). */
   const actionAvailableSnapshotRef = useRef<Partial<Record<InviteeHop, number>> | null>(
     null,
@@ -244,8 +255,13 @@ export function InvitesCard({
   /** Keep the sent-invites panel visible under the share/whitelist action card. */
   const showInvitesList = listableCount > 0 && !selfFillExhausted
 
+  /** Mobile: list stays expanded — no Show/Hide control. */
+  const listPinnedOpen = isMobile && showInvitesList
+  const effectiveListOpen = listPinnedOpen || listOpen
   const listShellExpanded =
-    listOpen && (!isShortViewport || shortListExpanded || !showWhitelistCard)
+    listPinnedOpen ||
+    (listOpen && (!isShortViewport || shortListExpanded || !showWhitelistCard))
+  const effectiveContentVisible = listPinnedOpen || listContentVisible
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => window.clearTimeout(id))
@@ -287,11 +303,8 @@ export function InvitesCard({
       return
     }
 
-    // Match crowdfund short open: whitelist exit → list expand → content fade
-    if (
-      showWhitelistCard &&
-      window.matchMedia(`(max-height: ${SHORT_VIEWPORT_MAX_HEIGHT_PX}px)`).matches
-    ) {
+    // Short laptop: whitelist exit → list expand → content fade. Mobile keeps both.
+    if (showWhitelistCard && matchesShortDesktopViewport()) {
       setShortListExpanded(false)
       runShortCardAnim('exit')
       const expandListId = window.setTimeout(() => {
@@ -322,11 +335,8 @@ export function InvitesCard({
       return
     }
 
-    // Match crowdfund short close: content fade → retract → whitelist re-enter
-    if (
-      showWhitelistCard &&
-      window.matchMedia(`(max-height: ${SHORT_VIEWPORT_MAX_HEIGHT_PX}px)`).matches
-    ) {
+    // Short laptop: content fade → retract → whitelist re-enter. Mobile keeps both.
+    if (showWhitelistCard && matchesShortDesktopViewport()) {
       const startCollapseId = window.setTimeout(() => {
         setListLayoutClosing(true)
       }, CROWDFUND_LIST_CONTENT_FADE_MS)
@@ -355,11 +365,23 @@ export function InvitesCard({
     timersRef.current.push(collapseId, finishId)
   }, [clearTimers, resetListAnimation, runShortCardAnim, showWhitelistCard])
 
-  const inviteChromeOpen = listOpen || isActionView
+  const inviteChromeOpen = effectiveListOpen || isActionView
 
   useEffect(() => {
     onInviteListOpenChange?.(inviteChromeOpen)
   }, [inviteChromeOpen, onInviteListOpenChange])
+
+  // Mobile keeps the invites list permanently open whenever there are invites.
+  useEffect(() => {
+    if (!listPinnedOpen || !panelActive) return
+    clearTimers()
+    setListOpen(true)
+    setListContentVisible(true)
+    setShortListExpanded(true)
+    setListLayoutClosing(false)
+    setShortCardPhase(null)
+    setShortCardAnimActive(false)
+  }, [listPinnedOpen, panelActive, clearTimers])
 
   // Snapshot available counts when entering the invite action; when returning to the
   // list after a successful send, roll the hop thumb from the pre-commit value.
@@ -396,7 +418,7 @@ export function InvitesCard({
 
   useEffect(() => {
     const mq = window.matchMedia(
-      `(max-height: ${SHORT_VIEWPORT_MAX_HEIGHT_PX}px)`,
+      `(max-height: ${SHORT_VIEWPORT_MAX_HEIGHT_PX}px) and (min-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX + 1}px)`,
     )
     const sync = () => setIsShortViewport(mq.matches)
     sync()
@@ -442,8 +464,8 @@ export function InvitesCard({
     focusApi.openPicker(hop, anchor)
   }
 
-  const handleInviteBack = () => {
-    focusApi.goBack()
+  const handleInviteBack = (opts?: { animate?: boolean }) => {
+    focusApi.goBack(opts)
   }
 
   const toggleListOpen = () => {
@@ -514,7 +536,7 @@ export function InvitesCard({
       styles.stackShortCardEnteringActive,
     isShortViewport &&
       shortListExpanded &&
-      listOpen &&
+      effectiveListOpen &&
       shortCardPhase !== 'enter' &&
       styles.stackShortCardDone,
   ]
@@ -523,16 +545,17 @@ export function InvitesCard({
 
   const rootClass = [
     styles.root,
-    isActionView && styles.rootAction,
+    isInPlaceAction && styles.rootAction,
   ]
     .filter(Boolean)
     .join(' ')
 
   const listPanelClass = [
     styles.listPanel,
-    !listOpen && styles.listPanelCollapsed,
+    !effectiveListOpen && styles.listPanelCollapsed,
     listShellExpanded && styles.listPanelOpen,
-    listLayoutClosing && styles.listPanelClosing,
+    listLayoutClosing && !listPinnedOpen && styles.listPanelClosing,
+    listPinnedOpen && styles.listPanelPinned,
   ]
     .filter(Boolean)
     .join(' ')
@@ -545,7 +568,7 @@ export function InvitesCard({
         aria-label="Whitelist a friend"
         data-invite-surface=""
       >
-        {isActionView && focusApi.focusHop != null ? null : (
+        {isInPlaceAction && focusApi.focusHop != null ? null : (
           <div className={styles.header}>
             <h2 className={styles.title}>Whitelist a friend</h2>
           </div>
@@ -554,7 +577,7 @@ export function InvitesCard({
         <div
           className={[
             styles.slotList,
-            isActionView && styles.slotListAction,
+            isInPlaceAction && styles.slotListAction,
           ]
             .filter(Boolean)
             .join(' ')}
@@ -572,6 +595,7 @@ export function InvitesCard({
             onConfirmCreated={onConfirmCreated}
             onDiscardCreated={onDiscardCreated}
             selfWalletAddress={selfWalletAddress}
+            existingInvites={slots}
             copiedInviteId={copiedSlotId}
             list={hopBody}
           />
@@ -594,25 +618,27 @@ export function InvitesCard({
               .join(' ')}
           >
             <h3 className={styles.listTitle}>Your invites</h3>
-            <div className={styles.listActions}>
-              <button
-                type="button"
-                className={styles.listToggleBtn}
-                onClick={toggleListOpen}
-                aria-expanded={listOpen}
-                aria-controls={listBodyId}
-              >
-                {listOpen ? 'Hide' : 'Show more'}
-                {listOpen ? (
-                  <ChevronUpIcon className={styles.listToggleIcon} aria-hidden />
-                ) : (
-                  <ChevronDownIcon
-                    className={styles.listToggleIcon}
-                    aria-hidden
-                  />
-                )}
-              </button>
-            </div>
+            {!listPinnedOpen ? (
+              <div className={styles.listActions}>
+                <button
+                  type="button"
+                  className={styles.listToggleBtn}
+                  onClick={toggleListOpen}
+                  aria-expanded={listOpen}
+                  aria-controls={listBodyId}
+                >
+                  {listOpen ? 'Hide' : 'Show more'}
+                  {listOpen ? (
+                    <ChevronUpIcon className={styles.listToggleIcon} aria-hidden />
+                  ) : (
+                    <ChevronDownIcon
+                      className={styles.listToggleIcon}
+                      aria-hidden
+                    />
+                  )}
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className={styles.listExpand} aria-hidden={!listShellExpanded}>
@@ -620,7 +646,7 @@ export function InvitesCard({
               <div
                 className={[
                   styles.listBody,
-                  listContentVisible && styles.listBodyReady,
+                  effectiveContentVisible && styles.listBodyReady,
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -641,7 +667,7 @@ export function InvitesCard({
                         .filter(Boolean)
                         .join(' ')}
                       aria-selected={statusFilter === 'all'}
-                      tabIndex={listContentVisible ? 0 : -1}
+                      tabIndex={effectiveContentVisible ? 0 : -1}
                       onClick={() => setStatusFilter('all')}
                     >
                       All
@@ -658,7 +684,7 @@ export function InvitesCard({
                           .filter(Boolean)
                           .join(' ')}
                         aria-selected={statusFilter === status}
-                        tabIndex={listContentVisible ? 0 : -1}
+                        tabIndex={effectiveContentVisible ? 0 : -1}
                         onClick={() => setStatusFilter(status)}
                       >
                         {INVITE_STATUS_LABELS[status]}

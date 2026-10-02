@@ -8,7 +8,6 @@ import {
 } from '../MyPosition/inviteModel'
 import { DEMO_INVITE_ALLOWANCE } from '../MyPosition/myPositionDemo'
 import { hopPillDotColor } from '../../constants/graphHopColors'
-import { Button } from '../Button'
 import Step0Invite from './steps/Step0Invite/Step0Invite'
 import StepBeforeYouStart from './screens/StepBeforeYouStart'
 import Step2Commit from './screens/Step2Commit'
@@ -19,6 +18,7 @@ import { MaxOutBanner } from './screens/MaxOutBanner'
 import maxOutStyles from './screens/MaxOutBanner.module.css'
 import { ParticipateFlowModal } from './ParticipateFlowModal'
 import { ParticipateFlowInviteSlots } from './ParticipateFlowInviteSlots'
+import Step1Wallet from './screens/Step1Wallet'
 import { CROWDFUND_MODAL_STEPS } from './participateFlowSteps'
 import stepStyles from './ParticipateFlowStepTransition.module.css'
 import type { DemoSelfFillPlan } from '../../lib/demoSelfFill'
@@ -30,9 +30,9 @@ export interface ParticipateFlowCrowdfundProps {
   open: boolean
   onClose: (context: ParticipateFlowCloseContext) => void
   onViewPosition?: () => void
-  /** @deprecated Wallet connect is RainbowKit; kept for callers. Ignored for step routing. */
+  /** Demo fake-wallet gate — disconnected users stay on the connect step. */
   walletConnected?: boolean
-  /** @deprecated Unused — connect happens outside this flow. */
+  /** Demo wallet picker — called when the user picks a provider on the wallet step. */
   onConnectWallet?: (provider: string) => void
   onCompleteParticipation?: (amountUsdc: number) => void
   /** Apply POC-style self-fill (invites on self + multi-hop commits). */
@@ -69,12 +69,15 @@ export interface ParticipateFlowCrowdfundProps {
   ) => Promise<{ id: number; address: string; ensName?: string } | void>
   onInviteSlotOnchain?: (slotId: number, address: string, ensName?: string) => Promise<void>
   onCopySlotLink?: (slotId: number, link: string) => void
+  onConfirmCreated?: (inviteId: number) => void
+  onDiscardCreated?: (inviteId: number) => void
   loadingHop?: InviteeHop | null
   loadingSlotId?: number | null
   copiedSlotId?: number | null
 }
 
 export type CrowdfundFlowStep =
+  | 'wallet'
   | 'invite'
   | 'beforeYouStart'
   | 'commit'
@@ -98,6 +101,7 @@ const MODAL_STEPS = [...CROWDFUND_MODAL_STEPS]
 const STEP_TRANSITION_MS = 240
 
 const DIALOG_LABEL: Record<CrowdfundFlowStep, string> = {
+  wallet: 'Select your wallet',
   invite: 'You are invited to join the fleet',
   beforeYouStart: 'How to participate',
   commit: 'How much USDC?',
@@ -135,9 +139,24 @@ function MaxOutReviewNote({ inviteCount }: { inviteCount: number }) {
   )
 }
 
-function initialStep(hasParticipated: boolean): CrowdfundFlowStep {
+function postWalletStep(
+  hasParticipated: boolean,
+  remainingCap: number,
+  canSelfFill: boolean,
+): CrowdfundFlowStep {
+  if (hasParticipated && remainingCap <= 0 && !canSelfFill) return 'confirmation'
   if (hasParticipated) return 'commit'
   return 'invite'
+}
+
+function initialStep(
+  hasParticipated: boolean,
+  walletConnected: boolean,
+  remainingCap = Number.POSITIVE_INFINITY,
+  canSelfFill = false,
+): CrowdfundFlowStep {
+  if (!walletConnected) return 'wallet'
+  return postWalletStep(hasParticipated, remainingCap, canSelfFill)
 }
 
 function StepTransition({
@@ -167,6 +186,8 @@ export function ParticipateFlowCrowdfund({
   open,
   onClose,
   onViewPosition,
+  walletConnected = false,
+  onConnectWallet,
   onCompleteParticipation,
   onApplyMaxOutPlan,
   onConsumeSelfInvites,
@@ -188,12 +209,16 @@ export function ParticipateFlowCrowdfund({
   onInviteOnchainHop,
   onInviteSlotOnchain,
   onCopySlotLink,
+  onConfirmCreated,
+  onDiscardCreated,
   loadingHop = null,
   copiedSlotId = null,
 }: ParticipateFlowCrowdfundProps) {
-  const [step, setStep] = useState<CrowdfundFlowStep>(() => initialStep(hasParticipated))
+  const [step, setStep] = useState<CrowdfundFlowStep>(() =>
+    initialStep(hasParticipated, walletConnected),
+  )
   const [renderStep, setRenderStep] = useState<CrowdfundFlowStep>(() =>
-    initialStep(hasParticipated),
+    initialStep(hasParticipated, walletConnected),
   )
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
@@ -236,6 +261,7 @@ export function ParticipateFlowCrowdfund({
 
   const remainingCap =
     remainingHopUsdc != null ? remainingHopUsdc : Math.max(0, capUsdc - committedUsdc)
+  const canSelfFillOnOpen = (maxOutPlan?.newCommitUsdc ?? 0) > 0
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current
@@ -247,30 +273,60 @@ export function ParticipateFlowCrowdfund({
       setFading(false)
       setAmount(0)
       resetMax()
-      const atCurrentCap = hasParticipated && remainingCap <= 0
-      const canSelfFill = (maxOutPlan?.newCommitUsdc ?? 0) > 0
-      if (atCurrentCap && !canSelfFill) {
-        setStep('confirmation')
-        setRenderStep('confirmation')
-      } else {
-        const start = initialStep(hasParticipated)
-        setStep(start)
-        setRenderStep(start)
-      }
+      const start = initialStep(
+        hasParticipated,
+        walletConnected,
+        remainingCap,
+        canSelfFillOnOpen,
+      )
+      setStep(start)
+      setRenderStep(start)
       return
     }
 
     if (open) return
 
     clearTransitionTimer()
-    const start = initialStep(hasParticipated)
+    const start = initialStep(hasParticipated, walletConnected)
     setStep(start)
     setRenderStep(start)
     setFading(false)
     setAmount(0)
     resetMax()
     wasReturningParticipantRef.current = false
-  }, [open, hasParticipated, remainingCap, maxOutPlan?.newCommitUsdc, resetMax])
+  }, [
+    open,
+    hasParticipated,
+    walletConnected,
+    remainingCap,
+    canSelfFillOnOpen,
+    resetMax,
+  ])
+
+  // POC parity: disconnected → wallet step; connect → advance into the flow.
+  useEffect(() => {
+    if (!open) return
+    if (!walletConnected) {
+      if (step !== 'wallet') {
+        clearTransitionTimer()
+        setFading(false)
+        setStep('wallet')
+        setRenderStep('wallet')
+      }
+      return
+    }
+    if (step === 'wallet') {
+      transitionTo(postWalletStep(hasParticipated, remainingCap, canSelfFillOnOpen))
+    }
+  }, [
+    open,
+    walletConnected,
+    step,
+    hasParticipated,
+    remainingCap,
+    canSelfFillOnOpen,
+    transitionTo,
+  ])
 
   const hopLevel = HOP_LEVEL_LABEL[hopVariant]
   const estimatedArm = Math.round(amount)
@@ -304,6 +360,16 @@ export function ParticipateFlowCrowdfund({
     setAmount(maxOutPlan.newCommitUsdc)
     transitionTo('review')
   }, [maxOutPlan, transitionTo])
+
+  const maxOutBannerOption =
+    showMaxOutBanner && maxOutPlan
+      ? {
+          ceilingUsd: maxOutPlan.projectedCeilingUsdc,
+          newCommitUsd: maxOutPlan.newCommitUsdc,
+          inviteCount: maxOutPlan.totalInvites,
+          onMaxOut: handleDemoMaxOut,
+        }
+      : null
 
   const finishCommit = useCallback(
     (commitAmount: number) => {
@@ -357,6 +423,17 @@ export function ParticipateFlowCrowdfund({
 
   const renderCurrentStep = () => {
     switch (renderStep) {
+      case 'wallet':
+        return (
+          <Step1Wallet
+            showSteps={false}
+            compact
+            onNext={(provider) => {
+              onConnectWallet?.(provider)
+            }}
+          />
+        )
+
       case 'invite':
         return (
           <Step0Invite
@@ -364,6 +441,7 @@ export function ParticipateFlowCrowdfund({
             daysLeft={daysLeft}
             hideConnectEyebrow
             onJoin={() => transitionTo('beforeYouStart')}
+            onClose={handleClose}
           />
         )
 
@@ -402,6 +480,7 @@ export function ParticipateFlowCrowdfund({
               onClose={handleClose}
               onViewPosition={onViewPosition}
               onNext={() => {}}
+              maxOut={maxOutBannerOption}
             />
           )
         }
@@ -423,6 +502,7 @@ export function ParticipateFlowCrowdfund({
               setAmount(nextAmount)
               transitionTo('review')
             }}
+            maxOut={maxOutBannerOption}
           />
         )
 
@@ -500,6 +580,10 @@ export function ParticipateFlowCrowdfund({
               })
             }
             onDoItLater={handleClose}
+            onBack={() => transitionTo('confirmation')}
+            onClose={handleClose}
+            onConfirmCreated={onConfirmCreated}
+            onDiscardCreated={onDiscardCreated}
             copiedId={copiedSlotId}
             loadingHop={loadingHop}
           />
@@ -515,29 +599,11 @@ export function ParticipateFlowCrowdfund({
       open={open}
       onClose={handleClose}
       ariaLabel={DIALOG_LABEL[step]}
-      showClose={step === 'invites'}
-      footer={
-        step === 'invite' ? (
-          <Button
-            variant="ghost"
-            size="md"
-            label="Do it later"
-            showIcon={false}
-            onClick={handleClose}
-          />
-        ) : null
-      }
+      showClose={step === 'wallet'}
     >
       <div className={maxOutStyles.stack}>
-        {showMaxOutBanner && maxOutPlan ? (
-          <MaxOutBanner
-            maxOut={{
-              ceilingUsd: maxOutPlan.projectedCeilingUsdc,
-              newCommitUsd: maxOutPlan.newCommitUsdc,
-              inviteCount: maxOutPlan.totalInvites,
-              onMaxOut: handleDemoMaxOut,
-            }}
-          />
+        {maxOutBannerOption ? (
+          <MaxOutBanner maxOut={maxOutBannerOption} className={maxOutStyles.aboveShell} />
         ) : null}
         <StepTransition stepKey={renderStep} fading={fading}>
           {renderCurrentStep()}

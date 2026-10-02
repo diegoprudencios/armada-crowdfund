@@ -52,25 +52,44 @@
   flex-shrink: 0;
 }
 
-.burgerBtn {
+.mobileActions {
   display: none;
   align-items: center;
+  gap: var(--primitives-spacing-3);
+  flex-shrink: 0;
+}
+
+.walletCircleBtn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  width: var(--primitives-spacing-12);
-  height: var(--primitives-spacing-12);
+  width: var(--primitives-spacing-11);
+  height: var(--primitives-spacing-11);
   padding: 0;
   margin: 0;
   border: none;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--primitives-color-white-full) 20%, transparent);
+  background: color-mix(in srgb, var(--primitives-color-white-full) 16%, transparent);
   color: var(--primitives-color-white-full);
   cursor: pointer;
   flex-shrink: 0;
 }
 
-.burgerBtn:focus-visible {
+.walletCircleBtn:hover {
+  background: color-mix(in srgb, var(--primitives-color-white-full) 24%, transparent);
+}
+
+.walletCircleBtn:focus-visible {
   outline: 2px solid var(--primitives-color-white-full);
   outline-offset: 2px;
+}
+
+.mobileConnectBtn {
+  flex-shrink: 0;
+}
+
+.mobileNav {
+  display: none;
 }
 
 .myPositionActive {
@@ -83,7 +102,7 @@
   color: #291433 !important;
 }
 
-/* Crowdfund hero — mobile: full logo + burger; header scrolls with page */
+/* Crowdfund hero — mobile: logo + wallet + in-flow nav pills */
 @media (max-width: 767px) {
   .headerHero {
     position: relative !important;
@@ -95,9 +114,10 @@
     min-height: calc(32px + var(--primitives-spacing-5));
     padding: var(--primitives-spacing-5) var(--primitives-spacing-5) 0;
     box-sizing: border-box;
-    background: rgba(14, 13, 15, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    will-change: auto;
     --header-concealed-extra: 0px;
   }
 
@@ -106,11 +126,50 @@
     display: none !important;
   }
 
-  .headerHero .burgerBtn {
+  .headerHero .mobileActions {
     display: inline-flex;
   }
 
-  .headerHeroMenuOpen {
-    display: none !important;
+  .mobileNav {
+    display: flex;
+    justify-content: stretch;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding:
+      var(--primitives-spacing-5)
+      var(--primitives-spacing-5)
+      var(--primitives-spacing-3);
+    box-sizing: border-box;
   }
+
+  .mobileNavBar {
+    display: flex !important;
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--primitives-spacing-12) !important;
+    padding: var(--primitives-spacing-1) !important;
+    gap: var(--primitives-spacing-1);
+  }
+
+  .mobileNavBar :global(button) {
+    flex: 1 1 0;
+    min-width: 0;
+    height: calc(var(--primitives-spacing-12) - var(--primitives-spacing-2));
+    padding-inline: var(--primitives-spacing-3);
+    font-size: calc(var(--primitives-fontSize-base) * 1px);
+  }
+
+  .mobileNavBar :global(span[aria-hidden]) {
+    top: var(--primitives-spacing-1);
+    height: calc(var(--primitives-spacing-12) - var(--primitives-spacing-2));
+  }
+}
+
+:global(html[data-flow-modal-open]) .mobileNav {
+  visibility: hidden;
+  pointer-events: none;
 }

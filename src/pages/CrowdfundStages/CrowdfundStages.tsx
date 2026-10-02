@@ -27,6 +27,7 @@ import {
   type MaxOutBannerOption,
 } from '../../components/ParticipateFlow/screens/MaxOutBanner'
 import { hopPillDotColor } from '../../constants/graphHopColors'
+import { createDemoInviteLink } from '../../lib/demoInviteLink'
 import {
   ClaimFlowDemo,
   CLAIM_DEMO_LABELS,
@@ -230,7 +231,7 @@ function ParticipateStepContent({
           hopVariant="hop-1"
           daysLeft={3}
           onJoin={onClose}
-          variant="landing"
+          onClose={onClose}
         />
       )
     case 'before-you-start':
@@ -436,7 +437,7 @@ export function CrowdfundStages() {
     setLoadingHop(hop)
     await new Promise((r) => setTimeout(r, 800))
     const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-    const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-${hop}`
+    const link = createDemoInviteLink(`hop-${hop}`)
     let createdId = 0
     setSlots((prev) => {
       createdId = nextInviteId(prev)
@@ -463,7 +464,7 @@ export function CrowdfundStages() {
     setLoadingSlotId(slotId)
     await new Promise((r) => setTimeout(r, 800))
     const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-    const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-1`
+    const link = createDemoInviteLink('hop-1')
     setSlots((prev) =>
       prev.map((s) =>
         s.id === slotId
@@ -724,7 +725,7 @@ export function CrowdfundStages() {
             </StateCard>
             <StateCard
               label="Whitelist a friend modal"
-              note="Empty slots · Do it later footer"
+              note="Empty slots · close via modal X"
             >
               <div className={styles.flowStatic}>
                 <ParticipateFlowInviteSlots
@@ -738,6 +739,8 @@ export function CrowdfundStages() {
                     handleInviteOnchainForHop(setModalSlots, hop, address, ensName)
                   }
                   onDoItLater={() => {}}
+                  onBack={() => {}}
+                  onClose={() => {}}
                   copiedId={copiedSlotId}
                   loadingHop={loadingHop}
                 />
@@ -887,24 +890,7 @@ export function CrowdfundStages() {
           open={modal !== null}
           onClose={closeModal}
           ariaLabel={modalAria}
-          showClose={
-            modal?.kind === 'participate-step'
-              ? modal.step.startsWith('confirmation')
-              : modal?.kind === 'claim'
-                ? false
-                : true
-          }
-          footer={
-            modal?.kind === 'participate-step' && modal.step === 'invite' ? (
-              <Button
-                variant="ghost"
-                size="md"
-                label="Do it later"
-                showIcon={false}
-                onClick={closeModal}
-              />
-            ) : null
-          }
+          showClose={modal?.kind === 'invite-slots'}
         >
           {modal?.kind === 'participate-step' ? (
             <ParticipateStepContent step={modal.step} onClose={closeModal} />
@@ -922,6 +908,8 @@ export function CrowdfundStages() {
                 handleInviteOnchainForHop(setModalSlots, hop, address, ensName)
               }
               onDoItLater={closeModal}
+              onBack={closeModal}
+              onClose={closeModal}
               copiedId={copiedSlotId}
               loadingHop={loadingHop}
             />

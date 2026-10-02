@@ -29,6 +29,7 @@ import Step5Confirmation from '../components/ParticipateFlow/screens/Step5Confir
 import Tooltip from '../components/Tooltip/Tooltip'
 import InviteSlots from '../components/InviteFlow/screens/InviteSlots'
 import SlotCard from '../components/InviteFlow/screens/SlotCard'
+import { demoInviteLink } from '../lib/demoInviteLink'
 
 const variants = ['primary', 'secondary', 'ghost', 'gradient'] as const
 const sizes = ['sm', 'md', 'lg'] as const
@@ -443,7 +444,7 @@ export function Showcase() {
                 onInviteOnchain={async () => {}}
               />
               <SlotCard
-                slot={{ id: 4, status: 'link-active', link: 'https://armada.wtf/join?invite=abc123&hop=hop-1', expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) }}
+                slot={{ id: 4, status: 'link-active', link: demoInviteLink('abc123', 'hop-1'), expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) }}
                 onGenerateLink={async () => {}}
                 onCopy={() => {}}
                 onRevoke={() => {}}

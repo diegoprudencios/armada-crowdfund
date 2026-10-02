@@ -33,6 +33,7 @@ import {
   type DemoSalePhase,
   type DemoSalePreset,
 } from '../lib/demoSaleLifecycle'
+import { createDemoInviteLink } from '../lib/demoInviteLink'
 import {
   addressesEqual,
   applyDemoHopCommit,
@@ -331,45 +332,6 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     else setArmClaimed(true)
   }, [claimMode])
 
-  const generateInviteLink = useCallback(
-    async (hop: InviteeHop) => {
-      setLoadingHop(hop)
-      await new Promise((r) => setTimeout(r, 1200))
-      const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-      const link = `https://armada.wtf/join?invite=${Math.random().toString(36).slice(2, 10)}&hop=hop-${hop}`
-      const createdId = allocateInviteId()
-      pendingInvitesRef.current.set(createdId, {
-        id: createdId,
-        status: 'link-active',
-        link,
-        expiresAt,
-        inviteeHop: hop,
-        invitedAt: new Date(),
-      })
-      setLoadingHop(null)
-      return { id: createdId, link, expiresAt }
-    },
-    [allocateInviteId],
-  )
-
-  const generateSlotLink = useCallback(
-    async (slotId: number) => {
-      const hop: InviteeHop = slotId === 2 ? 2 : 1
-      const created = await generateInviteLink(hop)
-      const draft = pendingInvitesRef.current.get(created.id)
-      pendingInvitesRef.current.delete(created.id)
-      if (draft) setSlots((prev) => [draft, ...prev])
-    },
-    [generateInviteLink],
-  )
-
-  const revokeSlot = useCallback(async (slotId: number) => {
-    pendingInvitesRef.current.delete(slotId)
-    setSlots((prev) =>
-      prev.map((s) => (s.id === slotId ? { ...s, status: 'revoked' as const } : s)),
-    )
-  }, [])
-
   const commitOutgoingInvite = useCallback(
     (draft: SlotData, selfAddress: string | null | undefined) => {
       const hop = draft.inviteeHop
@@ -400,62 +362,110 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const revealInviteInList = useCallback(
-    (id: number) => {
-      const draft = pendingInvitesRef.current.get(id)
-      pendingInvitesRef.current.delete(id)
-      if (!draft) return
+  const generateInviteLink = useCallback(
+    async (hop: InviteeHop) => {
+      setLoadingHop(hop)
+      await new Promise((r) => setTimeout(r, 1200))
+      const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+      const link = createDemoInviteLink(`hop-${hop}`)
+      const createdId = allocateInviteId()
+      const draft: SlotData = {
+        id: createdId,
+        status: 'link-active',
+        link,
+        expiresAt,
+        inviteeHop: hop,
+        invitedAt: new Date(),
+        // Occupies the slot immediately; list row reveals on Done.
+        hideFromList: true,
+      }
       const selfAddress = wallet?.address ?? DEMO_WALLET
       const committed = commitOutgoingInvite(draft, selfAddress)
+      pendingInvitesRef.current.set(createdId, committed)
       setSlots((prev) => [committed, ...prev])
+      setLoadingHop(null)
+      return { id: createdId, link, expiresAt }
     },
-    [commitOutgoingInvite, wallet?.address],
+    [allocateInviteId, commitOutgoingInvite, wallet?.address],
   )
+
+  const generateSlotLink = useCallback(
+    async (slotId: number) => {
+      const hop: InviteeHop = slotId === 2 ? 2 : 1
+      await generateInviteLink(hop)
+    },
+    [generateInviteLink],
+  )
+
+  const revokeSlot = useCallback(async (slotId: number) => {
+    pendingInvitesRef.current.delete(slotId)
+    setSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? { ...s, status: 'revoked' as const, closedAt: new Date(), hideFromList: false }
+          : s,
+      ),
+    )
+  }, [])
+
+  const revealInviteInList = useCallback((id: number) => {
+    pendingInvitesRef.current.delete(id)
+    setSlots((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, hideFromList: false } : s)),
+    )
+  }, [])
 
   const discardDeferredInvite = useCallback((id: number) => {
     pendingInvitesRef.current.delete(id)
+    // Free the slot again (same as revoke / unused after expiry).
+    setSlots((prev) =>
+      prev.map((s) =>
+        s.id === id
+          ? { ...s, status: 'revoked' as const, closedAt: new Date(), hideFromList: false }
+          : s,
+      ),
+    )
   }, [])
 
   const flushPendingInvites = useCallback(() => {
     if (pendingInvitesRef.current.size === 0) return
-    const pending = [...pendingInvitesRef.current.values()]
+    const ids = new Set(pendingInvitesRef.current.keys())
     pendingInvitesRef.current.clear()
-    const selfAddress = wallet?.address ?? DEMO_WALLET
-    const committed = pending.map((draft) => commitOutgoingInvite(draft, selfAddress))
-    setSlots((prev) => [...committed, ...prev])
-  }, [commitOutgoingInvite, wallet?.address])
+    setSlots((prev) =>
+      prev.map((s) => (ids.has(s.id) ? { ...s, hideFromList: false } : s)),
+    )
+  }, [])
 
   const inviteOnchain = useCallback(
     async (hop: InviteeHop, address: string, ensName?: string) => {
       setLoadingHop(hop)
       await new Promise((r) => setTimeout(r, 1200))
       const createdId = allocateInviteId()
-      pendingInvitesRef.current.set(createdId, {
+      const draft: SlotData = {
         id: createdId,
         status: 'onchain-pending',
         invitedAddress: address,
         ensName,
         inviteeHop: hop,
         invitedAt: new Date(),
-      })
+        hideFromList: true,
+      }
+      const selfAddress = wallet?.address ?? DEMO_WALLET
+      const committed = commitOutgoingInvite(draft, selfAddress)
+      pendingInvitesRef.current.set(createdId, committed)
+      setSlots((prev) => [committed, ...prev])
       setLoadingHop(null)
       return { id: createdId, address, ensName }
     },
-    [allocateInviteId],
+    [allocateInviteId, commitOutgoingInvite, wallet?.address],
   )
 
   const inviteSlotOnchain = useCallback(
     async (slotId: number, address: string, ensName?: string) => {
       const hop: InviteeHop = slotId === 2 ? 2 : 1
-      const created = await inviteOnchain(hop, address, ensName)
-      const draft = pendingInvitesRef.current.get(created.id)
-      pendingInvitesRef.current.delete(created.id)
-      if (!draft) return
-      const selfAddress = wallet?.address ?? DEMO_WALLET
-      const committed = commitOutgoingInvite(draft, selfAddress)
-      setSlots((prev) => [committed, ...prev])
+      await inviteOnchain(hop, address, ensName)
     },
-    [inviteOnchain, commitOutgoingInvite, wallet?.address],
+    [inviteOnchain],
   )
 
   const value = useMemo<DemoSessionContextValue>(

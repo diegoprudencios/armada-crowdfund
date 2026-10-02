@@ -285,6 +285,25 @@
     flex: none;
     width: 100%;
   }
+
+  .cardShell,
+  .gateShell {
+    padding: var(--primitives-spacing-5);
+    overflow: hidden;
+  }
+
+  .gateShell {
+    justify-content: center;
+  }
+
+  .introScroll,
+  .introScrollFlush {
+    padding-bottom: var(--primitives-spacing-5);
+  }
+
+  .introScrollFlush {
+    padding-right: 0;
+  }
 }
 
 .heroBlock {

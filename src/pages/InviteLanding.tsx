@@ -48,6 +48,8 @@ function InviteLandingInner() {
     generateInviteLink,
     revokeSlot,
     inviteOnchain,
+    revealInviteInList,
+    discardDeferredInvite,
     loadingHop,
     salePhase,
     windowOpen,
@@ -138,6 +140,8 @@ function InviteLandingInner() {
             onRevokeSlot={revokeSlot}
             onInviteOnchainHop={inviteOnchain}
             onCopySlotLink={handleCopy}
+            onConfirmCreated={revealInviteInList}
+            onDiscardCreated={discardDeferredInvite}
             loadingHop={loadingHop}
             copiedSlotId={copiedId}
           />
@@ -157,15 +161,7 @@ function InviteLandingInner() {
               <Button
                 variant="secondary"
                 size="lg"
-                label="The project"
-                showIcon={false}
-                className={styles.footerBtn}
-                onClick={() => window.open('https://armada.wtf', '_blank', 'noopener,noreferrer')}
-              />
-              <Button
-                variant="secondary"
-                size="lg"
-                label="Crowdfund"
+                label="View crowdfund page"
                 showIcon={false}
                 className={styles.footerBtn}
                 onClick={() => window.location.assign(CROWDFUND_URL)}

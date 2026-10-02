@@ -4,6 +4,7 @@ import styles from './SlotCard.module.css'
 import { Button } from '../../Button'
 import { Tag } from '../../Tag'
 import { INVITE_METHOD_PICKER_UX } from '../../../constants/inviteUx'
+import { mockResolveEns } from '../mockEnsResolve'
 import { MOBILE_LAYOUT_MAX_WIDTH_PX } from '../../../constants/viewportBreakpoints'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -165,12 +166,11 @@ export default function SlotCard({
     setResolvedAddress('')
     if (isEns(val)) {
       setEnsState('resolving')
-      await new Promise(r => setTimeout(r, 900))
+      await new Promise((r) => setTimeout(r, 900))
       if (val === 'invalid.eth') {
         setEnsState('error')
       } else {
-        const mock = '0x' + Math.random().toString(16).slice(2, 42)
-        setResolvedAddress(mock)
+        setResolvedAddress(mockResolveEns(val))
         setEnsState('resolved')
       }
     } else if (isValidAddress(val)) {
@@ -478,8 +478,8 @@ export default function SlotCard({
             <span className={styles.errorMsg}>ENS name not found</span>
           )}
           <p className={styles.hint}>
-            This sends an onchain transaction. The invitee can then visit
-            armada.wtf and commit. Requires gas.
+            This sends an onchain transaction. The invitee can then open the crowdfund
+            website and commit. Requires gas.
           </p>
           <div className={styles.expandedAction}>
             <Button
