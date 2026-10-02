@@ -1,10 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { WalletIcon } from '@heroicons/react/24/outline'
+import {
+  WalletMetamask,
+  WalletPhantom,
+  WalletWalletConnect,
+} from '@web3icons/react'
 import { ArmadaLogo } from '../ArmadaLogo'
 import { NavBar, NavBarItem } from '../NavBar'
 import { Button } from '../Button'
 import { WalletPillMenu } from './WalletPillMenu'
-import { HeaderMobileMenu } from './HeaderMobileMenu'
+import { WalletMenuSheet } from './WalletMenuSheet'
 import styles from './Header.module.css'
 
 export interface HeaderProps {
@@ -30,17 +35,36 @@ export interface HeaderProps {
   autoHideOnScroll?: boolean
   /**
    * `hero` — crowdfund full-screen experience: floating header on desktop;
-   * on mobile, full logo + burger menu with nav/actions in a panel.
+   * on mobile, logo + wallet with nav pills under the header (in document flow).
    */
   layout?: 'default' | 'hero'
 }
 
 const SCROLL_DELTA = 6
-const BURGER_ICON_PX = 20
+const WALLET_TRIGGER_ICON_PX = 22
 
 const MY_POSITION_PATH = `${import.meta.env.BASE_URL}?view=myposition`
 const CROWDFUND_PATH = `${import.meta.env.BASE_URL}`
 const CLAIM_PATH = `${import.meta.env.BASE_URL}crowdfund-stages#claim-flow`
+
+function MobileWalletTriggerIcon({
+  provider,
+  size = WALLET_TRIGGER_ICON_PX,
+}: {
+  provider?: string
+  size?: number
+}) {
+  switch (provider) {
+    case 'metamask':
+      return <WalletMetamask size={size} aria-hidden />
+    case 'phantom':
+      return <WalletPhantom size={size} aria-hidden />
+    case 'walletconnect':
+      return <WalletWalletConnect size={size} aria-hidden />
+    default:
+      return <WalletIcon width={size} height={size} aria-hidden />
+  }
+}
 
 export function Header({
   activeNav = 'crowdfund',
@@ -61,9 +85,10 @@ export function Header({
   layout = 'default',
 }: HeaderProps) {
   const [concealed, setConcealed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [walletSheetOpen, setWalletSheetOpen] = useState(false)
   const lastY = useRef(0)
-  const mobileMenuId = useId()
+  const walletSheetId = useId()
+  const showMobileNav = layout === 'hero'
 
   const handleCrowdfund = () => {
     if (onCrowdfund) {
@@ -91,12 +116,10 @@ export function Header({
       onClaim()
       return
     }
-    if (activeNav !== 'claim') {
-      window.location.assign(CLAIM_PATH)
-    }
+    window.location.assign(CLAIM_PATH)
   }
 
-  const closeMobileMenu = () => setMobileMenuOpen(false)
+  const closeWalletSheet = () => setWalletSheetOpen(false)
 
   const navItems = useMemo<NavBarItem[]>(
     () => [
@@ -112,7 +135,8 @@ export function Header({
       },
       {
         label: 'Claim',
-        active: claimAvailable && activeNav === 'claim',
+        // Claim opens a modal — never treat it as the selected page tab.
+        active: false,
         disabled: !claimAvailable,
         accent: claimAvailable ? 'brand' : undefined,
         onClick: claimAvailable ? handleClaim : undefined,
@@ -146,25 +170,12 @@ export function Header({
   }, [autoHideOnScroll])
 
   useEffect(() => {
-    if (!mobileMenuOpen) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMobileMenu()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mobileMenuOpen])
-
-  useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [mobileMenuOpen])
+    if (!walletConnected) setWalletSheetOpen(false)
+  }, [walletConnected])
 
   const headerClass = [
     styles.header,
     layout === 'hero' && styles.headerHero,
-    layout === 'hero' && mobileMenuOpen && styles.headerHeroMenuOpen,
     concealed && styles.concealed,
     className,
   ]
@@ -211,38 +222,48 @@ export function Header({
           )}
         </div>
 
-        <button
-          type="button"
-          className={styles.burgerBtn}
-          aria-expanded={mobileMenuOpen}
-          aria-controls={mobileMenuId}
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          onClick={() => setMobileMenuOpen((open) => !open)}
-        >
-          {mobileMenuOpen ? (
-            <XMarkIcon width={BURGER_ICON_PX} height={BURGER_ICON_PX} aria-hidden />
+        <div className={styles.mobileActions}>
+          {walletConnected ? (
+            <button
+              type="button"
+              className={styles.walletCircleBtn}
+              aria-expanded={walletSheetOpen}
+              aria-controls={walletSheetId}
+              aria-haspopup="dialog"
+              aria-label={walletSheetOpen ? 'Close wallet menu' : 'Open wallet menu'}
+              onClick={() => setWalletSheetOpen((open) => !open)}
+            >
+              <MobileWalletTriggerIcon provider={walletProvider} />
+            </button>
           ) : (
-            <Bars3Icon width={BURGER_ICON_PX} height={BURGER_ICON_PX} aria-hidden />
+            <Button
+              variant="secondary"
+              size="sm"
+              label="Connect"
+              showIcon={false}
+              className={styles.mobileConnectBtn}
+              onClick={onConnectWallet}
+            />
           )}
-        </button>
+        </div>
       </header>
 
-      {layout === 'hero' ? (
-        <HeaderMobileMenu
-          id={mobileMenuId}
-          open={mobileMenuOpen}
-          onClose={closeMobileMenu}
-          navItems={navItems}
-          walletConnected={walletConnected}
-          walletAddress={walletAddress}
-          walletCopyAddress={walletCopyAddress}
-          walletProvider={walletProvider}
-          usdcBalance={usdcBalance}
-          onDisconnect={onDisconnect}
-          onConnectWallet={onConnectWallet}
-          onParticipate={onParticipate}
-          claimAvailable={claimAvailable}
-        />
+      {showMobileNav ? (
+        <>
+          <div className={styles.mobileNav}>
+            <NavBar items={navItems} className={styles.mobileNavBar} />
+          </div>
+          <WalletMenuSheet
+            id={walletSheetId}
+            open={walletSheetOpen && walletConnected}
+            onClose={closeWalletSheet}
+            walletAddress={walletAddress}
+            walletCopyAddress={walletCopyAddress}
+            walletProvider={walletProvider}
+            usdcBalance={usdcBalance}
+            onDisconnect={onDisconnect}
+          />
+        </>
       ) : null}
     </>
   )

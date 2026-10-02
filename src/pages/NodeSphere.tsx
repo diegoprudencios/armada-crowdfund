@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
 import { GRAPH_HOP_NODE_COLORS } from '../constants/graphHopColors'
+import { MOBILE_LAYOUT_MAX_WIDTH_PX } from '../constants/viewportBreakpoints'
+import { useIsMobileLayout } from '../hooks/useIsMobileLayout'
+import styles from './NodeSphere.module.css'
 
 type NodeKind = 'Hop 0' | 'Hop 1' | 'Hop 2' | 'Multi-hop' | 'Your wallet'
 
@@ -12,6 +15,34 @@ type HoverState = {
   kind: NodeKind
   address: string
   committed: string
+}
+
+const TIP_WIDTH_PX = 272
+const TIP_HEIGHT_EST_PX = 120
+const TIP_GAP_PX = 14
+const TIP_VIEW_MARGIN_PX = 12
+
+/** Keep a floating tip inside `bounds` (canvas or viewport), flipping left when needed. */
+function placeFloatingTip(
+  anchorX: number,
+  anchorY: number,
+  bounds: { left: number; top: number; right: number; bottom: number },
+): { x: number; y: number } {
+  let x = anchorX + TIP_GAP_PX
+  let y = anchorY - 12
+
+  if (x + TIP_WIDTH_PX > bounds.right - TIP_VIEW_MARGIN_PX) {
+    x = anchorX - TIP_GAP_PX - TIP_WIDTH_PX
+  }
+  x = Math.min(
+    Math.max(x, bounds.left + TIP_VIEW_MARGIN_PX),
+    bounds.right - TIP_WIDTH_PX - TIP_VIEW_MARGIN_PX,
+  )
+  y = Math.min(
+    Math.max(y, bounds.top + TIP_VIEW_MARGIN_PX),
+    bounds.bottom - TIP_HEIGHT_EST_PX - TIP_VIEW_MARGIN_PX,
+  )
+  return { x, y }
 }
 
 type NodeMeta = { kind: NodeKind; address: string; committed: string; ghost?: boolean }
@@ -163,6 +194,8 @@ export function NodeSphere({
   const [selectedTip, setSelectedTip] = useState<HoverState | null>(null)
   const hoverActiveRef = useRef(false)
   const isDraggingRef = useRef(false)
+  const isMobile = useIsMobileLayout()
+  const isMobileRef = useRef(isMobile)
   const highlightRef = useRef<string | undefined>(highlightAddress)
   const filterRef = useRef<NodeSphereProps['filterKind']>(filterKind)
   const interactionDisabledRef = useRef(!!interactionDisabled)
@@ -194,6 +227,10 @@ export function NodeSphere({
   useEffect(() => {
     highlightRef.current = highlightAddress
   }, [highlightAddress])
+
+  useEffect(() => {
+    isMobileRef.current = isMobile
+  }, [isMobile])
 
   useEffect(() => {
     onSelectAddressRef.current = onSelectAddress
@@ -603,14 +640,23 @@ export function NodeSphere({
         const meta = hit.userData as NodeMeta
         hoveredAddress = meta.address
         hoverActiveRef.current = true
-        setHover({
-          visible: true,
-          x: e.clientX + 14,
-          y: e.clientY + 14,
-          kind: meta.kind,
-          address: shortAddress(meta.address),
-          committed: meta.committed,
-        })
+        // Touch/mobile uses the docked selection tip — skip cursor-follow hover cards.
+        if (!isMobileRef.current) {
+          const placed = placeFloatingTip(e.clientX, e.clientY, {
+            left: 0,
+            top: 0,
+            right: window.innerWidth,
+            bottom: window.innerHeight,
+          })
+          setHover({
+            visible: true,
+            x: placed.x,
+            y: placed.y,
+            kind: meta.kind,
+            address: shortAddress(meta.address),
+            committed: meta.committed,
+          })
+        }
       } else {
         hovered = null
         hoveredAddress = undefined
@@ -700,9 +746,13 @@ export function NodeSphere({
     let lastHighlightedAddress: string | null = null
     let hadSelection = false
 
-    // Focused nodes sit right and above center so tooltips / cards have room.
-    const FOCUS_OFFSET_X = 0.18
-    const FOCUS_OFFSET_Y = 0.1
+    // Focused nodes sit right and above center so floating tooltips have room.
+    // On mobile the tip docks to the graph bottom, so keep the node more centered.
+    const mobileFocus = window.matchMedia(
+      `(max-width: ${MOBILE_LAYOUT_MAX_WIDTH_PX}px)`,
+    ).matches
+    const FOCUS_OFFSET_X = mobileFocus ? 0 : 0.18
+    const FOCUS_OFFSET_Y = mobileFocus ? 0.16 : 0.1
     const FOCUS_INNER_RADIUS = 2.6
     const FOCUS_OUTER_RADIUS = 6.2
     const FOCUS_ZOOM_OUT_MAX = 0.65
@@ -860,13 +910,17 @@ export function NodeSphere({
           focusedMesh.getWorldPosition(world)
           const projected = world.project(camera)
           const rect = renderer.domElement.getBoundingClientRect()
-          const x = rect.left + (projected.x * 0.5 + 0.5) * rect.width + 14
-          const y = rect.top + (-projected.y * 0.5 + 0.5) * rect.height - 12
+          const anchorX = rect.left + (projected.x * 0.5 + 0.5) * rect.width
+          const anchorY = rect.top + (-projected.y * 0.5 + 0.5) * rect.height
+          // Mobile docks the tip in CSS — x/y unused. Desktop floats with clamp/flip.
+          const placed = isMobileRef.current
+            ? { x: anchorX, y: anchorY }
+            : placeFloatingTip(anchorX, anchorY, rect)
 
           const next: HoverState = {
             visible: true,
-            x,
-            y,
+            x: placed.x,
+            y: placed.y,
             kind: meta.kind,
             address: shortAddress(meta.address),
             committed: meta.committed,
@@ -936,132 +990,41 @@ export function NodeSphere({
         zIndex: 0,
       }}
     >
-      {/* Hover tooltip (hidden when pinned selection tip is showing for the same node) */}
+      {/* Hover tooltip — desktop only (mobile uses the docked selection tip). */}
       {!hideNodePopover &&
+        !isMobile &&
         hover?.visible &&
         (!selectedTip?.visible || hover.address !== selectedTip.address) && (
         <div
-          style={{
-            position: 'fixed',
-            left: hover.x,
-            top: hover.y,
-            zIndex: 30,
-            width: '272px',
-            padding: 'var(--primitives-spacing-5)',
-            borderRadius: 'calc(var(--semantic-borderRadius-card) * 1px)',
-            border: '1px solid color-mix(in srgb, var(--semantic-color-text-primary) 16%, transparent)',
-            background: 'color-mix(in srgb, var(--semantic-color-surface-default) 55%, transparent)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-            color: 'var(--semantic-color-text-secondary)',
-            fontFamily: 'var(--primitives-fontFamily-ui), sans-serif',
-            pointerEvents: 'none',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-          }}
+          className={[styles.tip, styles.tipFloat].join(' ')}
+          style={{ left: hover.x, top: hover.y, zIndex: 30 }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: 'var(--primitives-spacing-4)',
-              right: 'var(--primitives-spacing-4)',
-              width: 16,
-              height: 16,
-              color: 'var(--semantic-color-text-dim)',
-              opacity: 0.9,
-            }}
-            aria-hidden
-          >
+          <div className={styles.tipIcon} aria-hidden>
             <ArrowTopRightOnSquareIcon width={16} height={16} />
           </div>
-          <div
-            style={{
-              fontSize: 'var(--semantic-component-tag-font-size)',
-              letterSpacing: 'var(--primitives-letterSpacing-widest)',
-              textTransform: 'uppercase',
-              color: 'var(--semantic-color-text-secondary)',
-              marginBottom: 'var(--primitives-spacing-2)',
-            }}
-          >
-            {hover.kind}
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--primitives-fontFamily-mono), monospace',
-              fontSize: 'var(--primitives-fontSize-2xl)',
-              letterSpacing: 'var(--primitives-letterSpacing-tight)',
-              color: 'var(--semantic-color-text-primary)',
-              marginBottom: 'var(--primitives-spacing-3)',
-            }}
-          >
-            {hover.address}
-          </div>
-          <div style={{ fontSize: 'var(--primitives-fontSize-lg)', opacity: 0.8, marginBottom: 'var(--primitives-spacing-2)' }}>
-            {hover.committed}
-          </div>
+          <div className={styles.tipKind}>{hover.kind}</div>
+          <div className={styles.tipAddressHover}>{hover.address}</div>
+          <div className={styles.tipCommittedHover}>{hover.committed}</div>
         </div>
       )}
 
-      {/* Selected tooltip (pinned) */}
+      {/* Selected tooltip — docked inside the graph on mobile; floats near node on desktop. */}
       {!hideNodePopover && selectedTip?.visible && (
         <div
-          style={{
-            position: 'fixed',
-            left: selectedTip.x,
-            top: selectedTip.y,
-            zIndex: 29,
-            width: '272px',
-            padding: 'var(--primitives-spacing-5)',
-            borderRadius: 'calc(var(--semantic-borderRadius-card) * 1px)',
-            border: '1px solid color-mix(in srgb, var(--semantic-color-text-primary) 16%, transparent)',
-            background: 'color-mix(in srgb, var(--semantic-color-surface-default) 55%, transparent)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-            color: 'var(--semantic-color-text-secondary)',
-            fontFamily: 'var(--primitives-fontFamily-ui), sans-serif',
-            pointerEvents: 'none',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-          }}
+          className={[styles.tip, isMobile ? styles.tipDocked : styles.tipFloat].join(' ')}
+          style={
+            isMobile
+              ? undefined
+              : { left: selectedTip.x, top: selectedTip.y }
+          }
+          role="status"
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: 'var(--primitives-spacing-4)',
-              right: 'var(--primitives-spacing-4)',
-              width: 16,
-              height: 16,
-              color: 'var(--semantic-color-text-dim)',
-              opacity: 0.9,
-            }}
-            aria-hidden
-          >
+          <div className={styles.tipIcon} aria-hidden>
             <ArrowTopRightOnSquareIcon width={16} height={16} />
           </div>
-          <div
-            style={{
-              fontSize: 'var(--semantic-component-tag-font-size)',
-              letterSpacing: 'var(--primitives-letterSpacing-widest)',
-              textTransform: 'uppercase',
-              color: 'var(--semantic-color-text-secondary)',
-              marginBottom: 'var(--primitives-spacing-2)',
-            }}
-          >
-            {selectedTip.kind}
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--primitives-fontFamily-mono), monospace',
-              fontSize: 'calc(var(--primitives-fontSize-lg) * 1px)',
-              fontWeight: 600,
-              color: 'var(--semantic-color-text-primary)',
-            }}
-          >
-            {selectedTip.address}
-          </div>
-          <div style={{ marginTop: 'var(--primitives-spacing-2)', color: 'var(--semantic-color-text-muted)' }}>
-            {selectedTip.committed}
-          </div>
+          <div className={styles.tipKind}>{selectedTip.kind}</div>
+          <div className={styles.tipAddress}>{selectedTip.address}</div>
+          <div className={styles.tipCommitted}>{selectedTip.committed}</div>
         </div>
       )}
     </div>

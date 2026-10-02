@@ -591,7 +591,9 @@ brand. Disconnected users pick a provider in `Step1Wallet`; non-whitelisted
 addresses see `Step1WalletNotWhitelisted`.
 
 When connected, the header wallet pill uses `WalletPillMenu` (copy address,
-disconnect). Disconnect resets wallet, commit amount, participation flag, and
+disconnect). On mobile (`layout="hero"`), sticky nav pills sit under the header (page padding);
+the top bar keeps the logo plus Connect / a circular wallet-provider button that opens
+`WalletMenuSheet` (dark bottom sheet). Disconnect resets wallet, commit amount, participation flag, and
 invite slots to their initial demo values.
 
 ---
@@ -605,7 +607,7 @@ Before building anything, check if it already exists:
 | `Button` | `src/components/Button/` | 5 variants × 3 sizes |
 | `Tag` | `src/components/Tag/` | Status dot variants |
 | `NavBar` / `NavItem` | `src/components/NavBar/` | |
-| `Header` | `src/components/Header/` | `activeNav`, `WalletPillMenu` when connected |
+| `Header` | `src/components/Header/` | `activeNav`, desktop `WalletPillMenu`; mobile sticky nav + `WalletMenuSheet` |
 | `ArmadaLogo` | `src/components/ArmadaLogo/` | Shared logo mark |
 | `Progress` | `src/components/Progress/` | Crowdfund fund bar + min-fund animation |
 | `Participate` | `src/components/Participate/` | Fleet card (image/video) |

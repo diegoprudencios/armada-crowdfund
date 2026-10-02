@@ -17,7 +17,13 @@ export interface MaxOutBannerOption {
   error?: string
 }
 
-export function MaxOutBanner({ maxOut }: { maxOut: MaxOutBannerOption }) {
+export function MaxOutBanner({
+  maxOut,
+  className,
+}: {
+  maxOut: MaxOutBannerOption
+  className?: string
+}) {
   const { ceilingUsd, newCommitUsd, inviteCount, onMaxOut, loading, balanceLimited, error } =
     maxOut
   const commitUsd = `$${newCommitUsd.toLocaleString()}`
@@ -43,7 +49,11 @@ export function MaxOutBanner({ maxOut }: { maxOut: MaxOutBannerOption }) {
   )
 
   return (
-    <div className={styles.banner} role="region" aria-label="Commit the maximum">
+    <div
+      className={[styles.banner, className].filter(Boolean).join(' ')}
+      role="region"
+      aria-label="Commit the maximum"
+    >
       <div className={styles.copy}>
         <p className={styles.title}>
           Commit the maximum — up to ${ceilingUsd.toLocaleString()}

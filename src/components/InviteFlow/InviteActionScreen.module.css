@@ -12,12 +12,74 @@
   box-sizing: border-box;
 }
 
+.rootSheet {
+  height: auto;
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow: visible;
+}
+
+.rootSheet .body {
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+}
+
+.rootSheet .ctaRow {
+  margin-top: 0;
+}
+
+.rootSheet .closeBtn {
+  margin: 0;
+}
+
+.rootSheet .title {
+  overflow: visible;
+  line-height: 1.35;
+}
+
+.rootSheet .hint {
+  overflow: visible;
+  padding-block: 1px;
+}
+
 .topRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--primitives-spacing-3);
   flex-shrink: 0;
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--primitives-spacing-8);
+  height: var(--primitives-spacing-8);
+  margin: calc(var(--primitives-spacing-2) * -1);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--semantic-color-text-primary);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.closeBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--semantic-color-text-primary) 12%, transparent);
+}
+
+.closeBtn:focus-visible {
+  outline: 2px solid var(--semantic-color-border-focus);
+  outline-offset: 2px;
+}
+
+.closeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .methodPick {
@@ -365,6 +427,19 @@
   font-family: var(--primitives-fontFamily-ui), sans-serif;
   font-size: calc(var(--primitives-fontSize-sm) * 1px);
   color: var(--semantic-color-status-error);
+}
+
+.duplicateWarning {
+  margin: 0;
+  font-family: var(--primitives-fontFamily-ui), sans-serif;
+  font-size: calc(var(--primitives-fontSize-base) * 1px);
+  font-weight: var(--primitives-fontWeight-regular);
+  color: var(--semantic-color-text-primary);
+  line-height: 1.5;
+  padding: var(--primitives-spacing-3) var(--primitives-spacing-4);
+  border-radius: calc(var(--semantic-borderRadius-item) * 1px);
+  border: 1px solid color-mix(in srgb, var(--semantic-color-status-warning) 45%, transparent);
+  background: color-mix(in srgb, var(--semantic-color-status-warning) 14%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

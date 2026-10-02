@@ -135,7 +135,7 @@ const DELEGATE_CANDIDATES: ReadonlyArray<DelegateCandidate> = [
 
 function GateShell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className={styles.gateShell}>
+    <div className={styles.gateShell} data-flow-shell>
       <h2 className={styles.gateTitle}>{title}</h2>
       {children}
     </div>
@@ -162,7 +162,7 @@ function FlowShell({
   children: ReactNode
 }) {
   return (
-    <div className={styles.cardShell}>
+    <div className={styles.cardShell} data-flow-shell>
       <FlowChrome
         title={title}
         titleId={titleId}
@@ -437,6 +437,15 @@ export function ClaimFlow({
             <UsefulLinks headingId="claim-done-useful-links" />
           </div>
           <div className={styles.introFade} aria-hidden />
+        </div>
+        <div className={styles.buttonRow}>
+          <Button
+            variant="primary"
+            size="lg"
+            label="Done"
+            showIcon={false}
+            onClick={handleClose}
+          />
         </div>
       </FlowShell>
     )

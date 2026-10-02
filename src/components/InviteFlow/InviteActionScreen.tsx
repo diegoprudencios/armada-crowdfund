@@ -1,7 +1,7 @@
 // ABOUTME: In-place invite action screen — method pick + link / onchain form for a target hop.
 
-import { useEffect, useId, useRef, useState } from 'react'
-import { EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import type { InviteMethod } from '../../constants/inviteUx'
 import { hopPillDotColor } from '../../constants/graphHopColors'
 import { Button } from '../Button'
@@ -10,8 +10,11 @@ import {
   formatInviteeHop,
   type InviteeHop,
 } from '../MyPosition/inviteModel'
-import { truncateAddress } from './screens/SlotCard'
+import { mockResolveEns } from './mockEnsResolve'
+import { truncateAddress, type SlotData } from './screens/SlotCard'
 import styles from './InviteActionScreen.module.css'
+
+const CLOSE_ICON_PX = 16
 
 type EnsState = 'idle' | 'resolving' | 'resolved' | 'error'
 
@@ -58,6 +61,24 @@ function hopVariantForInvitee(hop: InviteeHop): 'hop-1' | 'hop-2' {
   return hop === 2 ? 'hop-2' : 'hop-1'
 }
 
+/** Prior onchain / redeemed invites that already targeted this wallet. */
+function priorInviteCountForAddress(
+  invites: SlotData[],
+  address: string,
+  ensName?: string,
+): number {
+  if (!address && !ensName) return 0
+  const ensKey = ensName?.trim().toLowerCase()
+  return invites.filter((invite) => {
+    if (address) {
+      if (invite.invitedAddress && sameAddress(invite.invitedAddress, address)) return true
+      if (invite.redeemedBy && sameAddress(invite.redeemedBy, address)) return true
+    }
+    if (ensKey && invite.ensName?.trim().toLowerCase() === ensKey) return true
+    return false
+  }).length
+}
+
 export interface InviteActionScreenProps {
   /** Target hop the invitee will join. Prefer over slotId for the hop-based card. */
   hop?: InviteeHop
@@ -82,6 +103,13 @@ export interface InviteActionScreenProps {
   /** Connected wallet — when the pasted address matches, CTA / confirm become self-invite. */
   selfWalletAddress?: string
   copiedInviteId?: number | null
+  /** Issued invites — used to warn on repeat address invites. */
+  existingInvites?: SlotData[]
+  /**
+   * `panel` — fills the parent shell (desktop in-place).
+   * `sheet` — content-sized for mobile bottom sheet.
+   */
+  layout?: 'panel' | 'sheet'
 }
 
 export function InviteActionScreen({
@@ -99,6 +127,8 @@ export function InviteActionScreen({
   onDiscardCreated,
   selfWalletAddress,
   copiedInviteId = null,
+  existingInvites = [],
+  layout = 'panel',
 }: InviteActionScreenProps) {
   const [addressInput, setAddressInput] = useState('')
   const [ensState, setEnsState] = useState<EnsState>('idle')
@@ -109,6 +139,7 @@ export function InviteActionScreen({
   )
   const [clipboardPaste, setClipboardPaste] = useState<string | null>(null)
   const [revoking, setRevoking] = useState(false)
+  const [awaitingDuplicateConfirm, setAwaitingDuplicateConfirm] = useState(false)
   const [linkMenuOpen, setLinkMenuOpen] = useState(false)
   const addressInputElRef = useRef<HTMLInputElement>(null)
   const linkMenuRef = useRef<HTMLDivElement>(null)
@@ -136,17 +167,31 @@ export function InviteActionScreen({
     selfWalletAddress != null &&
     sameAddress(createdOnchain.address, selfWalletAddress)
 
+  const ensNameForSubmit = isEns(addressInput) ? addressInput.trim() : undefined
+
+  const priorInviteCount = useMemo(
+    () =>
+      priorInviteCountForAddress(
+        existingInvites,
+        resolvedInviteAddress,
+        ensNameForSubmit,
+      ),
+    [existingInvites, resolvedInviteAddress, ensNameForSubmit],
+  )
+
   const title = createdLink
     ? 'Link ready to share'
     : createdOnchain
       ? isSelfInviteConfirm
         ? 'Self invite sent on-chain'
         : 'Invite sent on-chain'
-      : method === 'link'
-        ? 'Create and share an invite link'
-        : method === 'onchain'
-          ? 'Whitelist new address'
-          : `Invite to ${hopLabel}`
+      : awaitingDuplicateConfirm
+        ? 'Invite this address again?'
+        : method === 'link'
+          ? 'Create and share an invite link'
+          : method === 'onchain'
+            ? 'Whitelist new address'
+            : `Invite to ${hopLabel}`
 
   const hasAddressInput = addressInput.trim().length > 0
   const showPasteBtn =
@@ -165,11 +210,13 @@ export function InviteActionScreen({
       : method === 'onchain'
         ? loading
           ? 'Inviting…'
-          : hasAddressInput
-            ? isSelfInviteForm
-              ? 'Self invite'
-              : 'Send invite'
-            : 'Insert address'
+          : awaitingDuplicateConfirm
+            ? 'Send anyway'
+            : hasAddressInput
+              ? isSelfInviteForm
+                ? 'Self invite'
+                : 'Send invite'
+              : 'Insert address'
         : 'Continue'
 
   const primaryBlocked =
@@ -180,12 +227,14 @@ export function InviteActionScreen({
         : loading
 
   useEffect(() => {
+    // Sheet layout: never autofocus — that opens the mobile keyboard and clips the sheet.
+    if (layout === 'sheet') return
     if (method !== 'onchain' || createdLink || createdOnchain) return
     const id = window.requestAnimationFrame(() => {
       addressInputElRef.current?.focus()
     })
     return () => window.cancelAnimationFrame(id)
-  }, [method, createdLink, createdOnchain])
+  }, [layout, method, createdLink, createdOnchain])
 
   useEffect(() => {
     if (method !== 'onchain' || createdOnchain || hasAddressInput) {
@@ -244,14 +293,14 @@ export function InviteActionScreen({
   const handleAddressChange = async (val: string) => {
     setAddressInput(val)
     setResolvedAddress('')
+    setAwaitingDuplicateConfirm(false)
     if (isEns(val)) {
       setEnsState('resolving')
       await new Promise((r) => setTimeout(r, 900))
       if (val === 'invalid.eth') {
         setEnsState('error')
       } else {
-        const mock = '0x' + Math.random().toString(16).slice(2, 42)
-        setResolvedAddress(mock)
+        setResolvedAddress(mockResolveEns(val))
         setEnsState('resolved')
       }
     } else if (isValidAddress(val)) {
@@ -306,7 +355,16 @@ export function InviteActionScreen({
       return
     }
     const address = resolvedAddress || addressInput
-    const ensName = isEns(addressInput) ? addressInput : undefined
+    const ensName = isEns(addressInput) ? addressInput.trim() : undefined
+
+    if (
+      !awaitingDuplicateConfirm &&
+      priorInviteCountForAddress(existingInvites, address, ensName) > 0
+    ) {
+      setAwaitingDuplicateConfirm(true)
+      return
+    }
+
     const generation = ++createGenerationRef.current
     try {
       const created = await onInviteOnchain(target, address, ensName)
@@ -314,6 +372,7 @@ export function InviteActionScreen({
         if (created) onDiscardCreated?.(created.id)
         return
       }
+      setAwaitingDuplicateConfirm(false)
       if (created) {
         pendingConfirmIdRef.current = created.id
         setCreatedOnchain(created)
@@ -368,16 +427,33 @@ export function InviteActionScreen({
       <p className={styles.slotLabel}>Slot {slotId}</p>
     )
 
+  const rootClass = [styles.root, layout === 'sheet' ? styles.rootSheet : undefined]
+    .filter(Boolean)
+    .join(' ')
+
+  const closeBtn = (
+    <button
+      type="button"
+      className={styles.closeBtn}
+      onClick={handleCancel}
+      aria-label="Close invite"
+      disabled={loading || revoking}
+    >
+      <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
+    </button>
+  )
+
   if (createdLink) {
     const copied = copiedInviteId === createdLink.id
     const canRevoke = onDiscardCreated != null || onRevoke != null
     return (
-      <div className={styles.root}>
+      <div className={rootClass}>
         <div className={styles.topRow}>
           <div className={styles.titleBlock}>
             {hopTag}
             <h3 className={styles.title}>{title}</h3>
           </div>
+          {closeBtn}
         </div>
 
         <div className={styles.body}>
@@ -456,19 +532,20 @@ export function InviteActionScreen({
       ? `Waiting to commit · ${truncateAddress(createdOnchain.address)}`
       : 'Waiting to commit'
     return (
-      <div className={styles.root}>
+      <div className={rootClass}>
         <div className={styles.topRow}>
           <div className={styles.titleBlock}>
             {hopTag}
             <h3 className={styles.title}>{title}</h3>
           </div>
+          {closeBtn}
         </div>
 
         <div className={styles.body}>
           <p className={styles.hint} role="status">
             {isSelfInviteConfirm
-              ? 'You invited yourself. Connect this wallet on armada.wtf and commit USDC anytime before the deadline.'
-              : 'They can visit armada.wtf, connect this wallet, and commit USDC anytime before the deadline.'}
+              ? 'You invited yourself. Open the crowdfund website with this wallet and commit USDC anytime before the deadline.'
+              : 'They can open the crowdfund website, connect this wallet, and commit USDC anytime before the deadline.'}
           </p>
           <div className={styles.createdLinkBox}>
             <div className={styles.createdLinkMain}>
@@ -500,12 +577,13 @@ export function InviteActionScreen({
   }
 
   return (
-    <div className={styles.root}>
+      <div className={rootClass}>
       <div className={styles.topRow}>
         <div className={styles.titleBlock}>
           {hopTag}
           <h3 className={styles.title}>{title}</h3>
         </div>
+        {closeBtn}
       </div>
 
       <div className={styles.body}>
@@ -559,7 +637,7 @@ export function InviteActionScreen({
                 aria-label="Wallet address or ENS name"
                 spellCheck={false}
                 autoComplete="off"
-                autoFocus
+                disabled={awaitingDuplicateConfirm || loading}
               />
               <div className={styles.inputTrailing}>
                 {ensState === 'resolving' && (
@@ -587,10 +665,22 @@ export function InviteActionScreen({
             {ensState === 'error' && (
               <span className={styles.errorMsg}>ENS name not found</span>
             )}
-            <p className={styles.hint}>
-              This sends an onchain transaction. The invitee can then visit armada.wtf and
-              commit. Requires gas.
-            </p>
+            {awaitingDuplicateConfirm ? (
+              <p className={styles.duplicateWarning} role="alert">
+                {priorInviteCount === 1
+                  ? `You've already invited ${
+                      isEns(addressInput) ? addressInput : truncateAddress(resolvedInviteAddress)
+                    }. Sending again uses another invite slot and gas.`
+                  : `You've already invited ${
+                      isEns(addressInput) ? addressInput : truncateAddress(resolvedInviteAddress)
+                    } ${priorInviteCount} times. Sending again uses another invite slot and gas.`}
+              </p>
+            ) : (
+              <p className={styles.hint}>
+                This sends an onchain transaction. The invitee can then open the crowdfund
+                website and commit. Requires gas.
+              </p>
+            )}
           </>
         )}
       </div>
@@ -599,10 +689,14 @@ export function InviteActionScreen({
         <Button
           variant="secondary"
           size="sm"
-          label="Cancel"
+          label={awaitingDuplicateConfirm ? 'Go back' : 'Cancel'}
           showIcon={false}
           disabled={loading}
-          onClick={handleCancel}
+          onClick={
+            awaitingDuplicateConfirm
+              ? () => setAwaitingDuplicateConfirm(false)
+              : handleCancel
+          }
         />
         {method != null && (
           <Button

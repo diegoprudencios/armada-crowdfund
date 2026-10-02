@@ -40,7 +40,7 @@ export type ClaimDemoScreen =
 
 function GateShell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className={styles.gateShell}>
+    <div className={styles.gateShell} data-flow-shell>
       <h2 className={styles.gateTitle}>{title}</h2>
       {children}
     </div>
@@ -61,7 +61,7 @@ function FlowShell({
   children: ReactNode
 }) {
   return (
-    <div className={styles.cardShell}>
+    <div className={styles.cardShell} data-flow-shell>
       <FlowChrome
         title={title}
         titleAlign={titleAlign}
@@ -435,6 +435,9 @@ export function ClaimFlowDemo({ screen }: { screen: ClaimDemoScreen }) {
             </div>
             <div className={styles.introFade} aria-hidden />
           </div>
+          <div className={styles.buttonRow}>
+            <Button variant="primary" size="lg" label="Done" showIcon={false} />
+          </div>
         </FlowShell>
       )
     case 'done-refund':
@@ -486,6 +489,9 @@ export function ClaimFlowDemo({ screen }: { screen: ClaimDemoScreen }) {
               <UsefulLinks headingId="claim-demo-refund-useful-links" />
             </div>
             <div className={styles.introFade} aria-hidden />
+          </div>
+          <div className={styles.buttonRow}>
+            <Button variant="primary" size="lg" label="Done" showIcon={false} />
           </div>
         </FlowShell>
       )

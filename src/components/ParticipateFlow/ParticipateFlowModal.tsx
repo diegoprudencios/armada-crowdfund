@@ -6,6 +6,7 @@ import styles from './ParticipateFlowModal.module.css'
 const EXIT_MS = 280
 const CLOSE_ICON_PX = 14
 const ARMADA_SYMBOL_SRC = `${import.meta.env.BASE_URL}armada-symbol-color.png`
+const MODAL_OPEN_ATTR = 'data-flow-modal-open'
 
 export interface ParticipateFlowModalProps {
   open: boolean
@@ -32,8 +33,14 @@ export function ParticipateFlowModal({
 }: ParticipateFlowModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const footerRef = useRef<HTMLDivElement>(null)
+  const stepRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(open)
   const [exiting, setExiting] = useState(false)
+  // Hold latest onClose without re-running the lock/focus effect on every parent render.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (open) {
@@ -53,28 +60,72 @@ export function ParticipateFlowModal({
   useEffect(() => {
     if (!mounted || exiting) return
 
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    // Lock page scroll while the modal is open. `overflow: hidden` alone is not
+    // enough on iOS / when the crowdfund page scrolls — pin the body and restore
+    // scroll position on close.
+    const html = document.documentElement
+    const body = document.body
+    const root = document.getElementById('root')
+    const scrollY = window.scrollY
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      rootInert: root?.inert ?? false,
+    }
 
+    html.style.overflow = 'hidden'
+    html.style.overscrollBehavior = 'none'
+    html.setAttribute(MODAL_OPEN_ATTR, '')
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    if (root) root.inert = true
+
+    // Move focus into the dialog. Steps that draw their own chrome leave
+    // `showClose` false — fall through to the first control in the step.
     if (showClose) {
       closeRef.current?.focus()
     } else {
-      const focusable = footerRef.current?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      )
+      const FOCUSABLE =
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      const focusable =
+        footerRef.current?.querySelector<HTMLElement>(FOCUSABLE) ??
+        stepRef.current?.querySelector<HTMLElement>(FOCUSABLE)
       focusable?.focus()
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKeyDown)
 
     return () => {
-      document.body.style.overflow = prevOverflow
+      html.style.overflow = prev.htmlOverflow
+      html.style.overscrollBehavior = prev.htmlOverscroll
+      html.removeAttribute(MODAL_OPEN_ATTR)
+      body.style.overflow = prev.bodyOverflow
+      body.style.overscrollBehavior = prev.bodyOverscroll
+      body.style.position = prev.bodyPosition
+      body.style.top = prev.bodyTop
+      body.style.left = prev.bodyLeft
+      body.style.right = prev.bodyRight
+      body.style.width = prev.bodyWidth
+      if (root) root.inert = prev.rootInert
+      window.scrollTo(0, scrollY)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [mounted, exiting, onClose, showClose])
+  }, [mounted, exiting, showClose])
 
   if (!mounted) return null
 
@@ -108,13 +159,16 @@ export function ParticipateFlowModal({
             ref={closeRef}
             type="button"
             className={styles.close}
-            onClick={onClose}
+            onClick={() => onCloseRef.current()}
             aria-label={closeAriaLabel}
           >
             <XMarkIcon width={CLOSE_ICON_PX} height={CLOSE_ICON_PX} aria-hidden />
           </button>
         ) : null}
-        <div className={[styles.step, exiting && styles.stepExit].filter(Boolean).join(' ')}>
+        <div
+          ref={stepRef}
+          className={[styles.step, exiting && styles.stepExit].filter(Boolean).join(' ')}
+        >
           {children}
         </div>
         {footer ? (

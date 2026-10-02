@@ -216,6 +216,28 @@ export function PositionCardDemo({ variant, onCta, onClaim, className }: Positio
             <span className={styles.barCaption}>Cap {formatUsdcCommitted(cfg.capUsd)}</span>
           </div>
         </div>
+
+        {showParticipateCta && (
+          <Button
+            className={styles.footerCta}
+            variant="gradient"
+            size="sm"
+            label={cfg.hasCommitted ? 'Commit again' : 'Participate'}
+            showIcon
+            icon="arrow-right-micro"
+            onClick={onCta}
+          />
+        )}
+        {showClaimCta && (
+          <Button
+            className={styles.footerCta}
+            variant="primary"
+            size="sm"
+            label={cfg.outcome === 'refund' ? 'Claim refund' : 'Claim'}
+            showIcon={false}
+            onClick={onClaim}
+          />
+        )}
       </div>
     </section>
   )

@@ -1,11 +1,11 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import { Button } from '../Button'
+import { FlowChrome } from '../ParticipateFlow/FlowChrome'
 import {
   InviteHopFocusChrome,
   useInviteHopFocus,
@@ -15,10 +15,12 @@ import { HopAvailableRow } from '../MyPosition/InvitesCard'
 import inviteCardStyles from '../MyPosition/InvitesCard.module.css'
 import {
   availableForHop,
+  formatInviteeHop,
   hopsWithAllowance,
   type InviteAllowance,
   type InviteeHop,
 } from '../MyPosition/inviteModel'
+import { useIsMobileLayout } from '../../hooks/useIsMobileLayout'
 import inviteStyles from '../InviteFlow/screens/InviteSlots.module.css'
 import styles from './ParticipateFlowInviteSlots.module.css'
 
@@ -39,8 +41,39 @@ export interface ParticipateFlowInviteSlotsProps {
     ensName?: string,
   ) => Promise<{ id: number; address: string; ensName?: string } | void>
   onDoItLater?: () => void
+  /** FlowChrome back — returns to the previous participate step (usually confirmation). */
+  onBack?: () => void
+  /** FlowChrome close — dismisses the participate invite step. */
+  onClose?: () => void
+  /** Reveal a just-created invite in the sent list (Done). */
+  onConfirmCreated?: (inviteId: number) => void
+  /** Free the slot if the create confirmation is abandoned / discarded. */
+  onDiscardCreated?: (inviteId: number) => void
   copiedId?: number | null
   loadingHop?: InviteeHop | null
+}
+
+function whitelistSubtitle(
+  slots: SlotData[],
+  allowance: InviteAllowance,
+  hopRows: InviteeHop[],
+): string {
+  const availableHops = hopRows.filter(
+    (hop) => availableForHop(slots, allowance, hop) > 0,
+  )
+  const total = availableHops.reduce(
+    (sum, hop) => sum + availableForHop(slots, allowance, hop),
+    0,
+  )
+  if (total <= 0) {
+    return 'You have no invites left to send right now.'
+  }
+  const countLabel = total === 1 ? '1 invite left' : `${total} invites left`
+  if (availableHops.length === 1) {
+    const hop = availableHops[0]
+    return `You have ${countLabel} for ${formatInviteeHop(hop!)}. Share a link (no gas) or whitelist an address onchain so a friend can join.`
+  }
+  return `You have ${countLabel}. Share a link (no gas) or whitelist an address onchain so a friend can join the fleet.`
 }
 
 export function ParticipateFlowInviteSlots({
@@ -52,9 +85,14 @@ export function ParticipateFlowInviteSlots({
   onRevoke,
   onInviteOnchain,
   onDoItLater,
+  onBack,
+  onClose,
+  onConfirmCreated,
+  onDiscardCreated,
   copiedId = null,
   loadingHop = null,
 }: ParticipateFlowInviteSlotsProps) {
+  const isMobile = useIsMobileLayout()
   const focusApi = useInviteHopFocus()
   const [rollFromByHop, setRollFromByHop] = useState<
     Partial<Record<InviteeHop, number>>
@@ -66,6 +104,12 @@ export function ParticipateFlowInviteSlots({
   const hopRows = useMemo(() => hopsWithAllowance(allowance), [allowance])
   const isEmpty = hopRows.length === 0
   const isActionView = focusApi.view === 'action'
+  /** Mobile keeps the hop list under the action sheet — do not swap the chrome. */
+  const isInPlaceAction = isActionView && !isMobile
+  const subtitle = useMemo(
+    () => whitelistSubtitle(slots, allowance, hopRows),
+    [slots, allowance, hopRows],
+  )
 
   useEffect(() => {
     if (isActionView) {
@@ -118,31 +162,17 @@ export function ParticipateFlowInviteSlots({
     </div>
   )
 
-  const listFrame = (
-    <div className={inviteStyles.listFrame}>
-      {!isActionView && (
-        <div className={inviteStyles.header}>
-          <h2 className={inviteStyles.title}>Whitelist a friend</h2>
-          {!isEmpty && (
-            <p className={inviteStyles.subtitle}>
-              We need more sailors like you to join the fleet.
-              <br />
-              Share a link or send an onchain invite to a specific address.
-            </p>
-          )}
+  const listBody = (
+    <div className={styles.scroll}>
+      {isEmpty ? (
+        <div className={styles.empty} role="status">
+          <p className={styles.emptyText}>
+            You have no invite slots available at this hop.
+          </p>
         </div>
+      ) : (
+        hopList
       )}
-      <div className={styles.scroll}>
-        {isEmpty ? (
-          <div className={styles.empty} role="status">
-            <p className={styles.emptyText}>
-              You have no invite slots available at this hop.
-            </p>
-          </div>
-        ) : (
-          hopList
-        )}
-      </div>
     </div>
   )
 
@@ -153,6 +183,23 @@ export function ParticipateFlowInviteSlots({
         data-flow-shell
         data-invite-surface=""
       >
+        {/* Chrome stays outside the list↔action crossfade so back/close never drop out. */}
+        {!isInPlaceAction ? (
+          <div className={styles.chromeBlock}>
+            <FlowChrome
+              title="Whitelist a friend"
+              titleId="whitelist-friend-title"
+              onBack={onBack}
+              onClose={onClose}
+              closeAriaLabel="Close invite flow"
+              backAriaLabel="Back to confirmation"
+            />
+            {!isEmpty ? (
+              <p className={styles.subtitle}>{subtitle}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         {!isEmpty ? (
           <InviteHopFocusChrome
             focusApi={focusApi}
@@ -161,12 +208,15 @@ export function ParticipateFlowInviteSlots({
             onInviteOnchain={onInviteOnchain}
             onCopy={onCopy}
             onRevoke={onRevoke}
+            onConfirmCreated={onConfirmCreated}
+            onDiscardCreated={onDiscardCreated}
             selfWalletAddress={selfWalletAddress}
+            existingInvites={slots}
             copiedInviteId={copiedId}
-            list={listFrame}
+            list={listBody}
           />
         ) : (
-          listFrame
+          listBody
         )}
       </div>
 

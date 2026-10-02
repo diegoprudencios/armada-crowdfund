@@ -11,6 +11,7 @@ import {
 } from '../MyPosition/inviteModel'
 import { hopPillDotColor } from '../../constants/graphHopColors'
 import StepBeforeYouStart from './screens/StepBeforeYouStart'
+import Step1Wallet from './screens/Step1Wallet'
 import Step2Commit from './screens/Step2Commit'
 import Step3Review, { type Step3ReviewHopCommit } from './screens/Step3Review'
 import Step4Approve from './screens/Step4Approve'
@@ -56,6 +57,7 @@ function MaxOutReviewNote({ inviteCount }: { inviteCount: number }) {
 }
 
 export type InviteLinkFlowStep =
+  | 'wallet'
   | 'beforeYouStart'
   | 'commit'
   | 'review'
@@ -72,9 +74,9 @@ export interface ParticipateFlowInviteLinkProps {
   /** `inline` swaps content in the invite landing shell; `modal` overlays a dialog. */
   presentation?: 'modal' | 'inline'
   onClose: (context: ParticipateFlowInviteLinkCloseContext) => void
-  /** @deprecated Wallet connect is RainbowKit; kept for callers. Ignored for step routing. */
+  /** Demo fake-wallet gate — disconnected users stay on the connect step. */
   walletConnected?: boolean
-  /** @deprecated Unused — connect happens outside this flow. */
+  /** Demo wallet picker — called when the user picks a provider on the wallet step. */
   onConnectWallet?: (provider: string) => void
   onCompleteParticipation?: (amountUsdc: number) => void
   /** Apply POC-style self-fill (invites on self + multi-hop commits). */
@@ -109,6 +111,8 @@ export interface ParticipateFlowInviteLinkProps {
   ) => Promise<{ id: number; address: string; ensName?: string } | void>
   onInviteSlotOnchain?: (slotId: number, address: string, ensName?: string) => Promise<void>
   onCopySlotLink?: (slotId: number, link: string) => void
+  onConfirmCreated?: (inviteId: number) => void
+  onDiscardCreated?: (inviteId: number) => void
   loadingHop?: InviteeHop | null
   loadingSlotId?: number | null
   copiedSlotId?: number | null
@@ -127,6 +131,7 @@ const STEP_TRANSITION_MS = 240
 const MY_POSITION_URL = `${import.meta.env.BASE_URL}?view=myposition`
 
 const DIALOG_LABEL: Record<InviteLinkFlowStep, string> = {
+  wallet: 'Select your wallet',
   beforeYouStart: 'How to participate',
   commit: 'How much USDC?',
   review: 'Review your commitment',
@@ -156,14 +161,15 @@ function StepTransition({
 
 /**
  * Path 1 — invite link entry.
- * Landing page shows Step 0; this flow runs Commit → Review → Confirm.
- * Wallet connect is RainbowKit (outside this flow).
+ * Landing page shows Step 0; this flow gates on the demo wallet, then Commit → Review → Confirm.
  * Commit MAX = current-hop ceiling; Max out = self-fill projected ceiling (POC parity).
  */
 export function ParticipateFlowInviteLink({
   open,
   presentation = 'modal',
   onClose,
+  walletConnected = false,
+  onConnectWallet,
   onCompleteParticipation,
   onApplyMaxOutPlan,
   onViewPosition,
@@ -184,16 +190,42 @@ export function ParticipateFlowInviteLink({
   onInviteOnchainHop,
   onInviteSlotOnchain,
   onCopySlotLink,
+  onConfirmCreated,
+  onDiscardCreated,
   loadingHop = null,
   loadingSlotId = null,
   copiedSlotId = null,
 }: ParticipateFlowInviteLinkProps) {
-  const entryStep = (participated: boolean): InviteLinkFlowStep =>
-    participated ? 'commit' : 'beforeYouStart'
+  const postWalletStep = useCallback(
+    (
+      participated: boolean,
+      remaining: number,
+      canFill: boolean,
+    ): InviteLinkFlowStep => {
+      if (participated && remaining <= 0 && !canFill) return 'confirmation'
+      return participated ? 'commit' : 'beforeYouStart'
+    },
+    [],
+  )
 
-  const [step, setStep] = useState<InviteLinkFlowStep>(() => entryStep(hasParticipated))
+  const entryStep = useCallback(
+    (
+      participated: boolean,
+      connected: boolean,
+      remaining = Number.POSITIVE_INFINITY,
+      canFill = false,
+    ): InviteLinkFlowStep => {
+      if (!connected) return 'wallet'
+      return postWalletStep(participated, remaining, canFill)
+    },
+    [postWalletStep],
+  )
+
+  const [step, setStep] = useState<InviteLinkFlowStep>(() =>
+    entryStep(hasParticipated, walletConnected),
+  )
   const [renderStep, setRenderStep] = useState<InviteLinkFlowStep>(() =>
-    entryStep(hasParticipated),
+    entryStep(hasParticipated, walletConnected),
   )
   const [fading, setFading] = useState(false)
   const [amount, setAmount] = useState(0)
@@ -243,6 +275,7 @@ export function ParticipateFlowInviteLink({
 
   const remainingCap =
     remainingHopUsdc != null ? remainingHopUsdc : Math.max(0, capUsdc - committedUsdc)
+  const canSelfFillOnOpen = (maxOutPlan?.newCommitUsdc ?? 0) > 0
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current
@@ -254,30 +287,61 @@ export function ParticipateFlowInviteLink({
       setFading(false)
       setAmount(0)
       resetMax()
-      const atCurrentCap = hasParticipated && remainingCap <= 0
-      const canSelfFill = (maxOutPlan?.newCommitUsdc ?? 0) > 0
-      if (atCurrentCap && !canSelfFill) {
-        setStep('confirmation')
-        setRenderStep('confirmation')
-      } else {
-        const start = entryStep(hasParticipated)
-        setStep(start)
-        setRenderStep(start)
-      }
+      const start = entryStep(
+        hasParticipated,
+        walletConnected,
+        remainingCap,
+        canSelfFillOnOpen,
+      )
+      setStep(start)
+      setRenderStep(start)
       return
     }
 
     if (open) return
 
     clearTransitionTimer()
-    const start = entryStep(hasParticipated)
+    const start = entryStep(hasParticipated, walletConnected)
     setStep(start)
     setRenderStep(start)
     setFading(false)
     setAmount(0)
     resetMax()
     wasReturningParticipantRef.current = false
-  }, [open, hasParticipated, remainingCap, maxOutPlan?.newCommitUsdc, resetMax])
+  }, [
+    open,
+    hasParticipated,
+    walletConnected,
+    remainingCap,
+    canSelfFillOnOpen,
+    entryStep,
+    resetMax,
+  ])
+
+  useEffect(() => {
+    if (!open) return
+    if (!walletConnected) {
+      if (step !== 'wallet') {
+        clearTransitionTimer()
+        setFading(false)
+        setStep('wallet')
+        setRenderStep('wallet')
+      }
+      return
+    }
+    if (step === 'wallet') {
+      transitionTo(postWalletStep(hasParticipated, remainingCap, canSelfFillOnOpen))
+    }
+  }, [
+    open,
+    walletConnected,
+    step,
+    hasParticipated,
+    remainingCap,
+    canSelfFillOnOpen,
+    postWalletStep,
+    transitionTo,
+  ])
 
   const hopLevel = HOP_LEVEL_LABEL[hopVariant]
   const estimatedArm = Math.round(amount)
@@ -312,6 +376,16 @@ export function ParticipateFlowInviteLink({
     transitionTo('review')
   }, [maxOutPlan, transitionTo])
 
+  const maxOutBannerOption =
+    showMaxOutBanner && maxOutPlan
+      ? {
+          ceilingUsd: maxOutPlan.projectedCeilingUsdc,
+          newCommitUsd: maxOutPlan.newCommitUsdc,
+          inviteCount: maxOutPlan.totalInvites,
+          onMaxOut: handleDemoMaxOut,
+        }
+      : null
+
   const finishCommit = useCallback(
     (commitAmount: number) => {
       if (maxMode && activeMaxPlan) {
@@ -337,6 +411,17 @@ export function ParticipateFlowInviteLink({
 
   const renderCurrentStep = () => {
     switch (renderStep) {
+      case 'wallet':
+        return (
+          <Step1Wallet
+            showSteps={false}
+            compact
+            onNext={(provider) => {
+              onConnectWallet?.(provider)
+            }}
+          />
+        )
+
       case 'beforeYouStart':
         return (
           <StepBeforeYouStart
@@ -388,6 +473,7 @@ export function ParticipateFlowInviteLink({
               onClose={handleClose}
               onViewPosition={handleViewPosition}
               onNext={() => {}}
+              maxOut={maxOutBannerOption}
             />
           )
         }
@@ -409,6 +495,7 @@ export function ParticipateFlowInviteLink({
               setAmount(nextAmount)
               transitionTo('review')
             }}
+            maxOut={maxOutBannerOption}
           />
         )
 
@@ -504,6 +591,10 @@ export function ParticipateFlowInviteLink({
               })
             }
             onDoItLater={handleClose}
+            onBack={() => transitionTo('confirmation')}
+            onClose={handleClose}
+            onConfirmCreated={onConfirmCreated}
+            onDiscardCreated={onDiscardCreated}
             copiedId={copiedSlotId}
             loadingHop={loadingHop}
           />
@@ -524,15 +615,8 @@ export function ParticipateFlowInviteLink({
 
   const stepContent = (
     <div className={maxOutStyles.stack}>
-      {showMaxOutBanner && maxOutPlan ? (
-        <MaxOutBanner
-          maxOut={{
-            ceilingUsd: maxOutPlan.projectedCeilingUsdc,
-            newCommitUsd: maxOutPlan.newCommitUsdc,
-            inviteCount: maxOutPlan.totalInvites,
-            onMaxOut: handleDemoMaxOut,
-          }}
-        />
+      {maxOutBannerOption ? (
+        <MaxOutBanner maxOut={maxOutBannerOption} className={maxOutStyles.aboveShell} />
       ) : null}
       <StepTransition stepKey={renderStep} fading={fading}>
         {renderCurrentStep()}
@@ -557,7 +641,7 @@ export function ParticipateFlowInviteLink({
       open={open}
       onClose={handleClose}
       ariaLabel={DIALOG_LABEL[step]}
-      showClose={step === 'invites'}
+      showClose={step === 'wallet'}
     >
       {stepContent}
     </ParticipateFlowModal>

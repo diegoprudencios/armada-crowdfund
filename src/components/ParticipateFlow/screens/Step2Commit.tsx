@@ -9,6 +9,8 @@ import {
   parseActiveAmount,
   sanitizeAmountInput,
 } from '../../../utils/amountInput'
+import { MaxOutBanner, type MaxOutBannerOption } from './MaxOutBanner'
+import maxOutStyles from './MaxOutBanner.module.css'
 
 interface Step2CommitProps extends ParticipateStepBarProps {
   onNext: (amount: number) => void
@@ -32,6 +34,8 @@ interface Step2CommitProps extends ParticipateStepBarProps {
   fullyCommitted?: boolean
   /** Optional secondary CTA on the fully-committed card. */
   onViewPosition?: () => void
+  /** Self-fill banner — mobile places it under FlowChrome; desktop keeps it above the shell. */
+  maxOut?: MaxOutBannerOption | null
 }
 
 export default function Step2Commit({
@@ -47,6 +51,7 @@ export default function Step2Commit({
   showBack = true,
   fullyCommitted = false,
   onViewPosition,
+  maxOut = null,
 }: Step2CommitProps) {
   const remainingCap = Math.max(0, maxAmount - existingCommittedUsdc)
   const [amountInput, setAmountInput] = useState(() => {
@@ -86,6 +91,13 @@ export default function Step2Commit({
   const formatBalance = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+  const inShellBanner =
+    maxOut != null ? (
+      <div className={styles.maxOutSlot}>
+        <MaxOutBanner maxOut={maxOut} className={maxOutStyles.inShell} />
+      </div>
+    ) : null
+
   if (fullyCommitted) {
     return (
       <div className={styles.shell} data-flow-shell>
@@ -95,6 +107,7 @@ export default function Step2Commit({
           onBack={onBack}
           onClose={onClose}
         />
+        {inShellBanner}
 
         <div className={styles.content}>
           <div className={styles.inputBlock}>
@@ -107,18 +120,20 @@ export default function Step2Commit({
           </div>
         </div>
 
-        <div className={styles.buttonRow}>
-          {onViewPosition ? (
-            <Button
-              variant="secondary"
-              size="lg"
-              label="View your position"
-              showIcon={false}
-              onClick={onViewPosition}
-            />
-          ) : (
-            <Button variant="secondary" size="lg" label="Close" showIcon={false} onClick={onBack} />
-          )}
+        <div className={styles.bottomDock}>
+          <div className={styles.buttonRow}>
+            {onViewPosition ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                label="View your position"
+                showIcon={false}
+                onClick={onViewPosition}
+              />
+            ) : (
+              <Button variant="secondary" size="lg" label="Close" showIcon={false} onClick={onBack} />
+            )}
+          </div>
         </div>
       </div>
     )
@@ -133,6 +148,7 @@ export default function Step2Commit({
         onBack={onBack}
         onClose={onClose}
       />
+      {inShellBanner}
 
       <div className={styles.content}>
         <div className={styles.inputBlock}>
@@ -173,7 +189,9 @@ export default function Step2Commit({
             </div>
           </div>
         </div>
+      </div>
 
+      <div className={styles.bottomDock}>
         <ArmAllocationBlock
           maxArm={maxAmount}
           newAmount={amount}
@@ -192,21 +210,20 @@ export default function Step2Commit({
             'Subject to pool cap',
           ]}
         />
-      </div>
-
-      <div className={styles.buttonRow}>
-        <Button
-          variant="primary"
-          size="lg"
-          label={hasNewAmount ? 'Review' : 'Insert amount'}
-          showIcon={false}
-          className={!hasNewAmount ? styles.ctaBlocked : undefined}
-          aria-disabled={!hasNewAmount || undefined}
-          onClick={() => {
-            if (!hasNewAmount) return
-            onNext(amount)
-          }}
-        />
+        <div className={styles.buttonRow}>
+          <Button
+            variant="primary"
+            size="lg"
+            label={hasNewAmount ? 'Review' : 'Insert amount'}
+            showIcon={false}
+            className={!hasNewAmount ? styles.ctaBlocked : undefined}
+            aria-disabled={!hasNewAmount || undefined}
+            onClick={() => {
+              if (!hasNewAmount) return
+              onNext(amount)
+            }}
+          />
+        </div>
       </div>
     </div>
   )
